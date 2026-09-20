@@ -1,6 +1,7 @@
 import { app, ipcMain } from 'electron'
 import type { ZodTypeAny, z } from 'zod'
 import { logger } from '../lib/logger'
+import { AppError } from '../lib/app-error'
 
 /**
  * IPC 层：薄封装——zod 校验入参 → 调用 service → 统一错误信封。
@@ -9,15 +10,7 @@ import { logger } from '../lib/logger'
  * 约定：每个通道只接收一个 raw 参数（对象或数组），schema 校验后的值传给 fn。
  */
 
-/** 领域错误：service 层用于表达可预期失败 */
-export class AppError extends Error {
-  readonly code: string
-  constructor(code: string, message: string) {
-    super(message)
-    this.code = code
-    this.name = 'AppError'
-  }
-}
+export { AppError }
 
 /** 统一注册器：入参经 schema 校验，fn 返回值/异常包装为 IpcResult */
 export function handle<S extends ZodTypeAny, R>(

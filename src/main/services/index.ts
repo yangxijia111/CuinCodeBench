@@ -13,7 +13,7 @@ import { HistoryRepository } from '../db/repositories/history-repository'
 import { MistakeRepository } from '../db/repositories/mistake-repository'
 import { SettingsRepository } from '../db/repositories/settings-repository'
 import { StatsRepository } from '../db/repositories/stats-repository'
-import { AppError } from '../ipc'
+import { AppError } from '../lib/app-error'
 
 /**
  * 题库服务：CRUD / 搜索筛选 / JSON 导入导出（FR-P1–P5）。

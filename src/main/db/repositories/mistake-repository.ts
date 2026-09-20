@@ -49,7 +49,7 @@ export class MistakeRepository {
         .prepare(
           `SELECT status FROM submissions
            WHERE problem_id = ? AND status != 'accepted'
-           ORDER BY created_at DESC LIMIT 1`
+           ORDER BY created_at DESC, rowid DESC LIMIT 1`
         )
         .get(problemId) as { status: string } | undefined
 

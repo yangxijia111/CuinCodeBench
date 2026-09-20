@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added（P3 本地 Runner）
+- 工具链自动探测：PATH（where + --version 校验）与 MSVC（vswhere + vcvars64 环境解析），手工指定路径覆盖
+- 执行器：stdin 写入、stdout/stderr 捕获（1MB 上限）、超时进程树强杀（taskkill /T /F）、EPERM 退避重试
+- 编译器支持：gcc/clang（C11/C++17）与 MSVC（/std:c11、/std:c++17 /EHsc），Python（-I -X utf8）
+- 临时目录隔离：每任务独立随机目录、退出清理（Windows 锁重试）、启动清扫遗留
+- 判题核心纯函数：输出归一化（CRLF/行尾空白/末尾空行）与用例状态判定
+- JudgeService：串行队列、判题编排、提交/明细/错误记录落库、错题聚合
+- 集成测试：node 桩全管线 + 真实 Python/gcc/MSVC 端到端判题（AC/WA/RE/TLE/CE）
+
 ### Added（P2 题库）
 - 题库服务：CRUD、关键词/难度/标签组合筛选、JSON 导入导出（信封格式 + zod 校验）
 - 内置种子题库 10 题（覆盖三难度、三语言初始代码、48 个用例，期望值经参考解验证）

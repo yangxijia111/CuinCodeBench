@@ -18,7 +18,7 @@ export function makeProblemInput(overrides: Partial<ProblemInput> = {}): Problem
     testCases: [
       { stdin: '1 2', expectedStdout: '3', timeoutMs: 5000 },
       { stdin: '10 -3', expectedStdout: '7', timeoutMs: 5000 },
-      { stdin: '', expectedStdout: '', timeoutMs: 5000 }
+      { stdin: '7 8', expectedStdout: '15', timeoutMs: 5000 }
     ],
     ...overrides
   }

@@ -45,17 +45,23 @@
 修复记录：种子文件用内部格式校验（与导出信封区分）；ProblemDetail 上移 shared 供三端共用；IPC handle 泛型重构为 schema 驱动推断。
 **覆盖需求**：FR-P1–P6
 
-## P3 本地 Runner
+## P3 本地 Runner ✅（完成于 2026-09-21）
 
 **实现内容**
-- [ ] languages 配置与命令构造（纯函数）
-- [ ] temp-dir（隔离/清理/启动清扫）
-- [ ] execute（stdin/超时/输出限制/杀树）
-- [ ] compile（gcc/clang/MSVC）
-- [ ] toolchain 探测（where/--version/vswhere/vcvars 解析）
-- [ ] Runner 集成测试（python 真实 + node 桩 + 条件性 gcc/MSVC）
+- [x] languages 配置与命令构造（纯函数）
+- [x] temp-dir（隔离/清理/启动清扫）
+- [x] execute（stdin/超时/输出限制/杀树/EPERM 退避重试）
+- [x] compile（gcc/clang/MSVC）
+- [x] toolchain 探测（where/--version/vswhere/vcvars 解析）
+- [x] Runner 集成测试（python 真实 + node 桩 + 真实 gcc（便携 w64devkit 16.2）+ 真实 MSVC）
+- [x] JudgeService 端到端（AC/WA/RE/TLE/CE + 落库 + 错题聚合 + 串行队列）
 
-**验收**：本机 MSVC 与 Python 真实跑通 hello/stdin/RE/TLE/OLE/Unicode/清理；无工具链时返回友好错误；杀树无残留进程。
+**验收**：本机 MSVC 与 Python 真实跑通 hello/stdin/RE/TLE/OLE/Unicode/清理；无工具链时返回友好错误；杀树无残留进程。✅（96 项测试，含真实三工具链端到端判题）
+关键修复与发现：
+- Node 20.12+ 对 cmd.exe 参数自动转义引号，vcvars 解析需 `/d /c` + windowsVerbatimArguments（含空格路径的两引号保留规则）
+- Python `-I` 隔离模式忽略全部 PYTHON* 环境变量 → UTF-8 必须用 `-X utf8` 命令行选项
+- Windows 管道为文本模式（\n→\r\n），判题归一化（FR-J4）为必需而非可选
+- 杀软（Defender）可能持续拦截新编译的无签名 exe（spawn EPERM）→ execute 退避重试 + 持续拦截时错误可见（WIN-7）
 **覆盖需求**：FR-R1–R10、WIN-1–7、SECURITY §3
 
 ## P4 自动判题与练习页

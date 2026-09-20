@@ -4,11 +4,15 @@ import { logger } from './lib/logger'
 import { registerIpcHandlers } from './ipc/register'
 import { getDataDir } from './ipc'
 import { openDatabase } from './db/connection'
-import { initServices } from './services'
+import { initServices, getServices } from './services'
+import { ToolchainService } from './services/toolchain-service'
+import { JudgeService } from './services/judge-service'
 import { loadSeedProblems, resolveSeedFile } from './seed/seed'
+import { cleanLegacyTempDirs } from './runner/temp-dir'
 
 /**
- * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → IPC 注册 → 窗口创建。
+ * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → 清扫遗留临时目录 →
+ * IPC 注册 → 后台工具链探测 → 窗口创建。
  */
 
 // 禁止硬件加速相关的已知渲染问题（保守关闭，桌面工具不需要 GPU 重度特性）
@@ -80,7 +84,23 @@ if (!gotLock) {
       logger.info('种子题库已灌入', `${seeds.length} 题`)
     }
 
-    registerIpcHandlers()
+    // 工具链与判题服务
+    const toolchains = new ToolchainService(() => services.settings.get().manualToolchains)
+    const judge = new JudgeService(toolchains, () => getServices())
+
+    // 清扫上次运行遗留的临时目录（尽力而为，不阻塞启动）
+    void cleanLegacyTempDirs().then((n) => {
+      if (n > 0) logger.info('已清扫遗留临时目录', `${n} 个`)
+    })
+
+    registerIpcHandlers({ toolchains, judge })
+
+    // 后台预探测工具链（不阻塞窗口显示）
+    void toolchains
+      .detectAll(true)
+      .then((list) => logger.info('工具链探测完成', `${list.length} 个可用`))
+      .catch((err: unknown) => logger.error('工具链探测失败', String(err)))
+
     const win = createMainWindow()
     loadRenderer(win)
     logger.info('应用已启动', `version=${app.getVersion()}`)

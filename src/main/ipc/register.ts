@@ -1,18 +1,30 @@
 import { app } from 'electron'
 import { z } from 'zod'
-import { problemQuerySchema, submissionQuerySchema, appSettingsPatchSchema } from '@shared/schemas'
+import {
+  problemQuerySchema,
+  runOnceInputSchema,
+  judgeSubmitSchema,
+  submissionQuerySchema,
+  appSettingsPatchSchema
+} from '@shared/schemas'
 import type { AppSettings } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
 import { getServices } from '../services'
+import type { ToolchainService } from '../services/toolchain-service'
+import type { JudgeService } from '../services/judge-service'
 
 /**
  * IPC 通道注册总入口：按模块拆分，全部走 zod 校验 + 统一错误信封。
- * toolchains / run / judge 通道在 P3/P4 阶段追加。
  */
 
 const noArgs = z.unknown()
 
-export function registerIpcHandlers(): void {
+export interface IpcDeps {
+  toolchains: ToolchainService
+  judge: JudgeService
+}
+
+export function registerIpcHandlers(deps: IpcDeps): void {
   // —— 应用信息 ——
   handle('app.getInfo', noArgs, () => ({
     version: app.getVersion(),
@@ -38,6 +50,15 @@ export function registerIpcHandlers(): void {
   handle('problems.listTags', noArgs, () => svc().problems.listTags())
   handle('problems.export', z.array(z.string()).nullable(), (ids) => svc().problems.exportJson(ids))
   handle('problems.import', z.string(), (text) => svc().problems.importJson(text))
+
+  // —— 工具链 ——
+  handle('toolchains.detect', z.boolean(), (force) => deps.toolchains.detectAll(force))
+
+  // —— 运行与判题 ——
+  handle('run.once', runOnceInputSchema, (input) => deps.judge.runOnce(input))
+  handle('judge.submit', judgeSubmitSchema, ([problemId, language, code]) =>
+    deps.judge.submit(problemId, language, code)
+  )
 
   // —— 历史 ——
   handle('history.list', submissionQuerySchema, (q) =>
