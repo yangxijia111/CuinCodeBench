@@ -1,0 +1,23 @@
+# electron-builder 配置（P6 完善 NSIS 细节）
+appId: com.cuin.codebench
+productName: CuinCodeBench
+directories:
+  output: dist
+  buildResources: resources/build
+files:
+  - out/**
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: CuinCodeBench
+npmRebuild: true
