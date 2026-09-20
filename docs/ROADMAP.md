@@ -64,16 +64,17 @@
 - 杀软（Defender）可能持续拦截新编译的无签名 exe（spawn EPERM）→ execute 退避重试 + 持续拦截时错误可见（WIN-7）
 **覆盖需求**：FR-R1–R10、WIN-1–7、SECURITY §3
 
-## P4 自动判题与练习页
+## P4 自动判题与练习页 ✅（完成于 2026-09-21）
 
 **实现内容**
-- [ ] normalize/verdict 纯函数 + 全量单测
-- [ ] judge-service（串行队列、编排、落库挂钩）
-- [ ] IPC：judge.submit / run.once
-- [ ] UI 练习页：CodeMirror 编辑器（行号/高亮/缩进/字号/重置/草稿）、运行面板（自定义输入）、判题结果面板（逐用例期望/实际/状态/耗时）
-- [ ] 判题策略测试（CRLF/尾空白/尾换行/多行/AC/WA）
+- [x] normalize/verdict 纯函数 + 全量单测
+- [x] judge-service（串行队列、编排、落库挂钩）
+- [x] IPC：judge.submit / run.once
+- [x] UI 练习页：CodeMirror 编辑器（行号/高亮/缩进/字号/重置/草稿）、运行面板（自定义输入）、判题结果面板（逐用例期望/实际/状态/耗时）
+- [x] 判题策略测试（CRLF/尾空白/尾换行/多行/AC/WA）
+- [x] UI 组件测试（jsdom）：判题/运行结果面板全状态分支
 
-**验收**：本机用 Python 与 C 对种子题判题，五种状态真实复现；结果面板信息完整。
+**验收**：本机用 Python 与 C 对种子题判题，五种状态真实复现；结果面板信息完整。✅（103 项测试；CDP 验证渲染进程真实加载路由）
 **覆盖需求**：FR-J1–J6、FR-C1、FR-E1–E5（部分）
 
 ## P5 记录、错题与 Dashboard

@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Added（P4 练习页）
+- 练习页 UI：左题面（Markdown 净化渲染 + 示例）/ 右 CodeMirror 编辑器 + 结果区
+- CodeMirror 6：行号、C/C++/Python 语法高亮、Tab 缩进、字号/换行主题注入
+- 草稿自动保存（按题目+语言，localStorage），重置为初始代码（需确认）
+- 自定义运行面板（stdin 编辑、stdout/stderr/退出码/耗时）
+- 判题结果面板：总体状态 + 逐用例折叠详情（输入/期望/实际/stderr/退出码十六进制/耗时）
+- UI 组件测试（jsdom + testing-library）
+
 ### Added（P3 本地 Runner）
 - 工具链自动探测：PATH（where + --version 校验）与 MSVC（vswhere + vcvars64 环境解析），手工指定路径覆盖
 - 执行器：stdin 写入、stdout/stderr 捕获（1MB 上限）、超时进程树强杀（taskkill /T /F）、EPERM 退避重试
