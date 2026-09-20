@@ -12,15 +12,16 @@ import { AppError } from '../lib/app-error'
 
 export { AppError }
 
-/** 统一注册器：入参经 schema 校验，fn 返回值/异常包装为 IpcResult */
+/** 统一注册器：入参经 schema 校验，fn 返回值/异常包装为 IpcResult。
+ *  调用约定：单参数通道 schema 校验该值本身；多参数通道（z.tuple）校验参数数组。 */
 export function handle<S extends ZodTypeAny, R>(
   channel: string,
   schema: S,
   fn: (parsed: z.output<S>) => Promise<R> | R
 ): void {
-  ipcMain.handle(channel, async (_event, raw: unknown) => {
+  ipcMain.handle(channel, async (_event, ...rawArgs: unknown[]) => {
     try {
-      const parsed = schema.parse(raw)
+      const parsed = schema.parse(rawArgs.length === 1 ? rawArgs[0] : rawArgs)
       const data = await fn(parsed)
       return { ok: true, data } as const
     } catch (err) {

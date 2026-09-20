@@ -968,6 +968,127 @@ button.judge {
   color: var(--text-secondary);
 }
 
+/* ===== 设置页 ===== */
+.alert.info {
+  background: rgba(47, 129, 247, 0.12);
+  border: 1px solid rgba(47, 129, 247, 0.45);
+  color: #9ecbff;
+}
+
+.settings-section {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  background: var(--bg-secondary);
+}
+
+.settings-section h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.settings-row > span:first-child {
+  width: 110px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.settings-row select {
+  min-width: 120px;
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.range-row input[type='range'] {
+  flex: 1;
+  max-width: 260px;
+}
+
+.range-value {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.toolchain-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.toolchain-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+}
+
+.toolchain-path {
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.toolchain-version {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.manual-toolchains {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.manual-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.manual-row input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.settings-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+}
+
+.data-dir {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: inline-block;
+  word-break: break-all;
+}
+
 
 
 

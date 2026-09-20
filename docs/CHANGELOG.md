@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added（P6 设置与打包）
+- 设置页：字号/缩进/换行/判题默认超时；工具链手工指定与重新检测；数据目录展示
+- electron-builder 打包（win-unpacked + NSIS 配置），extraResources 携带种子题库
+- 端到端验证脚本（打包产物全链路判题：renderer → IPC → MSVC/Python → SQLite）
+- README 完整（安装/开发/打包/安全声明）
+
+### Fixed
+- 多参数 IPC 通道（judge.submit / problems.update / mistakes.setMastered）schema 校验失败：handle 现支持单参数与 tuple 双约定
+
 ### Added（P5 记录/错题/统计）
 - 错题本页：失败次数、最近错误类型、错误分布、重新练习、标记已掌握/恢复
 - Dashboard：已练题目/通过数/正确率/今日提交/连续天数卡片，语言占比条形图，常见错误 Top 5，最近练习列表
