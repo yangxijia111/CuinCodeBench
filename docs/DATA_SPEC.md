@@ -297,4 +297,4 @@ CREATE TABLE settings (
 
 ## 4. 种子题库（resources/seed-problems.json）
 
-≥8 题：A+B、两数之和（数组版）、判断回文、FizzBuzz、字符串反转、最大公约数、冒泡排序、统计元音字母等；覆盖 easy/medium/hard、每题 3-6 个用例（含边界/空输入/较大输入）、三语言初始代码模板。首次启动（problems 表为空）时灌入，`isBuiltin=1`。
+≥8 题：A+B、两数之和（数组版）、判断回文、FizzBuzz、字符串反转、最大公约数、冒泡排序、统计元音字母等；覆盖 easy/medium/hard、每题 3-6 个用例（含边界/空输入/较大输入）、三语言初始代码模板。首次启动灌入一次（settings 表记录 seeded 标记，用户清空题库后不会复活），`isBuiltin=1`。

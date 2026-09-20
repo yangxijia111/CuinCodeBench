@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS, type AppSettings } from '@shared/types'
  */
 
 const SETTINGS_KEY = 'app'
+const SEEDED_KEY = 'seeded'
 
 export class SettingsRepository {
   constructor(private readonly db: Database.Database) {}
@@ -33,5 +34,20 @@ export class SettingsRepository {
       )
       .run(SETTINGS_KEY, JSON.stringify(next))
     return next
+  }
+
+  /** 种子灌入标记（FR-P6）：只在首次启动灌入，用户清空题库后不复活 */
+  hasSeeded(): boolean {
+    const row = this.db.prepare('SELECT key FROM settings WHERE key = ?').get(SEEDED_KEY)
+    return row !== undefined
+  }
+
+  markSeeded(): void {
+    this.db
+      .prepare(
+        `INSERT INTO settings (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO NOTHING`
+      )
+      .run(SEEDED_KEY, '1')
   }
 }

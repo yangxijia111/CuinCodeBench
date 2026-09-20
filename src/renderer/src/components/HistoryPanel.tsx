@@ -11,6 +11,7 @@ import { useApiData, unwrap } from '../api/client'
 export function HistoryPanel({ problemId }: { problemId: string }): React.JSX.Element {
   const [page, setPage] = useState(0)
   const [detail, setDetail] = useState<SubmissionDetail | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
 
   const subs = useApiData<Submission[]>(
     () => window.api.listSubmissions({ problemId, limit: HISTORY_PAGE_SIZE, offset: page * HISTORY_PAGE_SIZE }),
@@ -22,14 +23,20 @@ export function HistoryPanel({ problemId }: { problemId: string }): React.JSX.El
       setDetail(null)
       return
     }
-    const d = await unwrap(window.api.getSubmissionDetail(id))
-    setDetail(d)
+    try {
+      const d = await unwrap(window.api.getSubmissionDetail(id))
+      setDetail(d)
+      setDetailError(null)
+    } catch (e) {
+      setDetailError(e instanceof Error ? e.message : String(e))
+    }
   }
 
   const list = subs.data ?? []
 
   return (
     <div className="history-panel">
+      {detailError !== null && <div className="alert error">{detailError}</div>}
       {subs.loading && list.length === 0 ? (
         <div className="empty-hint small">加载中…</div>
       ) : list.length === 0 ? (

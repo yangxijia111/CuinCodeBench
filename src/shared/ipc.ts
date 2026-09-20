@@ -99,12 +99,4 @@ export const DIFFICULTY_META: Record<Difficulty, { label: string; color: string 
   hard: { label: '困难', color: '#f85149' }
 }
 
-/** 错误码约定（ipc 层统一使用） */
-export const IPC_ERROR_CODES = {
-  notFound: 'not_found',
-  validation: 'validation',
-  noToolchain: 'no_toolchain',
-  internal: 'internal'
-} as const
-
 export type { JudgeStatus }

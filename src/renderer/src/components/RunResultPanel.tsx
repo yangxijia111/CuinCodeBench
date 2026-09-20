@@ -1,4 +1,5 @@
 import type { RunOnceResult } from '@shared/ipc'
+import { truncateForDisplay } from '../lib/display'
 
 /**
  * 自定义运行结果面板（FR-C1）：stdout / stderr / 退出码 / 耗时。
@@ -35,12 +36,12 @@ export function RunResultPanel({ result }: { result: RunOnceResult }): React.JSX
       </div>
       <div className="case-io">
         <span className="section-label">stdout{exec.stdoutTruncated ? '（已截断）' : ''}</span>
-        <pre>{exec.stdout === '' ? '（无输出）' : exec.stdout}</pre>
+        <pre>{exec.stdout === '' ? '（无输出）' : truncateForDisplay(exec.stdout)}</pre>
       </div>
       {exec.stderr.trim() !== '' && (
         <div className="case-io">
           <span className="section-label">stderr{exec.stderrTruncated ? '（已截断）' : ''}</span>
-          <pre className="stderr">{exec.stderr}</pre>
+          <pre className="stderr">{truncateForDisplay(exec.stderr)}</pre>
         </div>
       )}
     </div>

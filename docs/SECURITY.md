@@ -19,7 +19,7 @@
 | shell 注入 | 代码/输入进入命令行 | 全程数组 spawn，无 shell 拼接（唯一例外：MSVC 环境解析用固定 bat 路径，见 §3） | 无 |
 | 临时文件残留/互踩 | 并发运行、崩溃残留 | 每任务独立随机临时目录；finally 清理 + 重试；启动时清扫遗留目录 | 进程被强杀时残留（下次启动清扫） |
 | 路径逃逸 | 题目数据包含路径类内容 | 题目内容只作为**文件内容**写入（不进 argv、不进命令行）；可执行文件名固定（app.exe）；工作目录固定为临时目录 | 无 |
-| Electron 渲染层被注入 | 题面 Markdown 含恶意 HTML/脚本 | contextIsolation + 无 nodeIntegration；Markdown 渲染转义（不用 `dangerouslySetInnerHTML` 渲染原始 HTML） | 依赖库漏洞 |
+| Electron 渲染层被注入 | 题面 Markdown 含恶意 HTML/脚本 | contextIsolation + 无 nodeIntegration；Markdown 经 marked 解析 + DOMPurify 净化后渲染（禁 style/iframe/form 与内联事件） | 依赖库漏洞 |
 | IPC 滥用 | 渲染进程被攻破后调 IPC | preload 白名单 API + 主进程 zod 参数校验 | 无远程内容来源，攻击面小 |
 | 数据安全 | 本地 DB 损坏 | WAL 模式；数据目录用户可控、可备份 | 无加密（本地明文，含用户代码） |
 | 杀软误报 | 新编译 exe 被 Defender 拦截 | 文档说明；不做任何绕过 | 用户体验受本机安全策略影响 |
@@ -30,7 +30,7 @@
 
 - 一切子进程（编译器、解释器、`where`、`vswhere`、`taskkill`）均 `spawn(exe, args[], {shell: false})`。
 - 用户代码只以**文件内容**形态写入临时目录；文件名为系统生成的固定名（`main.c` / `main.cpp` / `main.py`），不使用用户输入作文件名。
-- 唯一经过 `cmd` 的场景：MSVC 环境解析 `cmd /d /s /c "<vswhere 定位的 vcvars64.bat> && set"`——bat 路径来自 vswhere 注册表数据（非用户输入），且执行时机为探测阶段。
+- 唯一经过 `cmd` 的场景：MSVC 环境解析 `cmd /d /c "<vswhere 定位的 vcvars64.bat> && set"`（windowsVerbatimArguments 保留引号）——bat 路径来自 vswhere 定位结果（非用户输入），且执行时机为探测阶段。
 
 ### 3.2 超时与进程树终止（FR-R5）
 
@@ -58,7 +58,7 @@ stdout/stderr 各 1MB 累计上限；达到上限立即杀进程树并置 `outpu
 
 ### 3.6 Electron 加固
 
-`contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`、只加载本地文件（`loadFile`），不开远程内容。preload 仅暴露白名单方法。Markdown 题面以文本节点/受控组件渲染，不渲染原始 HTML。
+`contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`、只加载本地文件（`loadFile`），不开远程内容。preload 仅暴露白名单方法；`will-navigate` 一律阻止并转交系统浏览器。Markdown 题面经 DOMPurify 净化后渲染。
 
 ## 4. 明确的"非防护"
 

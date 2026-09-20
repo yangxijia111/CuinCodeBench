@@ -39,7 +39,7 @@ interface TestCaseRow {
   order: number
 }
 
-function rowToProblem(row: ProblemRow, cases: TestCase[]): Problem {
+function rowToProblem(row: ProblemRow): Problem {
   const initialCodeRaw = JSON.parse(row.initial_code) as Partial<Record<LanguageId, string>>
   return {
     id: row.id,
@@ -57,9 +57,7 @@ function rowToProblem(row: ProblemRow, cases: TestCase[]): Problem {
     },
     isBuiltin: row.is_builtin === 1,
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    // 测试用例附加在聚合上（Problem 类型本身不含用例，查询方按需取）
-    ...(cases.length >= 0 ? {} : {})
+    updatedAt: row.updated_at
   }
 }
 
@@ -73,31 +71,48 @@ export class ProblemRepository {
     const now = Date.now()
     const id = randomUUID()
     const tx = this.db.transaction(() => {
-      this.db
-        .prepare(
-          `INSERT INTO problems (id, title, description, difficulty, tags, input_desc, output_desc, samples, initial_code, is_builtin, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .run(
-          id,
-          input.title,
-          input.description,
-          input.difficulty,
-          JSON.stringify(input.tags),
-          input.inputDesc,
-          input.outputDesc,
-          JSON.stringify(input.samples),
-          JSON.stringify(input.initialCode),
-          isBuiltin ? 1 : 0,
-          now,
-          now
-        )
+      this.insertProblem(id, input, isBuiltin, now)
       this.insertCases(id, input.testCases)
     })
     tx()
     const created = this.getById(id)
     if (!created) throw new Error('题目创建后读取失败')
     return created
+  }
+
+  /** 批量创建（导入用）：任一题失败整体回滚（FR-P5 原子导入） */
+  createMany(inputs: ProblemInput[], isBuiltin = false): void {
+    const now = Date.now()
+    const tx = this.db.transaction(() => {
+      for (const input of inputs) {
+        const id = randomUUID()
+        this.insertProblem(id, input, isBuiltin, now)
+        this.insertCases(id, input.testCases)
+      }
+    })
+    tx()
+  }
+
+  private insertProblem(id: string, input: ProblemInput, isBuiltin: boolean, now: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO problems (id, title, description, difficulty, tags, input_desc, output_desc, samples, initial_code, is_builtin, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        id,
+        input.title,
+        input.description,
+        input.difficulty,
+        JSON.stringify(input.tags),
+        input.inputDesc,
+        input.outputDesc,
+        JSON.stringify(input.samples),
+        JSON.stringify(input.initialCode),
+        isBuiltin ? 1 : 0,
+        now,
+        now
+      )
   }
 
   update(id: string, input: ProblemInput): ProblemWithCases {
@@ -147,7 +162,7 @@ export class ProblemRepository {
       | undefined
     if (!row) return null
     const cases = this.getCases(id)
-    return { ...rowToProblem(row, cases), testCases: cases }
+    return { ...rowToProblem(row), testCases: cases }
   }
 
   /** 列表（不含用例内容，避免大查询）；筛选条件可组合 */
@@ -173,7 +188,7 @@ export class ProblemRepository {
     const rows = this.db
       .prepare(`SELECT * FROM problems ${where} ORDER BY updated_at DESC`)
       .all(...params) as ProblemRow[]
-    return rows.map((r) => rowToProblem(r, []))
+    return rows.map((r) => rowToProblem(r))
   }
 
   delete(id: string): void {

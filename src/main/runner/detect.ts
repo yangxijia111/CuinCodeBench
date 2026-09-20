@@ -19,12 +19,13 @@ function runCapture(
   program: string,
   args: string[],
   timeoutMs: number,
-  opts: { windowsVerbatimArguments?: boolean } = {}
+  opts: { windowsVerbatimArguments?: boolean; env?: Record<string, string> } = {}
 ): Promise<{ code: number; stdout: string } | null> {
   return new Promise((resolve) => {
     let child
     try {
       child = spawn(program, args, {
+        env: opts.env !== undefined ? { ...process.env, ...opts.env } : process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
         windowsHide: true,
         ...(opts.windowsVerbatimArguments !== undefined
@@ -181,37 +182,10 @@ async function detectMsvc(): Promise<DetectedToolchain[]> {
 }
 
 async function verifyMsvcVersion(clPath: string, env: Record<string, string>): Promise<string> {
-  const res = await runCaptureEnv(clPath, env)
-  return res ?? 'Microsoft (R) C/C++ Optimizing Compiler'
-}
-
-async function runCaptureEnv(program: string, env: Record<string, string>): Promise<string | null> {
-  return new Promise((resolve) => {
-    let child
-    try {
-      child = spawn(program, [], { env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
-    } catch {
-      resolve(null)
-      return
-    }
-    const chunks: Buffer[] = []
-    child.stdout?.on('data', (c: Buffer) => chunks.push(c))
-    child.on('error', () => resolve(null))
-    child.on('close', () => {
-      const firstLine = Buffer.concat(chunks)
-        .toString('utf8')
-        .split(/\r?\n/)
-        .find((l) => l.trim() !== '')
-      resolve(firstLine?.trim() ?? null)
-    })
-    setTimeout(() => {
-      try {
-        child.kill()
-      } catch {
-        // 已退出
-      }
-    }, DETECT_TIMEOUT_MS)
-  })
+  // cl.exe 无参数运行会打印版本 banner（exit 非零属预期，只取输出首行）
+  const res = await runCapture(clPath, [], DETECT_TIMEOUT_MS, { env })
+  const firstLine = res?.stdout.split(/\r?\n/).find((l) => l.trim() !== '')
+  return firstLine?.trim() ?? 'Microsoft (R) C/C++ Optimizing Compiler'
 }
 
 /** 全量探测：返回全部可用工具链 */

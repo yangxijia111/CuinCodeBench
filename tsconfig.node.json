@@ -35,6 +35,7 @@
     "src/shared/**/*",
     "src/renderer/src/components/JudgeResultPanel.tsx",
     "src/renderer/src/components/RunResultPanel.tsx",
+    "src/renderer/src/lib/display.ts",
     "tests/**/*"
   ]
 }

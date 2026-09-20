@@ -81,12 +81,6 @@ export interface TestCase {
   order: number
 }
 
-export interface TestCaseInput {
-  stdin: string
-  expectedStdout: string
-  timeoutMs: number
-}
-
 export interface Submission {
   id: string
   problemId: string

@@ -1,5 +1,6 @@
 import { JUDGE_STATUS_META } from '@shared/types'
 import type { JudgeResult } from '@shared/types'
+import { truncateForDisplay } from '../lib/display'
 
 /**
  * 判题结果面板：总体状态 + 逐用例展开（输入/期望/实际/耗时/状态，FR-J3）。
@@ -44,16 +45,16 @@ export function JudgeResultPanel({ result }: { result: JudgeResult }): React.JSX
                   </div>
                   <div className="case-io">
                     <span className="section-label">期望输出</span>
-                    <pre>{c.expected}</pre>
+                    <pre>{truncateForDisplay(c.expected)}</pre>
                   </div>
                   <div className="case-io">
                     <span className="section-label">实际输出</span>
-                    <pre>{c.actual ?? '（未运行）'}</pre>
+                    <pre>{c.actual === null ? '（未运行）' : truncateForDisplay(c.actual)}</pre>
                   </div>
                   {c.stderr.trim() !== '' && (
                     <div className="case-io">
                       <span className="section-label">stderr</span>
-                      <pre className="stderr">{c.stderr}</pre>
+                      <pre className="stderr">{truncateForDisplay(c.stderr)}</pre>
                     </div>
                   )}
                   {c.exitCode !== null && c.exitCode !== 0 && (

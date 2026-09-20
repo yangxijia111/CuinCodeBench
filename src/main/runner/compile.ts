@@ -1,7 +1,7 @@
 import { COMPILE_TIMEOUT_MS } from '@shared/constants'
 import type { Toolchain } from '@shared/types'
 import { execute } from './execute'
-import { buildRunPlan, SOURCE_FILENAMES } from './languages'
+import { buildRunPlan } from './languages'
 import { writeFile } from 'fs/promises'
 import { join } from 'path'
 
@@ -50,10 +50,4 @@ export async function writeSourceFile(toolchain: Toolchain, dir: string, code: s
   const file = join(dir, plan.sourceFile)
   await writeFile(file, code, 'utf8')
   return file
-}
-
-/** 源文件名（供调用方在计划外直接写文件时使用） */
-export function sourceFileName(toolchain: Toolchain): string {
-  const language = toolchain.languageIds[0] ?? 'c'
-  return SOURCE_FILENAMES[language]
 }

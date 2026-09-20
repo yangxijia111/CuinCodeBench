@@ -148,10 +148,15 @@ export function SettingsView(): React.JSX.Element {
                 defaultValue={settings.manualToolchains[lang] ?? ''}
                 onBlur={(e) => {
                   const value = e.target.value.trim()
+                  // 脏检查：未修改不触发保存
+                  if (value === (settings.manualToolchains[lang] ?? '')) return
                   const next = { ...settings.manualToolchains }
                   if (value === '') delete next[lang]
                   else next[lang] = value
-                  void patch({ manualToolchains: next }).then(() => setMessage('已保存手工工具链路径，点击「重新检测」生效'))
+                  void patch({ manualToolchains: next }).then(() => {
+                    setSettings((prev) => (prev === null ? prev : { ...prev, manualToolchains: next }))
+                    setMessage('已保存手工工具链路径，点击「重新检测」生效')
+                  })
                 }}
               />
             </label>

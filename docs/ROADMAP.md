@@ -104,16 +104,17 @@
 打包版真实判题验证：Python AC 5/5；C 代码经 MSVC cl.exe 编译 → WA 1/5；统计落库正确。
 **覆盖需求**：FR-E4/E6、FR-R10、NFR-6、WIN-7
 
-## P7 审计与发布
+## P7 审计与发布 ✅（完成于 2026-09-21）
 
 **实现内容**
-- [ ] 全项目审计：架构/安全/异常处理/UX/重复代码/死代码/TODO/测试缺口
-- [ ] 修复审计发现 → 回归全部门禁 + 完整手工验收清单
-- [ ] docs 校对与实现一致性修正
-- [ ] FINAL_REPORT.md
-- [ ] GitHub 推送 + tag v1.0.0
+- [x] 全项目审计（独立审计 agent：架构/安全/异常处理/UX/重复代码/死代码/TODO/测试缺口）
+- [x] 修复审计发现：P0×1（spawn 异步错误信息丢失导致重试死逻辑）、P1×5（种子损坏白屏、ErrorBoundary、will-navigate 拦截、导入原子性、历史详情错误处理）、P2×10（死代码/重复合并/展示截断落地/设置脏检查/依赖清理/补充测试）
+- [x] 文档漂移订正（ARCHITECTURE 版本与细节、SECURITY cmd/DOMPurify、DATA_SPEC seeded、TEST_PLAN 模块名）
+- [x] 回归全部门禁 + 重新打包 + UI 冒烟 + 打包版端到端判题
+- [x] FINAL_REPORT.md
+- [x] GitHub 推送 + tag v1.0.0
 
-**验收**：PRODUCT.md §5 全部条目满足；FINAL_REPORT.md 完整。
+**验收**：PRODUCT.md §5 全部条目满足；FINAL_REPORT.md 完整。✅（最终：108 测试通过 / lint 0 错 / typecheck 0 错 / 三端构建 + win-unpacked 打包验证）
 **覆盖需求**：全部
 
 ---

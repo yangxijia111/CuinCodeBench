@@ -2,6 +2,21 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格；版本号遵循语义化版本。
 
+## [1.0.0] — 2026-09-21
+
+v1.0.0 正式发布：完整功能见 FINAL_REPORT.md 与上方各 Phase 记录。
+
+### Fixed（P7 审计修复）
+- Runner 异步 spawn 失败（ENOENT/杀软 EPERM）时错误信息丢失，导致 UI 空报错与 EPERM 退避重试死逻辑
+- 种子题库文件损坏会导致应用启动白屏 → 降级为空题库继续启动
+- 渲染异常无兜底 → 新增顶层 ErrorBoundary
+- Markdown 内链接会导航走整个应用且无法恢复 → will-navigate 一律阻止并转交系统浏览器
+- JSON 导入非原子（部分失败部分落库）→ 单事务批量创建
+- 提交历史详情加载失败无反馈 → 补充错误展示
+- 清理死代码/死常量、合并重复 spawn 逻辑、设置页脏检查、移除未使用依赖
+- 文档与实现漂移订正（版本号、cmd 参数、种子策略、Markdown 渲染方式等 10 处）
+- 补充测试：seed 不复活、工具链手工合并、展示截断（累计 108 项）
+
 ## [Unreleased]
 
 ### Added（P6 设置与打包）

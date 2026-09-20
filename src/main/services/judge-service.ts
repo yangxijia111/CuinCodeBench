@@ -12,7 +12,7 @@ import { buildRunPlan } from '../runner/languages'
 import { withTempDir } from '../runner/temp-dir'
 import { compileSource, writeSourceFile } from '../runner/compile'
 import { execute } from '../runner/execute'
-import { normalizeOutput, decideCaseStatus } from '../judge/normalize'
+import { decideCaseStatus } from '../judge/normalize'
 import type { ToolchainService } from './toolchain-service'
 import type { ServiceContext } from './index'
 
@@ -278,6 +278,3 @@ function summarizeError(
   }
   return labels[status] ?? status
 }
-
-/** 归一化导出复用（judge 模块） */
-export { normalizeOutput }

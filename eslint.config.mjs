@@ -31,12 +31,12 @@ export default tseslint.config(
     rules: {
       // 禁止 any：确需动态类型时用 unknown 并收窄（NFR-7）
       '@typescript-eslint/no-explicit-any': 'error',
-      // 禁止吞异常：捕获必须处理（记录/包装/上抛）
       '@typescript-eslint/no-unused-expressions': 'error',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         { prefer: 'type-imports', fixStyle: 'inline-type-imports' }
       ],
+      // 悬浮 Promise 会被静默丢弃（近似"吞异常"），必须显式 void 或 await
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       'no-console': 'off'

@@ -9,6 +9,7 @@ import { ToolchainService } from './services/toolchain-service'
 import { JudgeService } from './services/judge-service'
 import { loadSeedProblems, resolveSeedFile } from './seed/seed'
 import { cleanLegacyTempDirs } from './runner/temp-dir'
+import { killAllActiveChildren } from './runner/execute'
 
 /**
  * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → 清扫遗留临时目录 →
@@ -40,10 +41,14 @@ function createMainWindow(): BrowserWindow {
     win.show()
   })
 
-  // 外部链接交给系统浏览器，不在应用内打开
+  // 外部链接交给系统浏览器；阻止任何页内导航（Markdown 链接会把应用导航走且无法恢复）
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
     return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault()
+    void shell.openExternal(url)
   })
 
   return win
@@ -76,12 +81,19 @@ if (!gotLock) {
     const db = openDatabase({ dataDir: getDataDir() })
     const services = initServices(db)
 
-    // 首次启动灌入种子题库（FR-P6：仅当题库为空）
-    if (services.problems.count() === 0) {
-      const seedFile = resolveSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
-      const seeds = loadSeedProblems(seedFile)
-      for (const s of seeds) services.problems.create(s, true)
-      logger.info('种子题库已灌入', `${seeds.length} 题`)
+    // 首次启动灌入种子题库（FR-P6：仅一次，用户清空题库后不复活）
+    // 种子文件损坏时降级为空题库继续启动，不阻塞窗口创建
+    if (!services.settings.hasSeeded()) {
+      try {
+        const seedFile = resolveSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
+        const seeds = loadSeedProblems(seedFile)
+        for (const s of seeds) services.problems.create(s, true)
+        services.settings.markSeeded()
+        logger.info('种子题库已灌入', `${seeds.length} 题`)
+      } catch (err) {
+        services.settings.markSeeded()
+        logger.error('种子题库灌入失败（已跳过，题库为空）', err instanceof Error ? err.stack : String(err))
+      }
     }
 
     // 工具链与判题服务
@@ -114,6 +126,8 @@ if (!gotLock) {
   })
 
   app.on('window-all-closed', () => {
+    // 退出前终止全部执行中的程序（防止孤儿进程），并尽力清理临时目录
+    killAllActiveChildren()
     app.quit()
   })
 

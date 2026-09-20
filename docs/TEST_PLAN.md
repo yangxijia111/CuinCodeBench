@@ -1,6 +1,6 @@
 # TEST_PLAN.md — 测试计划
 
-工具：vitest 3。分层：**单元**（纯逻辑/DB）、**集成**（Runner 真实执行、service 组合）、**UI**（轻量组件 + 核心流程 mock）。命令：`npm run test`（一次性）、`npm run test:watch`。
+工具：vitest（版本随 package.json）。分层：**单元**（纯逻辑/DB）、**集成**（Runner 真实执行、service 组合）、**UI**（轻量组件 + 核心流程 mock）。命令：`npm run test`（一次性）、`npm run test:watch`。
 
 ## 1. 单元测试
 
@@ -20,7 +20,7 @@
 | 数字内容不同 | `"12"` vs `"13"` → WA |
 | 多行大文本 | 1000 行随机对比正确 |
 
-### 1.2 判定策略（judge/verdict，验证 FR-J2/J5）
+### 1.2 判定策略（judge/normalize，验证 FR-J2/J5）
 
 - 全 AC → accepted；第一个失败用例状态决定总体（含 WA→WA、RE 优先于后续 WA 等顺序性）
 - exitCode≠0 → runtime_error；超时 → tle；超限 → ole；编译失败 → compile_error（用例全 skipped 语义由 service 层验证）

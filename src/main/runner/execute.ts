@@ -1,4 +1,4 @@
-import { spawn } from 'child_process'
+import { spawn, type ChildProcess } from 'child_process'
 import { OUTPUT_LIMIT_BYTES } from '@shared/constants'
 import type { ExecutionResult } from '@shared/types'
 import type { ExecutionStatus } from './types'
@@ -66,6 +66,16 @@ export function execute(opts: ExecuteOptions): Promise<ExecutionResult> {
   return attempt(0)
 }
 
+/** 活跃子进程登记表：应用退出时终止全部执行中的程序，避免孤儿进程（ARCHITECTURE §7） */
+const activeChildren = new Set<ChildProcess>()
+
+export function killAllActiveChildren(): void {
+  for (const child of activeChildren) {
+    killTree(child.pid ?? 0)
+  }
+  activeChildren.clear()
+}
+
 function doExecute(opts: ExecuteOptions, enforceLimit: boolean): Promise<ExecutionResult> {
   return new Promise<ExecutionResult>((resolve) => {
     let settled = false
@@ -84,6 +94,10 @@ function doExecute(opts: ExecuteOptions, enforceLimit: boolean): Promise<Executi
     } catch (err) {
       resolve(spawnErrorResult(err))
       return
+    }
+    activeChildren.add(child)
+    const cleanup = (): void => {
+      activeChildren.delete(child)
     }
 
     const stdout = new StreamCollector()
@@ -136,12 +150,14 @@ function doExecute(opts: ExecuteOptions, enforceLimit: boolean): Promise<Executi
     child.stdin?.end(opts.stdin, 'utf8')
 
     child.on('error', (err) => {
-      // spawn 失败（ENOENT、权限等）
+      // spawn 失败（ENOENT、EPERM 杀软拦截等）：错误信息写入 stderr，供 UI 展示与重试判定
+      stderr.push(Buffer.from(err.message, 'utf8'))
+      cleanup()
       settle('spawn_error', null, null)
-      void err
     })
 
     child.on('close', (code, signal) => {
+      cleanup()
       if (timedOut) {
         settle('timeout', code, signal)
         return

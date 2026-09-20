@@ -6,12 +6,12 @@
 |---|---|---|
 | 桌面框架 | **Electron** | 需求推荐；Node 侧可直接 spawn 编译器/解释器、读写 SQLite，主进程天然承载 Runner；Windows 11 一等支持。Tauri 需 Rust 工具链且子进程/SQLite 需侧车与插件，复杂度更高，不选 |
 | 构建 | **electron-vite**（Vite 7） | 统一处理 main/preload/renderer 三端构建与 dev HMR；约定式目录与本项目分层一致 |
-| UI | **React 19 + TypeScript 5.x (strict)** | 需求指定；生态成熟 |
+| UI | **React 19 + TypeScript strict**（实际版本以 package.json 为准） | 需求指定；生态成熟 |
 | 编辑器 | **CodeMirror 6**（@uiw/react-codemirror + lang-cpp/lang-python） | 成熟开源、包体远小于 Monaco、Vite 打包友好、行号/高亮/缩进开箱即用 |
 | 存储 | **better-sqlite3**（SQLite） | 需求指定 SQLite；同步 API 适合主进程单写入者；本机有 MSVC 可兜底编译 |
 | 校验 | **zod** | IPC 边界与 JSON 导入校验 |
-| 测试 | **vitest 3** | TS 原生、快、与 Vite 同源 |
-| 代码质量 | **eslint 9（flat config）+ typescript-eslint** | strict 类型与规范检查 |
+| 测试 | **vitest** | TS 原生、快、与 Vite 同源 |
+| 代码质量 | **eslint（flat config）+ typescript-eslint（typed-lint）** | strict 类型与规范检查 |
 | 打包 | **electron-builder** | Windows NSIS 安装包 + win-unpacked |
 | 路由 | react-router-dom（HashRouter） | 多页面导航（题库/练习/错题/统计/设置） |
 
@@ -84,8 +84,8 @@ UI「运行」→ `api.run.once({language, code, stdin, timeoutMs})` → judge-s
 应用启动（或设置页触发）→ toolchain-service.detectAll()：
 1. 对每个候选名（gcc/g++/clang/clang++/python/py）`where.exe <name>` 取 PATH 命中；
 2. 对每个命中 spawn `<exe> --version`（5s 超时）校验真实可用、取版本号（排除 WindowsApps Store 空壳）；
-3. MSVC：vswhere 定位 BuildTools/VS → 找 `VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe` → `cmd /d /s /c "vcvars64.bat && set"` 解析环境差异并缓存（WIN-3）；
-4. 结果缓存内存 + 写入 settings；探测失败的路径被跳过而非报错。
+3. MSVC：vswhere 定位 BuildTools/VS → 找 `VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe` → `cmd /d /c "vcvars64.bat && set"`（windowsVerbatimArguments 保留引号；/S 会剥离引号导致含空格路径断裂）解析环境差异，缓存于内存（WIN-3）；
+4. 结果缓存于主进程内存（设置页可强制重扫）；探测失败的路径被跳过而非报错。
 
 ## 4. 代码执行架构（Runner）
 
@@ -133,8 +133,8 @@ UI「运行」→ `api.run.once({language, code, stdin, timeoutMs})` → judge-s
 
 ## 7. 进程生命周期
 
-- 启动：单实例锁 → 打开 DB + 迁移 → 种子灌入（仅首次）→ 触发工具链探测（后台）→ 创建主窗口（1200×800，min 960×640，dark 背景）。
-- 运行中：主窗口关闭 = 应用退出（macOS 行为不做）；退出前放弃进行中的判题任务并尽力清理临时目录。
+- 启动：单实例锁 → 打开 DB + 迁移 → 种子灌入（仅首次，按 settings 中的 seeded 标记；灌入失败降级为空题库）→ 清扫遗留临时目录 → IPC 注册 → 触发工具链探测（后台）→ 创建主窗口（1280×840，min 960×640，dark 背景）。
+- 运行中：主窗口关闭 = 应用退出（macOS 行为不做）；退出前强制终止全部执行中的程序（防孤儿进程）并尽力清理临时目录。
 - 崩溃兜底：`process.on('uncaughtException'/'unhandledRejection')` 记日志，不静默退出。
 
 ## 8. 关键设计决策记录（ADR 摘要）

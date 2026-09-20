@@ -93,7 +93,7 @@ export class ProblemService {
     }
   }
 
-  /** 导入：校验信封与每题结构，全部合法才落库（原子性：一题失败全部回滚由调用方保证？——此处逐题创建前整体校验） */
+  /** 导入：校验信封与每题结构，全部合法后单事务落库（任一题失败整体回滚） */
   importJson(jsonText: string): { imported: number } {
     let raw: unknown
     try {
@@ -102,10 +102,7 @@ export class ProblemService {
       throw new AppError('validation', 'JSON 解析失败：不是合法的 JSON 文本')
     }
     const envelope = problemImportEnvelopeSchema.parse(raw)
-    // 先整体校验（problemInputSchema 在 envelope 内已校验），再落库
-    for (const p of envelope.problems) {
-      this.repo.create(p, false)
-    }
+    this.repo.createMany(envelope.problems, false)
     return { imported: envelope.problems.length }
   }
 
@@ -126,6 +123,14 @@ export class SettingsService {
 
   update(patch: Partial<AppSettings>): AppSettings {
     return this.repo.update(patch)
+  }
+
+  hasSeeded(): boolean {
+    return this.repo.hasSeeded()
+  }
+
+  markSeeded(): void {
+    this.repo.markSeeded()
   }
 }
 
