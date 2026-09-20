@@ -61,6 +61,17 @@ export interface ProblemInput {
   testCases: TestCaseInput[]
 }
 
+/** 题目详情 = 题目 + 全部测试用例（聚合根视图， ProblemWithCases 的共享别名） */
+export interface ProblemDetail extends Problem {
+  testCases: TestCase[]
+}
+
+export interface TestCaseInput {
+  stdin: string
+  expectedStdout: string
+  timeoutMs: number
+}
+
 export interface TestCase {
   id: string
   problemId: string

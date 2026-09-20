@@ -44,6 +44,341 @@ body {
   gap: 8px;
 }
 
+/* ===== 应用布局 ===== */
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 10px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 18px;
+}
+
+.brand-mark {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.brand-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-item {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nav-item:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 8px 10px;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.page {
+  padding: 20px 24px;
+  max-width: 1100px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===== 筛选栏 ===== */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.filter-bar input[type='search'] {
+  flex: 1;
+  max-width: 320px;
+}
+
+/* ===== 提示与告警 ===== */
+.empty-hint {
+  color: var(--text-secondary);
+  padding: 40px 0;
+  text-align: center;
+}
+
+.alert {
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.alert.error {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.45);
+  color: #ffb3ad;
+}
+
+/* ===== 题目列表 ===== */
+.problem-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.problem-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+  background: var(--bg-secondary);
+}
+
+.problem-item:last-child {
+  border-bottom: none;
+}
+
+.problem-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.problem-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.problem-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.difficulty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.diff-easy {
+  color: var(--success);
+  background-color: var(--success);
+}
+
+.diff-medium {
+  color: var(--warning);
+  background-color: var(--warning);
+}
+
+.diff-hard {
+  color: var(--danger);
+  background-color: var(--danger);
+}
+
+.difficulty-label {
+  font-size: 12px;
+}
+
+.problem-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+.badge {
+  background: rgba(47, 129, 247, 0.15);
+  color: var(--accent);
+  border-radius: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+.item-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.item-actions button {
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: rgba(248, 81, 73, 0.5);
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+}
+
+/* ===== 表单 ===== */
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+}
+
+textarea.mono,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.samples-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sample-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.initial-code-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.lang-chip {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding-top: 8px;
+  width: 56px;
+  flex-shrink: 0;
+}
+
+.cases-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.case-editor {
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--bg-secondary);
+}
+
+.case-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.timeout-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.timeout-label input {
+  width: 90px;
+}
+
+.case-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+
 .app-shell h1 {
   font-size: 32px;
   margin: 0;

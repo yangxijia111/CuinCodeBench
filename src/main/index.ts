@@ -2,9 +2,13 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { logger } from './lib/logger'
 import { registerIpcHandlers } from './ipc/register'
+import { getDataDir } from './ipc'
+import { openDatabase } from './db/connection'
+import { initServices } from './services'
+import { loadSeedProblems, resolveSeedFile } from './seed/seed'
 
 /**
- * 主进程入口：单实例锁 → IPC 注册 → 窗口创建 → 生命周期管理。
+ * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → IPC 注册 → 窗口创建。
  */
 
 // 禁止硬件加速相关的已知渲染问题（保守关闭，桌面工具不需要 GPU 重度特性）
@@ -64,6 +68,18 @@ if (!gotLock) {
   })
 
   void app.whenReady().then(() => {
+    // 数据库与服务（数据目录：userData，或 CCB_DATA_DIR 覆盖）
+    const db = openDatabase({ dataDir: getDataDir() })
+    const services = initServices(db)
+
+    // 首次启动灌入种子题库（FR-P6：仅当题库为空）
+    if (services.problems.count() === 0) {
+      const seedFile = resolveSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
+      const seeds = loadSeedProblems(seedFile)
+      for (const s of seeds) services.problems.create(s, true)
+      logger.info('种子题库已灌入', `${seeds.length} 题`)
+    }
+
     registerIpcHandlers()
     const win = createMainWindow()
     loadRenderer(win)

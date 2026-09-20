@@ -4,6 +4,7 @@ import type {
   Difficulty,
   LanguageId,
   Problem,
+  ProblemDetail,
   ProblemInput,
   Sample,
   TestCase,
@@ -62,9 +63,7 @@ function rowToProblem(row: ProblemRow, cases: TestCase[]): Problem {
   }
 }
 
-export interface ProblemWithCases extends Problem {
-  testCases: TestCase[]
-}
+export type ProblemWithCases = ProblemDetail
 
 export class ProblemRepository {
   constructor(private readonly db: Database.Database) {}

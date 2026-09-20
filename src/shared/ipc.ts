@@ -13,6 +13,7 @@ import type {
   LanguageId,
   MistakeBookEntry,
   Problem,
+  ProblemDetail,
   ProblemInput,
   ProblemQuery,
   ProblemStats,
@@ -59,9 +60,9 @@ export interface AppApi {
 
   // 题库
   listProblems(query: ProblemQuery): Promise<IpcResult<Problem[]>>
-  getProblem(id: string): Promise<IpcResult<Problem | null>>
-  createProblem(input: ProblemInput): Promise<IpcResult<Problem>>
-  updateProblem(id: string, input: ProblemInput): Promise<IpcResult<Problem>>
+  getProblem(id: string): Promise<IpcResult<ProblemDetail | null>>
+  createProblem(input: ProblemInput): Promise<IpcResult<ProblemDetail>>
+  updateProblem(id: string, input: ProblemInput): Promise<IpcResult<ProblemDetail>>
   deleteProblem(id: string): Promise<IpcResult<void>>
   listTags(): Promise<IpcResult<string[]>>
   exportProblems(problemIds: string[] | null): Promise<IpcResult<string>>

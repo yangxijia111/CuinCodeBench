@@ -4,42 +4,45 @@
 
 ---
 
-## P0 项目脚手架 ✅目标：可运行的最小 Electron 应用 + 全套质量门禁
+## P0 项目脚手架 ✅（完成于 2026-09-20）
 
 **实现内容**
-- [ ] electron-vite + React 19 + TS strict 三端骨架；空窗口加载 renderer
-- [ ] eslint(flat) + typescript-eslint strict 规则；`npm run lint`
-- [ ] `npm run typecheck`（三 tsconfig）
-- [ ] vitest 接入 + 首个冒烟测试；`npm run test`
-- [ ] `npm run build`（三端构建通过）
-- [ ] 目录分层落位（src/main、src/preload、src/renderer、src/shared）
-- [ ] GitHub 仓库创建并推送 main
+- [x] electron-vite + React 19 + TS strict 三端骨架；空窗口加载 renderer
+- [x] eslint(flat) + typescript-eslint strict 规则；`npm run lint`
+- [x] `npm run typecheck`（三 tsconfig）
+- [x] vitest 接入 + 首个冒烟测试；`npm run test`
+- [x] `npm run build`（三端构建通过）
+- [x] 目录分层落位（src/main、src/preload、src/renderer、src/shared）
+- [x] GitHub 仓库创建并推送 main
 
-**验收**：`npm run dev` 打开空窗口无报错；四条门禁命令全绿；首次 commit 推送成功。
+**验收**：`npm run dev` 打开空窗口无报错；四条门禁命令全绿；首次 commit 推送成功。✅
+补充验证：better-sqlite3 在 Electron ABI 下可用（prebuild 命中）；Electron 二进制经 npmmirror 镜像下载（.npmrc 固化）。
 **覆盖需求**：NFR-1/3/5
 
-## P1 数据层
+## P1 数据层 ✅（完成于 2026-09-20）
 
 **实现内容**
-- [ ] better-sqlite3 接入 + 连接管理（WAL、外键、CCB_DATA_DIR）
-- [ ] migration 机制 + v1 全部表
-- [ ] repositories：problem/test-case/history/mistake/settings
-- [ ] shared 类型与 zod schema
-- [ ] DB 单元测试（内存库）
+- [x] better-sqlite3 接入 + 连接管理（WAL、外键、CCB_DATA_DIR）
+- [x] migration 机制 + v1 全部表
+- [x] repositories：problem/test-case/history/mistake/settings
+- [x] shared 类型与 zod schema
+- [x] DB 单元测试（内存库）
 
-**验收**：migration 幂等；repo CRUD/级联/统计口径测试全绿。
+**验收**：migration 幂等；repo CRUD/级联/统计口径测试全绿。✅（22 项数据层测试）
+修复记录：多标签 JSON LIKE 筛选模式 bug；错误类型计数增加确定性次级排序。
 **覆盖需求**：NFR-2/3、FR-H3（存储口径）、DATA_SPEC §2
 
-## P2 题库服务与 UI
+## P2 题库服务与 UI ✅（完成于 2026-09-20）
 
 **实现内容**
-- [ ] problem-service（CRUD/搜索/筛选/导入导出/zod 校验）
-- [ ] 种子题库 JSON + 首启灌入
-- [ ] IPC：problems.* 与 app.*；preload API
-- [ ] UI：题库列表（搜索/标签/难度筛选）、题目编辑器（含用例编辑）、删除确认、导入导出
-- [ ] 服务层与 UI 流程测试
+- [x] problem-service（CRUD/搜索/筛选/导入导出/zod 校验）
+- [x] 种子题库 JSON + 首启灌入（10 题，期望输出经参考解程序验证）
+- [x] IPC：problems.* 与 app.*；preload API（zod 校验 + 统一错误信封）
+- [x] UI：题库列表（搜索/标签/难度筛选）、题目编辑器（含用例编辑）、删除确认、导入导出
+- [x] 服务层与 UI 流程测试
 
-**验收**：能新建/编辑/删除/筛选题目；导入导出往返一致；种子题首启出现。
+**验收**：能新建/编辑/删除/筛选题目；导入导出往返一致；种子题首启出现。✅（37 项测试；dev 启动日志确认灌入）
+修复记录：种子文件用内部格式校验（与导出信封区分）；ProblemDetail 上移 shared 供三端共用；IPC handle 泛型重构为 schema 驱动推断。
 **覆盖需求**：FR-P1–P6
 
 ## P3 本地 Runner

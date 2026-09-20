@@ -7,6 +7,11 @@ directories:
 files:
   - out/**
   - package.json
+extraResources:
+  - from: resources
+    to: .
+    filter:
+      - seed-problems.json
 win:
   target:
     - target: nsis
