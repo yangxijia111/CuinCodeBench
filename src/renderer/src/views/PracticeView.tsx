@@ -9,6 +9,7 @@ import { MarkdownView } from '../components/MarkdownView'
 import { CodeEditor } from '../components/CodeEditor'
 import { JudgeResultPanel } from '../components/JudgeResultPanel'
 import { RunResultPanel } from '../components/RunResultPanel'
+import { HistoryPanel } from '../components/HistoryPanel'
 
 /**
  * 练习页：左题面 / 右编辑器 + 结果（FR-E1–E6、FR-C1、FR-J3）。
@@ -46,7 +47,7 @@ export function PracticeView(): React.JSX.Element {
   const [runResult, setRunResult] = useState<RunOnceResult | null>(null)
   const [customStdin, setCustomStdin] = useState('')
   const [actionError, setActionError] = useState<string | null>(null)
-  const [showResultTab, setShowResultTab] = useState<'judge' | 'run'>('judge')
+  const [showResultTab, setShowResultTab] = useState<'judge' | 'run' | 'history'>('judge')
 
   // 加载题目 + 设置 + 恢复草稿
   useEffect(() => {
@@ -238,6 +239,12 @@ export function PracticeView(): React.JSX.Element {
             >
               运行输出
             </button>
+            <button
+              className={showResultTab === 'history' ? 'tab-btn active' : 'tab-btn'}
+              onClick={() => setShowResultTab('history')}
+            >
+              提交历史
+            </button>
           </div>
           {showResultTab === 'judge' ? (
             judgeResult === null ? (
@@ -245,10 +252,14 @@ export function PracticeView(): React.JSX.Element {
             ) : (
               <JudgeResultPanel result={judgeResult} />
             )
-          ) : runResult === null ? (
-            <div className="empty-hint small">点击「运行」以自定义输入执行代码（不计入记录）。</div>
+          ) : showResultTab === 'run' ? (
+            runResult === null ? (
+              <div className="empty-hint small">点击「运行」以自定义输入执行代码（不计入记录）。</div>
+            ) : (
+              <RunResultPanel result={runResult} />
+            )
           ) : (
-            <RunResultPanel result={runResult} />
+            <HistoryPanel problemId={problem.id} />
           )}
         </div>
       </section>

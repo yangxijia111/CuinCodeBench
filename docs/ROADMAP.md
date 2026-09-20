@@ -77,16 +77,16 @@
 **验收**：本机用 Python 与 C 对种子题判题，五种状态真实复现；结果面板信息完整。✅（103 项测试；CDP 验证渲染进程真实加载路由）
 **覆盖需求**：FR-J1–J6、FR-C1、FR-E1–E5（部分）
 
-## P5 记录、错题与 Dashboard
+## P5 记录、错题与 Dashboard ✅（完成于 2026-09-21）
 
 **实现内容**
-- [ ] history-service + IPC（列表/详情分页）
-- [ ] mistake-service（聚合/重算/mastered）+ 错题页 UI
-- [ ] stats-service（Dashboard 全指标）+ Dashboard UI
-- [ ] 提交历史 UI（题目维度）
-- [ ] 对应测试
+- [x] history-service + IPC（列表/详情分页）
+- [x] mistake-service（聚合/重算/mastered）+ 错题页 UI
+- [x] stats-service（Dashboard 全指标）+ Dashboard UI
+- [x] 提交历史 UI（练习页第三标签：分页列表 + 单次提交明细/代码回看）
+- [x] UI 冒烟脚本（scripts/ui-smoke.mjs，CDP 检查三路由真实渲染）
 
-**验收**：判题后历史/错题/统计即时正确；连续天数与正确率口径与文档一致。
+**验收**：判题后历史/错题/统计即时正确；连续天数与正确率口径与文档一致。✅（103 项测试 + 3 路由 UI 冒烟 PASS）
 **覆盖需求**：FR-H1–H4、FR-M1–M4、FR-D1–D3
 
 ## P6 设置、打磨与打包
