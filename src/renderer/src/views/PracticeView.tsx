@@ -222,7 +222,7 @@ export function PracticeView(): React.JSX.Element {
             <textarea
               rows={2}
               value={customStdin}
-              placeholder="可选：输入将写入程序 stdin"
+              aria-label="自定义 stdin 输入" placeholder="可选：输入将写入程序 stdin"
               onChange={(e) => setCustomStdin(e.target.value)}
             />
           </div>

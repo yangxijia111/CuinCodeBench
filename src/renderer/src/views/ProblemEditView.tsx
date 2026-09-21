@@ -282,13 +282,13 @@ function CaseEditor(props: {
       <div className="case-body">
         <textarea
           rows={2}
-          placeholder="stdin 输入（可为空）"
+          aria-label="用例 stdin 输入" placeholder="stdin 输入（可为空）"
           value={value.stdin}
           onChange={(e) => onChange({ ...value, stdin: e.target.value })}
         />
         <textarea
           rows={2}
-          placeholder="期望 stdout"
+          aria-label="用例期望输出" placeholder="期望 stdout"
           value={value.expectedStdout}
           onChange={(e) => onChange({ ...value, expectedStdout: e.target.value })}
         />

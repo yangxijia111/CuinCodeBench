@@ -4,7 +4,7 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2023"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"],
     "strict": true,
     "noUncheckedIndexedAccess": false,
@@ -35,7 +35,9 @@
     "src/shared/**/*",
     "src/renderer/src/components/JudgeResultPanel.tsx",
     "src/renderer/src/components/RunResultPanel.tsx",
+    "src/renderer/src/components/MarkdownView.tsx",
     "src/renderer/src/lib/display.ts",
+    "src/renderer/src/lib/sanitize-markdown.ts",
     "tests/**/*"
   ]
 }

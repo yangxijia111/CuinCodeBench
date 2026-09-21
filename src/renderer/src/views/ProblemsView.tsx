@@ -75,17 +75,18 @@ export function ProblemsView(): React.JSX.Element {
       <div className="filter-bar">
         <input
           type="search"
+          aria-label="搜索题目"
           placeholder="搜索标题或描述…"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
         />
-        <select value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty | 'all')}>
+        <select aria-label="难度筛选" value={difficulty} onChange={(e) => setDifficulty(e.target.value as Difficulty | 'all')}>
           <option value="all">全部难度</option>
           <option value="easy">简单</option>
           <option value="medium">中等</option>
           <option value="hard">困难</option>
         </select>
-        <select value={tag} onChange={(e) => setTag(e.target.value)}>
+        <select aria-label="标签筛选" value={tag} onChange={(e) => setTag(e.target.value)}>
           <option value="all">全部标签</option>
           {(tags.data ?? []).map((t) => (
             <option key={t} value={t}>
