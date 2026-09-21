@@ -37,7 +37,8 @@ jobs:
           npm run build
 
       - name: Package (NSIS + zip)
-        run: npm run dist
+        # --publish never：禁用 electron-builder 的 tag 隐式发布（发布统一由 action-gh-release 负责）
+        run: npm run dist -- --publish never
         env:
           # 未签名构建：跳过代码签名步骤
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
