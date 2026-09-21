@@ -1,5 +1,7 @@
 # GITHUB_RELEASE_REPORT.md — 公开发布前安全审计与发布报告
 
+> ℹ️ 本文档是 **v1.0.0 发布前安全审计的快照**（测试数字 109 为当时结果）；最新状态见 V1_1_FINAL_REPORT.md。
+
 发布日期：2026-09-21 ｜ 仓库：https://github.com/yangxijia111/CuinCodeBench
 
 ## Repository

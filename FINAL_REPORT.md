@@ -1,5 +1,7 @@
 # FINAL_REPORT.md — CuinCodeBench v1.0.0 最终报告
 
+> ℹ️ 本文档是 **v1.0.0 发布时点的快照**，其中的测试数字（109 passed）与构建数据仅反映当时状态；当前最新测试结果以 `npm run test` 实际输出为准，v1.1 变更见 V1_1_FINAL_REPORT.md 与 docs/CHANGELOG.md。
+
 发布日期：2026-09-21 ｜ GitHub：https://github.com/yangxijia111/CuinCodeBench ｜ 标签：`v1.0.0`
 
 ## 1. 最终功能（对照 PRODUCT.md v1.0 标准）
