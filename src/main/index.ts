@@ -4,12 +4,14 @@ import { logger } from './lib/logger'
 import { registerIpcHandlers } from './ipc/register'
 import { getDataDir } from './ipc'
 import { openDatabase } from './db/connection'
-import { initServices, getServices } from './services'
+import { initServices, getServices, closeServices } from './services'
 import { ToolchainService } from './services/toolchain-service'
 import { JudgeService } from './services/judge-service'
 import { loadSeedProblems, resolveSeedFile } from './seed/seed'
 import { cleanLegacyTempDirs } from './runner/temp-dir'
 import { killAllActiveChildren } from './runner/execute'
+import { isAllowedExternalUrl } from './lib/external-url'
+import { registerTrustedSender } from './ipc/validate-sender'
 
 /**
  * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → 清扫遗留临时目录 →
@@ -41,14 +43,26 @@ function createMainWindow(): BrowserWindow {
     win.show()
   })
 
-  // 外部链接交给系统浏览器；阻止任何页内导航（Markdown 链接会把应用导航走且无法恢复）
+  // 注册为本应用可信 IPC 来源（H3：validateIpcSender 依赖）
+  registerTrustedSender(win.webContents)
+
+  // 外部链接：仅 http(s) 交给系统浏览器，其余协议一律拒绝并记日志（SECURITY「External URLs」）
+  // 页内导航一律阻止（Markdown 链接会把应用导航走且无法恢复）
   win.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url)
+    if (isAllowedExternalUrl(url)) {
+      void shell.openExternal(url)
+    } else {
+      logger.warn('已拒绝打开非白名单协议的外部 URL', url.slice(0, 200))
+    }
     return { action: 'deny' }
   })
   win.webContents.on('will-navigate', (event, url) => {
     event.preventDefault()
-    void shell.openExternal(url)
+    if (isAllowedExternalUrl(url)) {
+      void shell.openExternal(url)
+    } else {
+      logger.warn('已阻止导航到非白名单协议的 URL', url.slice(0, 200))
+    }
   })
 
   return win
@@ -126,8 +140,9 @@ if (!gotLock) {
   })
 
   app.on('window-all-closed', () => {
-    // 退出前终止全部执行中的程序（防止孤儿进程），并尽力清理临时目录
+    // 退出顺序：终止全部执行中的程序（防孤儿进程）→ 关闭数据库（WAL 检查点落地）→ 退出
     killAllActiveChildren()
+    closeServices()
     app.quit()
   })
 
