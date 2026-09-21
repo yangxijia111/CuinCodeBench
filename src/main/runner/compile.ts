@@ -1,4 +1,4 @@
-import { COMPILE_TIMEOUT_MS } from '@shared/constants'
+import { COMPILE_TIMEOUT_MS, COMPILE_OUTPUT_LIMIT_BYTES } from '@shared/constants'
 import type { Toolchain } from '@shared/types'
 import { execute } from './execute'
 import { buildRunPlan } from './languages'
@@ -6,8 +6,10 @@ import { writeFile } from 'fs/promises'
 import { join } from 'path'
 
 /**
- * 编译执行（FR-R5/R8）：复用执行器（无 stdin、不判输出超限）。
+ * 编译执行（FR-R5/R8）：复用执行器（无 stdin）。
  * gcc/clang 有警告但 exit 0 视为成功；MSVC 同理。
+ * H6：编译输出同样受 COMPILE_OUTPUT_LIMIT_BYTES 上限约束（防失控编译器），
+ * 超限时视为编译失败并在 stderr 保留截断内容。
  */
 
 export interface CompileReport {
@@ -32,11 +34,16 @@ export async function compileSource(toolchain: Toolchain, dir: string): Promise<
     stdin: '',
     timeoutMs: COMPILE_TIMEOUT_MS,
     env: plan.compile.env,
-    enforceOutputLimit: false
+    enforceOutputLimit: true,
+    outputLimitBytes: COMPILE_OUTPUT_LIMIT_BYTES
   })
+  const stderr =
+    result.status === 'output_limit'
+      ? result.stderr + '\n[编译输出超过上限，已截断终止]'
+      : result.stderr
   return {
-    ok: result.exitCode === 0 && !result.timedOut,
-    stderr: result.stderr,
+    ok: result.exitCode === 0 && !result.timedOut && result.status !== 'output_limit',
+    stderr,
     stdout: result.stdout,
     exitCode: result.exitCode,
     timedOut: result.timedOut,

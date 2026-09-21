@@ -11,6 +11,12 @@ export const LANGUAGE_IDS = ['c', 'cpp', 'python'] as const
 /** 单路输出捕获上限（字节）：超出即杀进程（FR-R6 / SECURITY §3.3） */
 export const OUTPUT_LIMIT_BYTES = 1024 * 1024
 
+/**
+ * 编译阶段单路输出上限（字节）：防失控编译器无限输出（H6）。
+ * 常规警告/错误远小于此值；巨大模板错误会被截断并标记。
+ */
+export const COMPILE_OUTPUT_LIMIT_BYTES = 1024 * 1024
+
 /** 展示层单块文本截断长度（字符）：防止 UI 渲染卡死 */
 export const DISPLAY_TRUNCATE_CHARS = 64 * 1024
 

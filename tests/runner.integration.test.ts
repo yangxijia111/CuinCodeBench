@@ -147,6 +147,23 @@ describe('execute 执行器（node 桩）', () => {
     expect(result.stdout.length).toBeLessThanOrEqual(1024 * 1024)
   })
 
+  it('H6：可配置输出上限（outputLimitBytes）生效且进程被杀', async () => {
+    const result = await withTempDir(async (dir) =>
+      execute({
+        program: node,
+        args: ['-e', 'setInterval(() => process.stdout.write("y".repeat(1024)), 5)'],
+        cwd: dir,
+        stdin: '',
+        timeoutMs: 15_000,
+        outputLimitBytes: 100 * 1024
+      })
+    )
+    expect(result.status).toBe('output_limit')
+    expect(result.stdoutTruncated).toBe(true)
+    // 上限收紧到 100KB 后，捕获内容不应超过该值（含部分 chunk 容差）
+    expect(result.stdout.length).toBeLessThanOrEqual(100 * 1024 + 4096)
+  })
+
   it('Unicode：中文与 emoji 往返一致', async () => {
     const result = await withTempDir(async (dir) =>
       execute({

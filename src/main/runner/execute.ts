@@ -20,7 +20,9 @@ export interface ExecuteOptions {
   timeoutMs: number
   /** 附加环境变量（叠加在 process.env 之上） */
   env?: Record<string, string>
-  /** 是否检查输出超限（编译阶段传 false） */
+  /** 输出上限（字节），默认 OUTPUT_LIMIT_BYTES（编译阶段用更小的 COMPILE_OUTPUT_LIMIT_BYTES） */
+  outputLimitBytes?: number
+  /** 是否检查输出超限；超限即终止进程（H6：编译阶段同样启用，防失控编译器无限输出） */
   enforceOutputLimit?: boolean
 }
 
@@ -29,12 +31,14 @@ class StreamCollector {
   private total = 0
   truncated = false
 
+  constructor(private readonly limitBytes: number) {}
+
   push(chunk: Buffer): void {
     this.total += chunk.length
-    if (this.total > OUTPUT_LIMIT_BYTES) {
+    if (this.total > this.limitBytes) {
       this.truncated = true
       // 只保留上限内的内容（丢弃超出部分）
-      const remaining = OUTPUT_LIMIT_BYTES - (this.total - chunk.length)
+      const remaining = this.limitBytes - (this.total - chunk.length)
       if (remaining > 0) this.chunks.push(chunk.subarray(0, remaining))
     } else {
       this.chunks.push(chunk)
@@ -77,6 +81,7 @@ export function killAllActiveChildren(): void {
 }
 
 function doExecute(opts: ExecuteOptions, enforceLimit: boolean): Promise<ExecutionResult> {
+  const limitBytes = opts.outputLimitBytes ?? OUTPUT_LIMIT_BYTES
   return new Promise<ExecutionResult>((resolve) => {
     let settled = false
     const startedAt = Date.now()
@@ -100,8 +105,8 @@ function doExecute(opts: ExecuteOptions, enforceLimit: boolean): Promise<Executi
       activeChildren.delete(child)
     }
 
-    const stdout = new StreamCollector()
-    const stderr = new StreamCollector()
+    const stdout = new StreamCollector(limitBytes)
+    const stderr = new StreamCollector(limitBytes)
     let timedOut = false
     let limited = false
     let timeoutTimer: NodeJS.Timeout | null = null
