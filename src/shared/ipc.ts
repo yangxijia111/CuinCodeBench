@@ -12,6 +12,7 @@ import type {
   JudgeStatus,
   KnowledgePoint,
   LanguageId,
+  MasteryInfo,
   MistakeBookEntry,
   Problem,
   ProblemDetail,
@@ -103,6 +104,10 @@ export interface AppApi {
   getProblemKnowledgePoints(problemId: string): Promise<IpcResult<KnowledgePoint[]>>
   bindProblemKnowledgePoints(problemId: string, kpIds: string[]): Promise<IpcResult<void>>
   unbindProblemKnowledgePoint(problemId: string, kpId: string): Promise<IpcResult<void>>
+
+  // 掌握度（v1.2）
+  listMastery(): Promise<IpcResult<MasteryInfo[]>>
+  recalcMastery(): Promise<IpcResult<void>>
 
   // 备份与恢复（路径由主进程 dialog 决定，renderer 不传路径）
   exportBackup(): Promise<

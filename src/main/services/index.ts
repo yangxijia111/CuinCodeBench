@@ -16,6 +16,7 @@ import { StatsRepository } from '../db/repositories/stats-repository'
 import { LearningRepository } from '../db/repositories/learning-repository'
 import { MasteryRepository } from '../db/repositories/mastery-repository'
 import { LearningService } from './learning-service'
+import { MasteryService } from './mastery-service'
 import { AppError } from '../lib/app-error'
 
 /**
@@ -162,6 +163,8 @@ export interface ServiceContext {
   learningRepo: LearningRepository
   /** v1.2：掌握度仓储（mastery-service 于 P3 在此之上实现） */
   mastery: MasteryRepository
+  /** v1.2：掌握度服务（判题落库后重算 hook） */
+  masterySvc: MasteryService
   /** 语言列表便捷访问 */
   languages: LanguageId[]
   /** 每题统计 */
@@ -183,6 +186,10 @@ export function initServices(db: Database.Database): ServiceContext {
     learning: new LearningService(db, { mastery: masteryRepo }),
     learningRepo: new LearningRepository(db),
     mastery: masteryRepo,
+    masterySvc: new MasteryService({
+      mastery: masteryRepo,
+      learning: new LearningRepository(db)
+    }),
     languages: ['c', 'cpp', 'python'],
     problemStats: (problemId) => new HistoryRepository(db).getProblemStats(problemId)
   }

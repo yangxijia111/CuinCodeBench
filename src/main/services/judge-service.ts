@@ -15,6 +15,7 @@ import { execute } from '../runner/execute'
 import { decideCaseStatus } from '../judge/normalize'
 import type { ToolchainService } from './toolchain-service'
 import type { ServiceContext } from './index'
+import { logger } from '../lib/logger'
 
 /**
  * 判题与运行服务（ARCHITECTURE §3/§5）：
@@ -208,6 +209,13 @@ export class JudgeService {
       })
     }
     svc.mistakes.recompute(problemId)
+    // v1.2：知识点掌握度重算（该题关联的全部知识点；物化缓存，幂等）
+    try {
+      svc.masterySvc.recalcForProblem(problemId, Date.now())
+    } catch (err) {
+      // 掌握度是派生缓存，重算失败不阻断判题结果（日志留痕，可手动 recalc 修复）
+      logger.warn('掌握度重算失败（可手动重算）', err instanceof Error ? err.message : String(err))
+    }
 
     return {
       submissionId,

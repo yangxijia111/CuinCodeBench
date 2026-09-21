@@ -1,8 +1,8 @@
 import type Database from 'better-sqlite3'
-import type { MasteryInfo, MasteryStatus } from '@shared/types'
+import type { MasteryInfo, MasteryStatus, ReviewGrade } from '@shared/types'
 
 /**
- * 掌握度仓储：物化缓存读写（可全量重算）。
+ * 掌握度仓储：物化缓存读写 + 计算所需的聚合查询。
  * 计算规则见 docs/V1_2_MASTERY_SPEC.md（mastery-service）。
  */
 export class MasteryRepository {
@@ -46,5 +46,87 @@ export class MasteryRepository {
 
   remove(knowledgePointId: string): void {
     this.db.prepare('DELETE FROM mastery WHERE knowledge_point_id = ?').run(knowledgePointId)
+  }
+
+  // —— 计算输入聚合查询（docs/V1_2_MASTERY_SPEC.md §2） ——
+
+  /** 表现样本：每题最近 `perProblem` 次提交（时间倒序），供内存截取最近 N 条 */
+  recentSamplesPerProblem(
+    knowledgePointId: string,
+    perProblem: number
+  ): { status: string; created_at: number }[] {
+    return this.db
+      .prepare(
+        `SELECT status, created_at FROM (
+           SELECT s.status, s.created_at,
+                  ROW_NUMBER() OVER (PARTITION BY s.problem_id ORDER BY s.created_at DESC, s.rowid DESC) AS rn
+           FROM submissions s
+           WHERE s.problem_id IN (
+             SELECT problem_id FROM problem_knowledge_points WHERE knowledge_point_id = ?
+           )
+         ) WHERE rn <= ? ORDER BY created_at DESC`
+      )
+      .all(knowledgePointId, perProblem) as { status: string; created_at: number }[]
+  }
+
+  /** 最近原始提交（时间倒序，用于 streak 与 weak 判定） */
+  recentSubmissions(knowledgePointId: string, limit: number): { status: string; created_at: number }[] {
+    return this.db
+      .prepare(
+        `SELECT s.status, s.created_at
+         FROM submissions s
+         WHERE s.problem_id IN (
+           SELECT problem_id FROM problem_knowledge_points WHERE knowledge_point_id = ?
+         )
+         ORDER BY s.created_at DESC, s.rowid DESC LIMIT ?`
+      )
+      .all(knowledgePointId, limit) as { status: string; created_at: number }[]
+  }
+
+  /** 覆盖：绑定题目数与其中至少一次 AC 的题目数 */
+  coverage(knowledgePointId: string): { total: number; covered: number } {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(DISTINCT p.id) AS total,
+                COUNT(DISTINCT CASE WHEN acc.problem_id IS NOT NULL THEN p.id END) AS covered
+         FROM problem_knowledge_points pkp
+         JOIN problems p ON p.id = pkp.problem_id
+         LEFT JOIN (SELECT DISTINCT problem_id FROM submissions WHERE status = 'accepted') acc
+           ON acc.problem_id = p.id
+         WHERE pkp.knowledge_point_id = ?`
+      )
+      .get(knowledgePointId) as { total: number; covered: number }
+    return row
+  }
+
+  /** 知识点复习历史的最近 N 次结果（时间倒序） */
+  recentReviewResults(knowledgePointId: string, limit: number): ReviewGrade[] {
+    const rows = this.db
+      .prepare(
+        `SELECT rh.result
+         FROM review_history rh
+         JOIN review_items ri ON ri.id = rh.review_item_id
+         WHERE ri.target_type = 'knowledge_point' AND ri.target_id = ?
+         ORDER BY rh.reviewed_at DESC, rh.rowid DESC LIMIT ?`
+      )
+      .all(knowledgePointId, limit) as { result: ReviewGrade }[]
+    return rows.map((r) => r.result)
+  }
+
+  /** 知识点最后一次活动时间（最后提交或最后复习） */
+  lastActivityAt(knowledgePointId: string): number | null {
+    const row = this.db
+      .prepare(
+        `SELECT MAX(ts) AS last FROM (
+           SELECT MAX(created_at) AS ts FROM submissions
+            WHERE problem_id IN (SELECT problem_id FROM problem_knowledge_points WHERE knowledge_point_id = ?)
+           UNION ALL
+           SELECT MAX(rh.reviewed_at) FROM review_history rh
+            JOIN review_items ri ON ri.id = rh.review_item_id
+            WHERE ri.target_type = 'knowledge_point' AND ri.target_id = ?
+         )`
+      )
+      .get(knowledgePointId, knowledgePointId) as { last: number | null }
+    return row.last
   }
 }

@@ -107,6 +107,13 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     return undefined
   })
 
+  // —— 掌握度（v1.2）——
+  handle('mastery.list', noArgs, () => svc().mastery.listAll())
+  handle('mastery.recalc', noArgs, () => {
+    svc().masterySvc.recalcAll(Date.now())
+    return undefined
+  })
+
   // —— 备份与恢复（docs/V1_2_BACKUP_SPEC.md §6）——
   // 路径只来自主进程 dialog，renderer 永远不传文件路径（纵深防御）；
   // pendingImport 缓存在主进程内存，confirmRestore 时二次校验文件 mtime 防调包。

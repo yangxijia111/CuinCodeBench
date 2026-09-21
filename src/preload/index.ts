@@ -47,6 +47,9 @@ const api: AppApi = {
   bindProblemKnowledgePoints: (problemId, kpIds) => invoke('learning.bindProblem', [problemId, kpIds]),
   unbindProblemKnowledgePoint: (problemId, kpId) => invoke('learning.unbindProblem', [problemId, kpId]),
 
+  listMastery: () => invoke('mastery.list'),
+  recalcMastery: () => invoke('mastery.recalc'),
+
   exportBackup: () => invoke('backup.export'),
   importBackupPreview: () => invoke('backup.importPreview'),
   confirmBackupRestore: () => invoke('backup.confirmRestore'),
