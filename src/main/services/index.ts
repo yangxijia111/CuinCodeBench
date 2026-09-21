@@ -132,6 +132,15 @@ export class SettingsService {
   markSeeded(): void {
     this.repo.markSeeded()
   }
+
+  /** 通用一次性标记（v1.2 升级灌入用） */
+  hasMarker(key: string): boolean {
+    return this.repo.hasMarker(key)
+  }
+
+  markMarker(key: string): void {
+    this.repo.markMarker(key)
+  }
 }
 
 /**

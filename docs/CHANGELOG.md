@@ -2,6 +2,22 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格；版本号遵循语义化版本。
 
+## [Unreleased] — v1.2.0 Learning Experience
+
+进行中：v1.2 学习体验升级（设计文档见 docs/V1_2_*.md）。
+
+### Added（开发中，随 Phase 提交推进）
+- **P0 数据库 v2 migration**：新增学习路线（learning_paths/learning_stages/knowledge_points）、题目↔知识点多对多（problem_knowledge_points）、掌握度（mastery）、复习调度（review_items/review_history）、错题笔记（mistake_notes）、练习队列（practice_sessions/practice_session_items）共 10 张表；error_records 扩展学习错误分类列；孤儿数据兜底清理 SQL
+- 内置「C 基础」学习路线种子（6 阶段 15 知识点，`seed-learning-path.json`），应用升级时幂等灌入并把内置旧题一次性映射到知识点（`learning_v2_mapped` 标记）
+- 学习体验领域类型与常量（MasteryStatus/ReviewGrade/ErrorCategory 等，shared/types）
+
+### Changed
+- SQLite schema 版本 1 → 2（只增不删，v1.1 数据零改动；v1.1 代码可正常打开 v2 库）
+
+### Testing
+- 新增 migration v2 / 内置路线灌入 / 旧题映射 / 绑定幂等测试（tests/migrations.test.ts，7 项）；既有 migration 断言随版本号更新
+- 测试总数 137 → 144
+
 ## [1.1.0] — 2026-09-21
 
 v1.1.0 Production Hardening：安全加固、CI 建设、测试补强与发布工程化。现有 v1.0 功能无回归。详见 V1_1_HARDENING_PLAN.md 与 V1_1_FINAL_REPORT.md。

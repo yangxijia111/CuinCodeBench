@@ -1,0 +1,132 @@
+{
+  "path": {
+    "slug": "c-basics",
+    "title": "C 基础",
+    "description": "从输入输出到指针与结构体的 C 语言入门路线，按顺序练习打牢基础。"
+  },
+  "stages": [
+    {
+      "title": "起步",
+      "description": "读写输入输出、认识变量与类型、使用运算符。",
+      "knowledgePoints": [
+        {
+          "name": "输入输出",
+          "description": "scanf/printf、标准输入输出与格式化。",
+          "tags": ["输入输出", "io", "scanf", "printf", "输入", "输出", "iostream", "cin", "cout"]
+        },
+        {
+          "name": "变量与类型",
+          "description": "int/float/char、声明与赋值、类型转换。",
+          "tags": ["变量", "类型", "入门", "变量与类型", "数据类型"]
+        },
+        {
+          "name": "运算符",
+          "description": "算术/关系/逻辑运算符与取模、优先级。",
+          "tags": ["运算符", "数学", "取模", "算术"]
+        }
+      ]
+    },
+    {
+      "title": "分支",
+      "description": "用 if 与 switch 表达条件逻辑。",
+      "knowledgePoints": [
+        {
+          "name": "if 条件",
+          "description": "if/else、嵌套条件与布尔表达式。",
+          "tags": ["if", "条件", "分支", "判断", "条件判断"]
+        },
+        {
+          "name": "switch",
+          "description": "switch/case、break 与 fall-through。",
+          "tags": ["switch", "case", "分支"]
+        }
+      ]
+    },
+    {
+      "title": "循环",
+      "description": "for、while 与循环控制，让程序重复工作。",
+      "knowledgePoints": [
+        {
+          "name": "for 循环",
+          "description": "计数循环、遍历与累加。",
+          "tags": ["for", "循环", "遍历", "迭代", "模拟"]
+        },
+        {
+          "name": "while 循环",
+          "description": "条件循环、不确定次数的重复。",
+          "tags": ["while", "循环", "do-while"]
+        },
+        {
+          "name": "循环控制",
+          "description": "break/continue 与跳出多重循环。",
+          "tags": ["break", "continue", "循环", "循环控制"]
+        }
+      ]
+    },
+    {
+      "title": "数组与字符串",
+      "description": "一维/二维数组与字符串处理。",
+      "knowledgePoints": [
+        {
+          "name": "一维数组",
+          "description": "数组声明、遍历、查找与排序。",
+          "tags": ["数组", "排序", "查找", "一维数组", "二分"]
+        },
+        {
+          "name": "二维数组",
+          "description": "矩阵、表格与嵌套遍历。",
+          "tags": ["二维数组", "矩阵", "网格"]
+        },
+        {
+          "name": "字符串",
+          "description": "字符数组、常用串处理与遍历。",
+          "tags": ["字符串", "字符", "string", "回文", "动态规划"]
+        }
+      ]
+    },
+    {
+      "title": "函数",
+      "description": "封装与复用：函数定义、传参与递归。",
+      "knowledgePoints": [
+        {
+          "name": "函数定义与调用",
+          "description": "参数、返回值、作用域与拆分逻辑。",
+          "tags": ["函数", "递归", "调用"]
+        },
+        {
+          "name": "递归基础",
+          "description": "递归定义、终止条件与调用栈直觉。",
+          "tags": ["递归", "函数"]
+        }
+      ]
+    },
+    {
+      "title": "指针与结构体",
+      "description": "理解地址、指针与自定义类型。",
+      "knowledgePoints": [
+        {
+          "name": "指针基础",
+          "description": "取址/解引用、指针与数组、双指针手法。",
+          "tags": ["指针", "pointer", "地址", "双指针"]
+        },
+        {
+          "name": "struct 结构体",
+          "description": "自定义类型、成员访问与结构体数组。",
+          "tags": ["struct", "结构体", "自定义类型"]
+        }
+      ]
+    }
+  ],
+  "builtinProblemMap": {
+    "A+B 问题": ["输入输出", "变量与类型", "运算符"],
+    "FizzBuzz": ["for 循环", "if 条件", "循环控制"],
+    "字符串反转": ["字符串", "一维数组", "指针基础"],
+    "判断回文": ["字符串", "一维数组", "指针基础"],
+    "最大公约数": ["while 循环", "运算符"],
+    "统计元音字母": ["字符串", "if 条件"],
+    "冒泡排序": ["一维数组", "for 循环"],
+    "矩阵转置": ["二维数组", "for 循环"],
+    "二分查找": ["一维数组", "while 循环"],
+    "最长公共子序列（LCS）": ["二维数组", "字符串", "函数定义与调用"]
+  }
+}

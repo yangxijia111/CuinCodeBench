@@ -229,3 +229,201 @@ export interface SubmissionQuery {
   limit: number
   offset: number
 }
+
+// ============================================================
+// v1.2 学习体验领域类型（权威定义见 docs/V1_2_LEARNING_MODEL.md）
+// ============================================================
+
+/** 知识点掌握状态（规则见 docs/V1_2_MASTERY_SPEC.md） */
+export type MasteryStatus = 'not_started' | 'learning' | 'weak' | 'familiar' | 'mastered'
+
+export const MASTERY_STATUS_META: Record<MasteryStatus, { label: string; color: string }> = {
+  not_started: { label: '未开始', color: '#6e7681' },
+  learning: { label: '学习中', color: '#58a6ff' },
+  weak: { label: '薄弱', color: '#f85149' },
+  familiar: { label: '熟悉', color: '#d29922' },
+  mastered: { label: '已掌握', color: '#3fb950' }
+}
+
+/** 间隔复习评分等级（docs/V1_2_REVIEW_SPEC.md） */
+export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
+
+export const REVIEW_GRADE_META: Record<ReviewGrade, { label: string }> = {
+  again: { label: '重学' },
+  hard: { label: '困难' },
+  good: { label: '掌握' },
+  easy: { label: '简单' }
+}
+
+/** 学习错误分类（明确规则自动判定 + 手动修正；与判题状态分离） */
+export const ERROR_CATEGORIES = [
+  'syntax',
+  'condition',
+  'loop',
+  'array_boundary',
+  'pointer',
+  'input_output',
+  'algorithm',
+  'off_by_one',
+  'memory',
+  'other',
+  'unknown'
+] as const
+
+export type ErrorCategory = (typeof ERROR_CATEGORIES)[number]
+
+export const ERROR_CATEGORY_META: Record<ErrorCategory, { label: string }> = {
+  syntax: { label: '语法' },
+  condition: { label: '条件判断' },
+  loop: { label: '循环' },
+  array_boundary: { label: '数组越界' },
+  pointer: { label: '指针' },
+  input_output: { label: '输入输出' },
+  algorithm: { label: '算法效率' },
+  off_by_one: { label: '差一错误' },
+  memory: { label: '内存' },
+  other: { label: '其他' },
+  unknown: { label: '未分类' }
+}
+
+/** 学习路线（内置路径 slug 见 resources/seed-learning-path.json） */
+export interface LearningPath {
+  id: string
+  slug: string
+  title: string
+  description: string
+  isBuiltin: boolean
+  sortOrder: number
+}
+
+export interface LearningStage {
+  id: string
+  pathId: string
+  title: string
+  description: string
+  sortOrder: number
+}
+
+export interface KnowledgePoint {
+  id: string
+  stageId: string
+  name: string
+  description: string
+  sortOrder: number
+  tags: string[]
+}
+
+/** 掌握度物化快照（可全量重算） */
+export interface MasteryInfo {
+  knowledgePointId: string
+  score: number
+  status: MasteryStatus
+  updatedAt: number
+}
+
+/** 知识点进度（路线页展示模型：绑定题目数 + 已通过 + 掌握度） */
+export interface KnowledgePointProgress {
+  knowledgePoint: KnowledgePoint
+  totalProblems: number
+  acceptedProblems: number
+  mastery: MasteryInfo | null
+}
+
+export interface StageProgress extends LearningStage {
+  knowledgePoints: KnowledgePointProgress[]
+  totalProblems: number
+  acceptedProblems: number
+}
+
+export interface PathProgress extends LearningPath {
+  stages: StageProgress[]
+  totalProblems: number
+  acceptedProblems: number
+}
+
+/** 复习调度项（review_items 行） */
+export interface ReviewItem {
+  id: string
+  targetType: 'knowledge_point' | 'problem'
+  targetId: string
+  lastReviewedAt: number | null
+  nextReviewAt: number
+  reviewCount: number
+  successStreak: number
+  failureCount: number
+  intervalDays: number
+  createdAt: number
+}
+
+export interface ReviewHistoryEntry {
+  id: string
+  reviewItemId: string
+  result: ReviewGrade
+  reviewedAt: number
+  submissionId: string | null
+}
+
+/** 错题笔记（1:1 题目） */
+export interface MistakeNote {
+  problemId: string
+  note: string
+  updatedAt: number
+}
+
+/** 错题复盘：错误历史条目（从 submissions + error_records 派生） */
+export interface MistakeHistoryEntry {
+  submissionId: string
+  status: JudgeStatus
+  language: LanguageId
+  code: string
+  message: string
+  learningCategory: ErrorCategory | null
+  categorySource: 'auto' | 'manual' | null
+  createdAt: number
+}
+
+/** 练习队列 */
+export type PracticeSessionKind = 'random' | 'knowledge_point' | 'review' | 'mistake'
+export type PracticeSessionItemStatus = 'pending' | 'accepted' | 'failed' | 'skipped'
+
+export interface PracticeSessionItem {
+  id: string
+  sessionId: string
+  problemId: string
+  sortOrder: number
+  status: PracticeSessionItemStatus
+  attempts: number
+  firstAcceptedSubmissionId: string | null
+  firstResultAt: number | null
+}
+
+export interface PracticeSession {
+  id: string
+  kind: PracticeSessionKind
+  knowledgePointId: string | null
+  config: Record<string, unknown>
+  status: 'active' | 'finished'
+  total: number
+  createdAt: number
+  finishedAt: number | null
+  items: PracticeSessionItem[]
+}
+
+/** 随机练习过滤器（config 的结构化定义） */
+export interface RandomSessionConfig {
+  difficulty: Difficulty | 'all'
+  language: LanguageId | 'all'
+  tag: string
+  knowledgePointId: string
+  scope: 'all' | 'unsolved' | 'mistakes' | 'weak'
+  size: number
+}
+
+/** 趋势数据点（Dashboard 2.0） */
+export interface TrendPoint {
+  day: string
+  submissions: number
+  accepted: number
+  reviews: number
+}
+

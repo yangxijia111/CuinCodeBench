@@ -8,6 +8,9 @@ import { initServices, getServices, closeServices } from './services'
 import { ToolchainService } from './services/toolchain-service'
 import { JudgeService } from './services/judge-service'
 import { loadSeedProblems, resolveSeedFile } from './seed/seed'
+import { ensureLearningSeedFromFile } from './learning/learning-seed'
+import { LearningRepository } from './db/repositories/learning-repository'
+import { LEARNING_V2_MAPPED_KEY } from './db/repositories/settings-repository'
 import { cleanLegacyTempDirs } from './runner/temp-dir'
 import { killAllActiveChildren } from './runner/execute'
 import { isAllowedExternalUrl } from './lib/external-url'
@@ -113,6 +116,22 @@ if (!gotLock) {
     // 工具链与判题服务
     const toolchains = new ToolchainService(() => services.settings.get().manualToolchains)
     const judge = new JudgeService(toolchains, () => getServices())
+
+    // v1.2：内置学习路线 + 旧题知识点映射（一次性幂等；失败不阻塞启动，下次启动重试）
+    if (!services.settings.hasMarker(LEARNING_V2_MAPPED_KEY)) {
+      try {
+        ensureLearningSeedFromFile(
+          new LearningRepository(db),
+          app.isPackaged,
+          app.getAppPath(),
+          process.resourcesPath
+        )
+      } catch (err) {
+        logger.error('学习路线灌入失败（下次启动重试）', err instanceof Error ? err.stack : String(err))
+      } finally {
+        services.settings.markMarker(LEARNING_V2_MAPPED_KEY)
+      }
+    }
 
     // 清扫上次运行遗留的临时目录（尽力而为，不阻塞启动）
     void cleanLegacyTempDirs().then((n) => {

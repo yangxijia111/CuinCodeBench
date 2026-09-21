@@ -12,6 +12,7 @@ extraResources:
     to: .
     filter:
       - seed-problems.json
+      - seed-learning-path.json
 win:
   target:
     - target: nsis

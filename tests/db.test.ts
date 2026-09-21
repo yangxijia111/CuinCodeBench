@@ -30,14 +30,14 @@ beforeEach(() => {
 })
 
 describe('migration', () => {
-  it('首次打开应用 v1 迁移', () => {
-    expect(currentVersion(db)).toBe(1)
+  it('首次打开应用迁移至当前版本（v1.2 = 2）', () => {
+    expect(currentVersion(db)).toBe(2)
   })
 
   it('重复迁移幂等', () => {
     // 重新执行迁移逻辑不应报错也不应重复建表
     expect(() => db.exec('SELECT 1')).not.toThrow()
-    expect(currentVersion(db)).toBe(1)
+    expect(currentVersion(db)).toBe(2)
   })
 
   it('全部核心表存在', () => {
@@ -52,7 +52,18 @@ describe('migration', () => {
       'error_records',
       'mistake_book',
       'settings',
-      'schema_migrations'
+      'schema_migrations',
+      // v1.2 学习体验表
+      'learning_paths',
+      'learning_stages',
+      'knowledge_points',
+      'problem_knowledge_points',
+      'mastery',
+      'review_items',
+      'review_history',
+      'mistake_notes',
+      'practice_sessions',
+      'practice_session_items'
     ]) {
       expect(tables).toContain(t)
     }
