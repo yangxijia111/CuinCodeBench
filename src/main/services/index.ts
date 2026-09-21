@@ -171,3 +171,14 @@ export function getServices(): ServiceContext {
   if (!ctx) throw new Error('服务未初始化（initServices 未调用）')
   return ctx
 }
+
+/** 应用退出时显式关闭数据库（WAL 检查点落地；H8） */
+export function closeServices(): void {
+  if (ctx !== null) {
+    try {
+      ctx.db.close()
+    } finally {
+      ctx = null
+    }
+  }
+}
