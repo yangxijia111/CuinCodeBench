@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { join } from 'path'
 import { buildRunPlan, selectToolchain, TOOLCHAIN_PRIORITY } from '../src/main/runner/languages'
 import type { Toolchain } from '../src/shared/types'
 
@@ -22,7 +23,8 @@ describe('buildRunPlan', () => {
     const plan = buildRunPlan(tc('gcc-c'), 'D:\\tmp\\abc')
     expect(plan.compile?.program).toBe('C:\\tools\\my gcc.exe')
     expect(plan.compile?.args).toEqual(['main.c', '-O2', '-std=c11', '-Wall', '-o', 'app.exe'])
-    expect(plan.run.program).toBe('D:\\tmp\\abc\\app.exe')
+    // 平台无关：期望值由同一 path 模块构造（Linux CI 上分隔符为 /）
+    expect(plan.run.program).toBe(join('D:\\tmp\\abc', 'app.exe'))
     expect(plan.sourceFile).toBe('main.c')
   })
 
