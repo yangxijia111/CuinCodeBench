@@ -1,6 +1,6 @@
 {
   "name": "cuincodebench",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "面向编程学习者的本地代码练习、运行、自动测试与错题分析工具",
   "main": "./out/main/index.js",
   "author": "CuinCodeBench Contributors",
