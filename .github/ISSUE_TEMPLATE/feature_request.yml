@@ -1,0 +1,23 @@
+name: ✨ 功能建议
+description: 提出新功能或改进建议
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决的问题或场景
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 范围确认
+      options:
+        - label: 我理解本项目定位为本地单机练习工具（不做联网/在线判题）
+          required: true

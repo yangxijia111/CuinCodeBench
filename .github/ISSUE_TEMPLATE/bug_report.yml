@@ -1,0 +1,54 @@
+name: 🐛 Bug 报告
+description: 报告 CuinCodeBench 的问题
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: 感谢反馈！请尽量填写以下信息以便定位问题。
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么？
+      description: 期望行为 vs 实际行为
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 打开…
+        2. 点击…
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 问题区域
+      options:
+        - 判题 / Runner（编译、运行、超时）
+        - 编辑器
+        - 题库管理 / 导入导出
+        - 错题本 / 统计
+        - 设置
+        - 打包 / 安装
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows 版本
+      placeholder: Windows 11 24H2
+    validations:
+      required: true
+  - type: textarea
+    id: toolchain
+    attributes:
+      label: 工具链信息（如与编译/运行相关）
+      placeholder: gcc 15.2.0（MinGW-w64）或 MSVC 19.44 / Python 3.13
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关报错信息
+      description: 判题结果面板或控制台中的错误文本（请勿包含个人路径之外的隐私信息）
