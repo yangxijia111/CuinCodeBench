@@ -1,0 +1,46 @@
+# CI 质量门禁：lint / typecheck / test / build
+# - ubuntu：快速反馈（无 C/C++ 工具链时 Runner 集成用例按设计条件跳过，node 桩用例覆盖执行器管线）
+# - windows：真实验证 MSVC/Python 工具链探测与端到端判题（runner 自带工具链，无需额外安装）
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality Gate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
