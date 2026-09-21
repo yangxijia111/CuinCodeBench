@@ -1356,6 +1356,179 @@ button.judge {
   cursor: pointer;
 }
 
+/* v1.2 复习页 */
+.review-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.card {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+}
+
+.review-overview-count {
+  text-align: center;
+  min-width: 140px;
+}
+
+.review-count-num {
+  font-size: 40px;
+  font-weight: 700;
+  color: #58a6ff;
+}
+
+.review-count-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.review-overview-kps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-kp-chip {
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 3px 12px;
+  font-size: 13px;
+}
+
+.review-size-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.review-size-option {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.review-start-btn {
+  font-size: 15px;
+  padding: 8px 20px;
+}
+
+.review-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.review-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: var(--bg-primary);
+}
+
+.review-item:hover {
+  border-color: #2f81f7;
+}
+
+.review-item-accepted {
+  border-left: 3px solid #3fb950;
+}
+
+.review-item-failed {
+  border-left: 3px solid #f85149;
+}
+
+.review-item-pending {
+  border-left: 3px solid #6e7681;
+}
+
+.review-item-status {
+  font-size: 13px;
+}
+
+.review-item-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.review-finish-row {
+  margin-top: 16px;
+}
+
+.review-grade-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.review-grade-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+}
+
+.review-grade-title {
+  min-width: 120px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.review-grade-options {
+  display: flex;
+  gap: 12px;
+}
+
+.review-grade-option {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.review-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.review-summary-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.review-next-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
 
 
 

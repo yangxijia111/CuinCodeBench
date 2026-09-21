@@ -75,6 +75,8 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   handle('mistakes.list', noArgs, () => svc().mistakes.listUnmastered())
   handle('mistakes.setMastered', z.tuple([z.string(), z.boolean()]), ([problemId, mastered]) => {
     svc().mistakes.setMastered(problemId, mastered)
+    // v1.2：标记掌握 → 删除该题复习项（重新失败时重建，spec §2）
+    if (mastered) svc().reviewSvc.onMistakeMastered(problemId)
     return undefined
   })
 
@@ -104,6 +106,27 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   })
   handle('learning.unbindProblem', z.tuple([z.string(), z.string()]), ([problemId, kpId]) => {
     svc().learning.unbindProblem(problemId, kpId)
+    return undefined
+  })
+
+  // —— 间隔复习（v1.2）——
+  handle('review.today', noArgs, () => svc().reviewSvc.todayOverview(Date.now()))
+  handle('review.startSession', z.number().int().min(5).max(20), (size) =>
+    svc().reviewSvc.startSession(size, Date.now())
+  )
+  handle('review.getSession', z.string(), (id) => {
+    const session = svc().reviewSvc.sessions.getSession(id)
+    if (session === null) throw new AppError('not_found', `复习会话不存在: ${id}`)
+    return session
+  })
+  handle('review.latestActive', noArgs, () => svc().reviewSvc.sessions.getLatestActive('review'))
+  handle(
+    'review.finishSession',
+    z.tuple([z.string(), z.record(z.string(), z.enum(['again', 'hard', 'good', 'easy']))]),
+    ([sessionId, grades]) => svc().reviewSvc.finishSession(sessionId, grades, Date.now())
+  )
+  handle('review.cancelSession', z.string(), (id) => {
+    svc().reviewSvc.sessions.finish(id, Date.now())
     return undefined
   })
 

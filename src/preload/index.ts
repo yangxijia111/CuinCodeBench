@@ -50,6 +50,13 @@ const api: AppApi = {
   listMastery: () => invoke('mastery.list'),
   recalcMastery: () => invoke('mastery.recalc'),
 
+  getReviewToday: () => invoke('review.today'),
+  startReviewSession: (size) => invoke('review.startSession', size),
+  getReviewSession: (id) => invoke('review.getSession', id),
+  getLatestActiveReviewSession: () => invoke('review.latestActive'),
+  finishReviewSession: (sessionId, grades) => invoke('review.finishSession', [sessionId, grades]),
+  cancelReviewSession: (id) => invoke('review.cancelSession', id),
+
   exportBackup: () => invoke('backup.export'),
   importBackupPreview: () => invoke('backup.importPreview'),
   confirmBackupRestore: () => invoke('backup.confirmRestore'),

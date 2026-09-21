@@ -14,6 +14,8 @@ import type {
   LanguageId,
   MasteryInfo,
   MistakeBookEntry,
+  PracticeSession,
+  ReviewItem,
   Problem,
   ProblemDetail,
   ProblemInput,
@@ -108,6 +110,25 @@ export interface AppApi {
   // 掌握度（v1.2）
   listMastery(): Promise<IpcResult<MasteryInfo[]>>
   recalcMastery(): Promise<IpcResult<void>>
+
+  // 间隔复习（v1.2）
+  getReviewToday(): Promise<
+    IpcResult<{
+      dueCount: number
+      items: ReviewItem[]
+      byKnowledgePoint: { name: string; count: number }[]
+    }>
+  >
+  startReviewSession(
+    size: number
+  ): Promise<IpcResult<{ session: PracticeSession | null; created: boolean }>>
+  getReviewSession(id: string): Promise<IpcResult<PracticeSession>>
+  getLatestActiveReviewSession(): Promise<IpcResult<PracticeSession | null>>
+  finishReviewSession(
+    sessionId: string,
+    grades: Record<string, 'again' | 'hard' | 'good' | 'easy'>
+  ): Promise<IpcResult<{ sessionId: string; graded: number; nextReviewAt: Record<string, number> }>>
+  cancelReviewSession(id: string): Promise<IpcResult<void>>
 
   // 备份与恢复（路径由主进程 dialog 决定，renderer 不传路径）
   exportBackup(): Promise<

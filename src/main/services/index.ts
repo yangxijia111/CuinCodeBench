@@ -17,6 +17,7 @@ import { LearningRepository } from '../db/repositories/learning-repository'
 import { MasteryRepository } from '../db/repositories/mastery-repository'
 import { LearningService } from './learning-service'
 import { MasteryService } from './mastery-service'
+import { ReviewService } from './review-service'
 import { AppError } from '../lib/app-error'
 
 /**
@@ -165,6 +166,8 @@ export interface ServiceContext {
   mastery: MasteryRepository
   /** v1.2：掌握度服务（判题落库后重算 hook） */
   masterySvc: MasteryService
+  /** v1.2：间隔复习服务 */
+  reviewSvc: ReviewService
   /** 语言列表便捷访问 */
   languages: LanguageId[]
   /** 每题统计 */
@@ -176,6 +179,13 @@ let ctx: ServiceContext | null = null
 export function initServices(db: Database.Database): ServiceContext {
   const problems = new ProblemService(new ProblemRepository(db))
   const masteryRepo = new MasteryRepository(db)
+  const masterySvc = new MasteryService({
+    mastery: masteryRepo,
+    learning: new LearningRepository(db)
+  })
+  const reviewSvc = new ReviewService(db)
+  // 复习完成 → 受影响知识点掌握度重算（桥接，避免循环依赖）
+  reviewSvc.masteryRecalc = (kpId, now) => masterySvc.recalc(kpId, now)
   ctx = {
     db,
     problems,
@@ -186,10 +196,8 @@ export function initServices(db: Database.Database): ServiceContext {
     learning: new LearningService(db, { mastery: masteryRepo }),
     learningRepo: new LearningRepository(db),
     mastery: masteryRepo,
-    masterySvc: new MasteryService({
-      mastery: masteryRepo,
-      learning: new LearningRepository(db)
-    }),
+    masterySvc,
+    reviewSvc,
     languages: ['c', 'cpp', 'python'],
     problemStats: (problemId) => new HistoryRepository(db).getProblemStats(problemId)
   }
