@@ -2,9 +2,10 @@ import { app, ipcMain } from 'electron'
 import type { ZodTypeAny, z } from 'zod'
 import { logger } from '../lib/logger'
 import { AppError } from '../lib/app-error'
+import { validateIpcSender } from './validate-sender'
 
 /**
- * IPC 层：薄封装——zod 校验入参 → 调用 service → 统一错误信封。
+ * IPC 层：薄封装——sender 校验 + zod 校验入参 → 调用 service → 统一错误信封。
  * 业务逻辑一律在 service 层，此处禁止写业务（ARCHITECTURE §2）。
  *
  * 约定：每个通道只接收一个 raw 参数（对象或数组），schema 校验后的值传给 fn。
@@ -19,7 +20,11 @@ export function handle<S extends ZodTypeAny, R>(
   schema: S,
   fn: (parsed: z.output<S>) => Promise<R> | R
 ): void {
-  ipcMain.handle(channel, async (_event, ...rawArgs: unknown[]) => {
+  ipcMain.handle(channel, async (event, ...rawArgs: unknown[]) => {
+    // 纵深防御：只处理来自本应用窗口的请求（H3）
+    if (!validateIpcSender(event)) {
+      return { ok: false, code: 'forbidden', message: '拒绝来自不可信来源的请求' } as const
+    }
     try {
       const parsed = schema.parse(rawArgs.length === 1 ? rawArgs[0] : rawArgs)
       const data = await fn(parsed)
