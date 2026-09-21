@@ -20,13 +20,12 @@ win:
     - target: zip
       arch:
         - x64
-# Release 产物命名规范（RELEASE 工程化）：安装器 + 便携 zip
+# 产物命名：顶层模板用于 zip；NSIS 在其配置节内覆盖为安装器命名
+artifactName: CuinCodeBench-${version}-win-${arch}.${ext}
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   shortcutName: CuinCodeBench
   artifactName: CuinCodeBench-Setup-${version}.${ext}
-zip:
-  artifactName: CuinCodeBench-${version}-win-x64.${ext}
 npmRebuild: true

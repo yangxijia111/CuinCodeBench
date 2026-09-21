@@ -33,13 +33,14 @@ export function isTrustedFrameUrl(frameUrl: string, devOrigin: string | null): b
   }
   if (parsed.protocol === 'file:') return true
   if (devOrigin !== null && parsed.protocol === 'http:') {
-    let origin: string | null = null
+    let origin: string | null
     try {
       origin = new URL(devOrigin).origin
     } catch {
-      origin = null
+      // dev origin 配置非法：视为无开发白名单
+      return false
     }
-    if (origin !== null && parsed.origin === origin) return true
+    return parsed.origin === origin
   }
   return false
 }
