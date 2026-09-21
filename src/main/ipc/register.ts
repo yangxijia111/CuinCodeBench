@@ -1,17 +1,21 @@
-import { app } from 'electron'
+import { app, dialog } from 'electron'
+import { existsSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { z } from 'zod'
 import {
   problemQuerySchema,
   runOnceInputSchema,
   judgeSubmitSchema,
   submissionQuerySchema,
-  appSettingsPatchSchema
+  appSettingsPatchSchema,
+  backupJsonTextSchema
 } from '@shared/schemas'
 import type { AppSettings } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
 import { getServices } from '../services'
+import { BackupService, type BackupSummary } from '../services/backup-service'
 import type { ToolchainService } from '../services/toolchain-service'
 import type { JudgeService } from '../services/judge-service'
+import { logger } from '../lib/logger'
 
 /**
  * IPC 通道注册总入口：按模块拆分，全部走 zod 校验 + 统一错误信封。
@@ -82,4 +86,96 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   handle('settings.update', appSettingsPatchSchema, (patch) =>
     svc().settings.update(patch as Partial<AppSettings>)
   )
+
+  // —— 备份与恢复（docs/V1_2_BACKUP_SPEC.md §6）——
+  // 路径只来自主进程 dialog，renderer 永远不传文件路径（纵深防御）；
+  // pendingImport 缓存在主进程内存，confirmRestore 时二次校验文件 mtime 防调包。
+  const backup = (): BackupService => new BackupService(svc().db)
+
+  let pendingImport: { path: string; mtimeMs: number; summary: BackupSummary } | null = null
+
+  handle('backup.export', noArgs, () => {
+    const { json, counts } = backup().exportJson(app.getVersion())
+    const now = new Date()
+    const pad = (n: number): string => String(n).padStart(2, '0')
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+    return dialog
+      .showSaveDialog({
+        title: '导出完整备份',
+        defaultPath: `CuinCodeBench-Backup-${stamp}.json`,
+        filters: [{ name: 'CuinCodeBench 备份', extensions: ['json'] }]
+      })
+      .then((ret) => {
+        if (ret.canceled || ret.filePath === undefined) return { canceled: true as const }
+        writeFileSync(ret.filePath, json, 'utf-8')
+        return { canceled: false as const, path: ret.filePath, counts }
+      })
+  })
+
+  handle('backup.importPreview', noArgs, () =>
+    dialog
+      .showOpenDialog({
+        title: '导入完整备份',
+        filters: [{ name: 'CuinCodeBench 备份', extensions: ['json'] }, { name: '全部文件', extensions: ['*'] }],
+        properties: ['openFile']
+      })
+      .then((ret) => {
+        if (ret.canceled || ret.filePaths.length === 0) return { canceled: true as const }
+        const path = ret.filePaths[0] ?? ''
+        const stat = statSync(path)
+        const text = readFileSync(path, 'utf-8')
+        const parsed = backupJsonTextSchema.parse(text)
+        const { summary } = backup().validate(parsed)
+        pendingImport = { path, mtimeMs: stat.mtimeMs, summary }
+        return {
+          canceled: false as const,
+          fileName: path.replace(/\\/g, '/').split('/').pop() ?? path,
+          summary
+        }
+      })
+      .catch((err: unknown) => {
+        pendingImport = null
+        // zod 校验失败（ZodError 带 issues 数组，与 ipc/index.ts 同一识别方式）
+        if (
+          err !== null &&
+          typeof err === 'object' &&
+          'issues' in err &&
+          Array.isArray(err.issues)
+        ) {
+          const issues = err.issues as { path: (string | number)[]; message: string }[]
+          const detail = issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
+          throw new AppError('validation', `备份内容校验失败：${detail.slice(0, 500)}`)
+        }
+        throw err
+      })
+  )
+
+  handle('backup.confirmRestore', noArgs, () => {
+    const pending = pendingImport
+    if (pending === null) {
+      throw new AppError('validation', '没有待恢复的备份：请重新选择备份文件')
+    }
+    // 二次校验：文件仍在且未被替换（预览 → 确认之间防调包）
+    if (!existsSync(pending.path)) {
+      pendingImport = null
+      throw new AppError('validation', '备份文件已不存在，请重新选择')
+    }
+    const mtime = statSync(pending.path).mtimeMs
+    if (Math.abs(mtime - pending.mtimeMs) > 1) {
+      pendingImport = null
+      throw new AppError('validation', '备份文件在确认前被修改，已取消恢复；请重新导入')
+    }
+    const { envelope, summary } = backup().validate(
+      backupJsonTextSchema.parse(readFileSync(pending.path, 'utf-8'))
+    )
+    const res = backup().restore(envelope)
+    pendingImport = null
+    logger.info('备份恢复完成', `problems=${summary.counts.problems} submissions=${summary.counts.submissions}`)
+    return res
+  })
+
+  handle('backup.cancelImport', noArgs, () => {
+    pendingImport = null
+    return undefined
+  })
 }

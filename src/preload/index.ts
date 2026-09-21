@@ -37,7 +37,12 @@ const api: AppApi = {
   getDashboardStats: () => invoke('stats.dashboard'),
 
   getSettings: () => invoke('settings.get'),
-  updateSettings: (patch) => invoke('settings.update', patch)
+  updateSettings: (patch) => invoke('settings.update', patch),
+
+  exportBackup: () => invoke('backup.export'),
+  importBackupPreview: () => invoke('backup.importPreview'),
+  confirmBackupRestore: () => invoke('backup.confirmRestore'),
+  cancelBackupImport: () => invoke('backup.cancelImport')
 }
 
 contextBridge.exposeInMainWorld('api', api)

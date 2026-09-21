@@ -13,6 +13,72 @@ export function SettingsView(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [detecting, setDetecting] = useState(false)
   const [toolchains, setToolchains] = useState<Toolchain[] | null>(null)
+  const [backupBusy, setBackupBusy] = useState(false)
+
+  function fmtTime(ts: number): string {
+    return new Date(ts).toLocaleString()
+  }
+
+  async function handleExportBackup(): Promise<void> {
+    setBackupBusy(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const res = await unwrap(window.api.exportBackup())
+      if (!res.canceled) {
+        setMessage(
+          `备份已导出：${res.path}（题目 ${res.counts['problems'] ?? 0} · 提交 ${res.counts['submissions'] ?? 0}）`
+        )
+      }
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : String(e))
+    } finally {
+      setBackupBusy(false)
+    }
+  }
+
+  async function handleImportBackup(): Promise<void> {
+    setBackupBusy(true)
+    setMessage(null)
+    setError(null)
+    try {
+      const preview = await unwrap(window.api.importBackupPreview())
+      if (preview.canceled) return
+      const c = preview.summary.counts
+      const lines = [
+        `备份文件：${preview.fileName}`,
+        `导出时间：${fmtTime(preview.summary.createdAt)}`,
+        preview.summary.appVersion !== null ? `应用版本：v${preview.summary.appVersion}` : null,
+        '',
+        `题目 ${c.problems} · 提交 ${c.submissions} · 错误记录 ${c.errorRecords}`,
+        `错题 ${c.mistakeBook} · 错题笔记 ${c.mistakeNotes} · 知识点 ${c.knowledgePoints}`,
+        `掌握度 ${c.mastery} · 复习项 ${c.reviewItems} · 复习历史 ${c.reviewHistory}`,
+        `练习队列 ${c.practiceSessions}`,
+        '',
+        '⚠️ 恢复将以备份【全量替换】当前全部数据（题库、提交历史、错题、学习记录、掌握度、复习与练习记录、设置），此操作不可撤销。',
+        '建议先导出当前数据作为备份。'
+      ]
+      const ok = window.confirm(lines.filter((l) => l !== null).join('\n'))
+      if (!ok) {
+        await unwrap(window.api.cancelBackupImport())
+        setMessage('已取消恢复')
+        return
+      }
+      const res = await unwrap(window.api.confirmBackupRestore())
+      window.alert(`恢复完成：题目 ${res.counts['problems'] ?? 0} · 提交 ${res.counts['submissions'] ?? 0}。页面即将刷新。`)
+      window.location.reload()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : String(e))
+      // 失败时清掉主进程的待恢复状态
+      try {
+        await unwrap(window.api.cancelBackupImport())
+      } catch {
+        // 清理失败不影响主错误展示
+      }
+    } finally {
+      setBackupBusy(false)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -162,6 +228,26 @@ export function SettingsView(): React.JSX.Element {
             </label>
           ))}
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h3>数据管理</h3>
+        <p className="settings-note">
+          备份包含<b>全部</b>题库、测试用例、提交历史、错题本与笔记、学习路线进度、知识点掌握度、
+          复习记录、练习队列与设置。恢复时将以备份<b>全量替换</b>当前数据。
+        </p>
+        <div className="backup-actions">
+          <button disabled={backupBusy} onClick={() => void handleExportBackup()}>
+            {backupBusy ? '导出中…' : '导出完整备份'}
+          </button>
+          <button disabled={backupBusy} onClick={() => void handleImportBackup()}>
+            {backupBusy ? '处理中…' : '导入备份（恢复）'}
+          </button>
+        </div>
+        <p className="settings-note privacy-note">
+          🔒 备份包含你的全部代码与学习记录，属于<b>本地私人数据</b>，请妥善保管，不要上传到网络或发送给他人。
+          CuinCodeBench 不会联网上传、同步或发送任何数据。
+        </p>
       </section>
 
       <section className="settings-section">

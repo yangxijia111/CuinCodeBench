@@ -90,6 +90,45 @@ export interface AppApi {
   // 设置
   getSettings(): Promise<IpcResult<AppSettings>>
   updateSettings(patch: Partial<AppSettings>): Promise<IpcResult<AppSettings>>
+
+  // 备份与恢复（路径由主进程 dialog 决定，renderer 不传路径）
+  exportBackup(): Promise<
+    IpcResult<
+      | { canceled: true }
+      | {
+          canceled: false
+          path: string
+          counts: Record<string, number>
+        }
+    >
+  >
+  importBackupPreview(): Promise<
+    IpcResult<
+      | { canceled: true }
+      | {
+          canceled: false
+          fileName: string
+          summary: {
+            createdAt: number
+            appVersion: string | null
+            counts: {
+              problems: number
+              submissions: number
+              errorRecords: number
+              mistakeBook: number
+              mistakeNotes: number
+              knowledgePoints: number
+              mastery: number
+              reviewItems: number
+              reviewHistory: number
+              practiceSessions: number
+            }
+          }
+        }
+    >
+  >
+  confirmBackupRestore(): Promise<IpcResult<{ counts: Record<string, number> }>>
+  cancelBackupImport(): Promise<IpcResult<void>>
 }
 
 /** 用于 UI 分组的难度元数据 */

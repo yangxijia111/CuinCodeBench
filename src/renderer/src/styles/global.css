@@ -1089,6 +1089,22 @@ button.judge {
   word-break: break-all;
 }
 
+/* v1.2 数据管理（备份/恢复） */
+.backup-actions {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.privacy-note {
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px dashed var(--border-primary);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
 
 
 
