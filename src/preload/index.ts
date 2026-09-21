@@ -39,6 +39,14 @@ const api: AppApi = {
   getSettings: () => invoke('settings.get'),
   updateSettings: (patch) => invoke('settings.update', patch),
 
+  listLearningPaths: () => invoke('learning.paths'),
+  getLearningPathDetail: (pathId) => invoke('learning.pathDetail', pathId),
+  listAllKnowledgePoints: () => invoke('learning.allKps'),
+  listKpProblems: (kpId) => invoke('learning.kpProblems', kpId),
+  getProblemKnowledgePoints: (problemId) => invoke('learning.problemKps', problemId),
+  bindProblemKnowledgePoints: (problemId, kpIds) => invoke('learning.bindProblem', [problemId, kpIds]),
+  unbindProblemKnowledgePoint: (problemId, kpId) => invoke('learning.unbindProblem', [problemId, kpId]),
+
   exportBackup: () => invoke('backup.export'),
   importBackupPreview: () => invoke('backup.importPreview'),
   confirmBackupRestore: () => invoke('backup.confirmRestore'),

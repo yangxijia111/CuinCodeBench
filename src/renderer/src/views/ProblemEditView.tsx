@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Difficulty, LanguageId, ProblemInput, TestCaseInput } from '@shared/types'
+import type { Difficulty, KnowledgePoint, LanguageId, ProblemInput, TestCaseInput } from '@shared/types'
 import { DEFAULT_TESTCASE_TIMEOUT_MS } from '@shared/constants'
 import { unwrap, ApiError } from '../api/client'
 
@@ -33,12 +33,25 @@ export function ProblemEditView(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(!isEdit)
+  // v1.2：知识点绑定（题目编辑页多选；保存时与旧集合 diff 同步）
+  const [allKps, setAllKps] = useState<KnowledgePoint[]>([])
+  const [selectedKpIds, setSelectedKpIds] = useState<Set<string>>(new Set())
+  const [oldKpIds, setOldKpIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    unwrap(window.api.listAllKnowledgePoints())
+      .then((kps) => setAllKps(kps))
+      .catch(() => setAllKps([]))
+  }, [])
 
   useEffect(() => {
     if (!isEdit) return
     let alive = true
-    unwrap(window.api.getProblem(id ?? ''))
-      .then((p) => {
+    void Promise.all([
+      unwrap(window.api.getProblem(id ?? '')),
+      unwrap(window.api.getProblemKnowledgePoints(id ?? '')).catch(() => [] as KnowledgePoint[])
+    ])
+      .then(([p, kps]) => {
         if (!alive || p === null) return
         setInput({
           title: p.title,
@@ -56,6 +69,9 @@ export function ProblemEditView(): React.JSX.Element {
           }))
         })
         setTagText(p.tags.join(' '))
+        const ids = new Set(kps.map((k) => k.id))
+        setSelectedKpIds(ids)
+        setOldKpIds(ids)
         setLoaded(true)
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
@@ -81,6 +97,16 @@ export function ProblemEditView(): React.JSX.Element {
     }
     try {
       const saved = isEdit ? await unwrap(window.api.updateProblem(id ?? '', payload)) : await unwrap(window.api.createProblem(payload))
+      // 同步知识点绑定（diff：旧有新无 → 解绑；新有 → 绑定）
+      for (const kpId of oldKpIds) {
+        if (!selectedKpIds.has(kpId)) {
+          await unwrap(window.api.unbindProblemKnowledgePoint(saved.id, kpId)).catch(() => undefined)
+        }
+      }
+      const toBind = [...selectedKpIds].filter((kpId) => !oldKpIds.has(kpId))
+      if (toBind.length > 0) {
+        await unwrap(window.api.bindProblemKnowledgePoints(saved.id, toBind))
+      }
       void navigate(`/practice/${saved.id}`)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e))
@@ -134,6 +160,30 @@ export function ProblemEditView(): React.JSX.Element {
           <span className="form-label">标签（空格分隔）</span>
           <input value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="入门 数学" />
         </label>
+
+        {/* —— 知识点（v1.2）—— */}
+        {allKps.length > 0 && (
+          <div className="form-row">
+            <span className="form-label">关联知识点（可多选，用于学习路线与掌握度统计）</span>
+            <div className="kp-picker">
+              {allKps.map((kp) => (
+                <label key={kp.id} className="kp-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedKpIds.has(kp.id)}
+                    onChange={(e) => {
+                      const next = new Set(selectedKpIds)
+                      if (e.target.checked) next.add(kp.id)
+                      else next.delete(kp.id)
+                      setSelectedKpIds(next)
+                    }}
+                  />
+                  {kp.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
 
         <label className="form-row">
           <span className="form-label">题目描述（Markdown）</span>

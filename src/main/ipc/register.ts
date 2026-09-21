@@ -87,6 +87,26 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     svc().settings.update(patch as Partial<AppSettings>)
   )
 
+  // —— 学习路线（v1.2）——
+  handle('learning.paths', noArgs, () => svc().learning.listPaths())
+  handle('learning.pathDetail', z.string(), (id) => svc().learning.getPathProgress(id))
+  handle('learning.allKps', noArgs, () => svc().learningRepo.listKnowledgePoints())
+  handle('learning.kpProblems', z.string(), (kpId) => svc().learning.listKpProblems(kpId))
+  handle('learning.problemKps', z.string(), (problemId) =>
+    svc().learningRepo
+      .knowledgePointIdsForProblem(problemId)
+      .map((id) => svc().learningRepo.getKnowledgePoint(id))
+      .filter((kp) => kp !== null)
+  )
+  handle('learning.bindProblem', z.tuple([z.string(), z.array(z.string())]), ([problemId, kpIds]) => {
+    svc().learning.bindProblem(problemId, kpIds)
+    return undefined
+  })
+  handle('learning.unbindProblem', z.tuple([z.string(), z.string()]), ([problemId, kpId]) => {
+    svc().learning.unbindProblem(problemId, kpId)
+    return undefined
+  })
+
   // —— 备份与恢复（docs/V1_2_BACKUP_SPEC.md §6）——
   // 路径只来自主进程 dialog，renderer 永远不传文件路径（纵深防御）；
   // pendingImport 缓存在主进程内存，confirmRestore 时二次校验文件 mtime 防调包。

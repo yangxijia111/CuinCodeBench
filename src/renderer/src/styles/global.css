@@ -1105,6 +1105,257 @@ button.judge {
   padding: 8px 10px;
 }
 
+/* v1.2 学习路线页 */
+.lp-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.lp-tabs button {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.lp-tabs button.active {
+  border-color: #2f81f7;
+  color: #58a6ff;
+}
+
+.lp-overview {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--bg-primary);
+}
+
+.lp-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lp-overview-head h3 {
+  margin: 0;
+}
+
+.lp-overview-desc {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.lp-overview-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.lp-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.lp-progress-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  overflow: hidden;
+}
+
+.lp-progress-fill {
+  height: 100%;
+  background: #3fb950;
+  transition: width 0.3s ease;
+}
+
+.lp-progress-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 34px;
+  text-align: right;
+}
+
+.lp-stage-wrap {
+  margin-bottom: 16px;
+}
+
+.lp-stage-num {
+  font-size: 12px;
+  color: #58a6ff;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.lp-stage {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.lp-stage-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lp-stage-title-row h4 {
+  margin: 0 0 4px;
+}
+
+.lp-stage-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+
+.lp-stage-kps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lp-kp {
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  background: var(--bg-primary);
+}
+
+.lp-kp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.lp-kp-name {
+  flex: 1;
+}
+
+.lp-kp-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.mastery-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mastery-chip {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.mastery-chip.mastery-mastered {
+  color: #3fb950;
+  border-color: #3fb950;
+}
+
+.mastery-chip.mastery-weak {
+  color: #f85149;
+  border-color: #f85149;
+}
+
+.mastery-chip.mastery-familiar {
+  color: #d29922;
+  border-color: #d29922;
+}
+
+.mastery-chip.mastery-learning {
+  color: #58a6ff;
+  border-color: #58a6ff;
+}
+
+.lp-kp-caret {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.lp-kp-body {
+  border-top: 1px solid var(--border-primary);
+  padding: 8px 12px;
+}
+
+.lp-kp-desc {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+
+.lp-kp-problems {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-kp-problem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lp-kp-problem:hover {
+  background: var(--bg-tertiary, rgba(110, 118, 129, 0.15));
+}
+
+.lp-kp-problem-title {
+  flex: 1;
+  font-size: 13px;
+}
+
+.badge.accepted {
+  color: #3fb950;
+  border-color: #3fb950;
+}
+
+.lp-kp-problem-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* 题目编辑：知识点多选 */
+.kp-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.kp-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 
 
 

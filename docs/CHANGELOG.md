@@ -14,13 +14,16 @@
 ### Changed
 - SQLite schema 版本 1 → 2（只增不删，v1.1 数据零改动；v1.1 代码可正常打开 v2 库）
 
+- **P2 学习路线 Learning Path**：learning-service（路线/阶段/知识点进度聚合，单查询无 N+1）；学习路线页面（侧边栏「学习」入口：路线总览进度条、阶段卡片、知识点完成度 x/y 与掌握状态、点击展开题目开始练习）；题目编辑页知识点多选绑定（保存时 diff 同步）；掌握度仓储骨架
+- IPC：learning.paths / learning.pathDetail / learning.allKps / learning.kpProblems / learning.problemKps / learning.bindProblem / learning.unbindProblem
 - **P1 完整备份与恢复**：`cuincodebench.backup` versioned 格式（信封 + 全量数据载荷，zod 全字段校验 + 交叉引用校验）；单一事务恢复（依赖序清空 → 写回 → 逐表计数 verify，任一失败整体回滚）；settings 标记键防种子误重灌；设置页「数据管理」导出/导入（主进程 dialog + 确认对话框 + mtime 防调包）；备份隐私提示
 - IPC：backup.export / backup.importPreview / backup.confirmRestore / backup.cancelImport（路径仅存在于主进程，renderer 不传路径）
 
 ### Testing
 - 新增 migration v2 / 内置路线灌入 / 旧题映射 / 绑定幂等测试（tests/migrations.test.ts，7 项）；既有 migration 断言随版本号更新
+- 新增学习路线进度聚合/绑定幂等/解绑回落测试（tests/learning-path.test.ts，6 项）
 - 新增备份往返/损坏 JSON/版本错误/字段缺失/引用断裂/重复主键/事务中途失败注入/verify 失败注入/settings 特例测试（tests/backup.test.ts，13 项）
-- 测试总数 137 → 157
+- 测试总数 137 → 163
 
 ## [1.1.0] — 2026-09-21
 

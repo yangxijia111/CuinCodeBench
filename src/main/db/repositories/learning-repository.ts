@@ -249,4 +249,57 @@ export class LearningRepository {
       .all(like) as KpRow[]
     return rows.map(rowToKp)
   }
+
+  /** 事务包装（绑定批量操作原子性） */
+  transaction<T>(fn: () => T): () => T {
+    return this.db.transaction(fn)
+  }
+
+  /** 一次聚合查询：每个知识点的绑定题目数与已通过题目数（accepted = 任一提交通过） */
+  aggregateKpProgress(): { kp: string; total: number; accepted: number }[] {
+    return this.db
+      .prepare(
+        `SELECT pkp.knowledge_point_id AS kp,
+                COUNT(DISTINCT p.id) AS total,
+                COUNT(DISTINCT CASE WHEN acc.problem_id IS NOT NULL THEN p.id END) AS accepted
+         FROM problem_knowledge_points pkp
+         JOIN problems p ON p.id = pkp.problem_id
+         LEFT JOIN (SELECT DISTINCT problem_id FROM submissions WHERE status = 'accepted') acc
+           ON acc.problem_id = p.id
+         GROUP BY pkp.knowledge_point_id`
+      )
+      .all() as { kp: string; total: number; accepted: number }[]
+  }
+
+  /** 知识点下题目明细（含通过状态与尝试次数），供路线页展开 */
+  problemsForKp(kpId: string): {
+    id: string
+    title: string
+    difficulty: string
+    accepted: boolean
+    attempts: number
+  }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT p.id, p.title, p.difficulty,
+                CASE WHEN acc.problem_id IS NOT NULL THEN 1 ELSE 0 END AS accepted_int,
+                COALESCE(att.attempts, 0) AS attempts
+         FROM problem_knowledge_points pkp
+         JOIN problems p ON p.id = pkp.problem_id
+         LEFT JOIN (SELECT DISTINCT problem_id FROM submissions WHERE status = 'accepted') acc
+           ON acc.problem_id = p.id
+         LEFT JOIN (SELECT problem_id, COUNT(*) AS attempts FROM submissions GROUP BY problem_id) att
+           ON att.problem_id = p.id
+         WHERE pkp.knowledge_point_id = ?
+         ORDER BY p.created_at`
+      )
+      .all(kpId) as { id: string; title: string; difficulty: string; accepted_int: number; attempts: number }[]
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      difficulty: r.difficulty,
+      accepted: r.accepted_int === 1,
+      attempts: r.attempts
+    }))
+  }
 }

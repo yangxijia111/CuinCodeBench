@@ -19,6 +19,9 @@ const PracticeView = lazy(() =>
 const MistakesView = lazy(() =>
   import('./views/MistakesView').then((m) => ({ default: m.MistakesView }))
 )
+const LearningPathView = lazy(() =>
+  import('./views/LearningPathView').then((m) => ({ default: m.LearningPathView }))
+)
 const DashboardView = lazy(() =>
   import('./views/DashboardView').then((m) => ({ default: m.DashboardView }))
 )
@@ -47,6 +50,9 @@ export function App(): React.JSX.Element {
             <NavLink to="/problems" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
               题库
             </NavLink>
+            <NavLink to="/learning" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
+              学习
+            </NavLink>
             <NavLink to="/mistakes" className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}>
               错题本
             </NavLink>
@@ -68,6 +74,7 @@ export function App(): React.JSX.Element {
                 <Route path="/problems/new" element={<ProblemEditView />} />
                 <Route path="/problems/:id/edit" element={<ProblemEditView />} />
                 <Route path="/practice/:id" element={<PracticeView />} />
+                <Route path="/learning" element={<LearningPathView />} />
                 <Route path="/mistakes" element={<MistakesView />} />
                 <Route path="/dashboard" element={<DashboardView />} />
                 <Route path="/settings" element={<SettingsView />} />

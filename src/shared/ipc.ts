@@ -10,6 +10,7 @@ import type {
   Difficulty,
   JudgeResult,
   JudgeStatus,
+  KnowledgePoint,
   LanguageId,
   MistakeBookEntry,
   Problem,
@@ -17,6 +18,7 @@ import type {
   ProblemInput,
   ProblemQuery,
   ProblemStats,
+  PathProgress,
   Submission,
   SubmissionQuery,
   TestCaseResult,
@@ -90,6 +92,17 @@ export interface AppApi {
   // 设置
   getSettings(): Promise<IpcResult<AppSettings>>
   updateSettings(patch: Partial<AppSettings>): Promise<IpcResult<AppSettings>>
+
+  // 学习路线（v1.2）
+  listLearningPaths(): Promise<IpcResult<PathProgress[]>>
+  getLearningPathDetail(pathId: string): Promise<IpcResult<PathProgress>>
+  listAllKnowledgePoints(): Promise<IpcResult<KnowledgePoint[]>>
+  listKpProblems(
+    kpId: string
+  ): Promise<IpcResult<{ id: string; title: string; difficulty: string; accepted: boolean; attempts: number }[]>>
+  getProblemKnowledgePoints(problemId: string): Promise<IpcResult<KnowledgePoint[]>>
+  bindProblemKnowledgePoints(problemId: string, kpIds: string[]): Promise<IpcResult<void>>
+  unbindProblemKnowledgePoint(problemId: string, kpId: string): Promise<IpcResult<void>>
 
   // 备份与恢复（路径由主进程 dialog 决定，renderer 不传路径）
   exportBackup(): Promise<

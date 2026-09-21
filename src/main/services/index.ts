@@ -13,6 +13,9 @@ import { HistoryRepository } from '../db/repositories/history-repository'
 import { MistakeRepository } from '../db/repositories/mistake-repository'
 import { SettingsRepository } from '../db/repositories/settings-repository'
 import { StatsRepository } from '../db/repositories/stats-repository'
+import { LearningRepository } from '../db/repositories/learning-repository'
+import { MasteryRepository } from '../db/repositories/mastery-repository'
+import { LearningService } from './learning-service'
 import { AppError } from '../lib/app-error'
 
 /**
@@ -153,6 +156,12 @@ export interface ServiceContext {
   history: HistoryRepository
   mistakes: MistakeRepository
   stats: StatsRepository
+  /** v1.2：学习路线服务（掌握度注入后由 P3 重算联动） */
+  learning: LearningService
+  /** v1.2：学习路线仓储（种子灌入等底层访问） */
+  learningRepo: LearningRepository
+  /** v1.2：掌握度仓储（mastery-service 于 P3 在此之上实现） */
+  mastery: MasteryRepository
   /** 语言列表便捷访问 */
   languages: LanguageId[]
   /** 每题统计 */
@@ -163,6 +172,7 @@ let ctx: ServiceContext | null = null
 
 export function initServices(db: Database.Database): ServiceContext {
   const problems = new ProblemService(new ProblemRepository(db))
+  const masteryRepo = new MasteryRepository(db)
   ctx = {
     db,
     problems,
@@ -170,6 +180,9 @@ export function initServices(db: Database.Database): ServiceContext {
     history: new HistoryRepository(db),
     mistakes: new MistakeRepository(db),
     stats: new StatsRepository(db),
+    learning: new LearningService(db, { mastery: masteryRepo }),
+    learningRepo: new LearningRepository(db),
+    mastery: masteryRepo,
     languages: ['c', 'cpp', 'python'],
     problemStats: (problemId) => new HistoryRepository(db).getProblemStats(problemId)
   }
