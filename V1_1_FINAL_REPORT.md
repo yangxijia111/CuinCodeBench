@@ -62,14 +62,19 @@ Release 仅含应用构建产物；不含数据库/日志/源码临时目录/.en
 - typecheck（strict × 2 tsconfig）：PASS，0 错误
 - build（三端）：PASS；renderer 主 chunk **737KB**（原 1.97MB，CodeMirror 按需加载）
 - `npm ci` 干净安装验证：**从本地 clone 的全新目录完整走通四门禁**（等效验证 CI 与用户克隆场景）
-- `npm run dist:dir`：win-unpacked 产物正常
+- `npm run dist:dir`：win-unpacked 产物正常（克隆环境验证 builder schema）
 - 打包产物运行时验证：UI 冒烟 3 路由 PASS；端到端判题 Python AC 5/5、C（MSVC 真实编译）WA 1/5、统计落库正确
-- `npm run dist`（NSIS）：由 release.yml 在 CI 执行（本地不再重复验证签名告警路径）
+- `npm run dist`（NSIS + zip）：**CI 实测成功**，产物 `CuinCodeBench-Setup-1.1.0.exe`（118MB）与 `CuinCodeBench-1.1.0-win-x64.zip`（161MB）已发布到 GitHub Release
 
 ## GitHub Actions
 
-- CI 与 Release workflow 已建立；YAML 语法经 GitHub 平台解析验证（push 后以 Actions 运行结果为准）
-- 如 Actions 因平台故障未绿：不影响本地全部门禁结论，处理记录见下节
+**双工作流全部绿灯（2026-09-21 实测）：**
+
+- **CI**（ubuntu + windows 双平台矩阵）：`success`，3m24s
+  - 首轮曾失败并修复两处：`validate-sender.ts` 的 no-useless-assignment（typed-lint 规则，本地因环境故障漏检）；runner-languages 测试断言写死 Windows 路径分隔符（改为 `path.join` 构造期望值，平台无关）
+- **Release**（windows-latest）：`success`，6m8s，产物已发布
+  - 首轮曾失败并修复两处：electron-builder 配置含非法顶层 `zip` 节（改为顶层 artifactName + NSIS 节覆盖）；electron-builder 的 tag 隐式发布缺 GH_TOKEN（改为 `--publish never`，发布统一由 action-gh-release 负责）；另将质量门禁步骤显式 `shell: bash`（windows 默认 pwsh 不会因 lint 失败中止）
+- tag 重打说明：v1.1.0 tag 因指向含配置错误的 commit，删除后重打两次至修复 commit（发布工程标准操作，未重写任何分支历史）
 
 ## Release
 
@@ -96,6 +101,11 @@ Release 仅含应用构建产物；不含数据库/日志/源码临时目录/.en
 
 ## Git
 
-- latest commit：见 `git log -1`（v1.1.0 发布提交）
-- tag：`v1.1.0`
+- latest commit：`9fc186f`（ci(release): 禁用 electron-builder tag 隐式发布）
+- tag：`v1.1.0`（指向 `9fc186f`）
 - GitHub：https://github.com/yangxijia111/CuinCodeBench
+- Release：https://github.com/yangxijia111/CuinCodeBench/releases/tag/v1.1.0
+
+## 环境备注
+
+本地工作目录在验证期间发生 node_modules 文件锁（系统句柄持有 electron 残留 asar，无法删除），`npm ci` 无法在该目录完成。所有本地门禁验证改在**临时克隆目录**执行（等效于用户克隆场景，且已验证通过）；该残骸目录在机器重启后可清理（`rm -rf node_modules` 后重新 `npm install`）。此问题不影响仓库内容与 CI/Release。
