@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import type Database from 'better-sqlite3'
 import type {
+  ErrorCategory,
   JudgeStatus,
   LanguageId,
   ProblemStats,
@@ -114,20 +115,35 @@ export class HistoryRepository {
     return id
   }
 
-  /** 写错误记录（FR-M1），由 judge-service 在失败时调用 */
+  /** 写错误记录（FR-M1），由 judge-service 在失败时调用；v1.2 支持学习错误分类 */
   insertErrorRecord(rec: {
     submissionId: string
     problemId: string
     language: LanguageId
     errorType: JudgeStatus
     message: string
+    learningCategory?: ErrorCategory | null
   }): void {
     this.db
       .prepare(
-        `INSERT INTO error_records (id, submission_id, problem_id, language, error_type, message, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO error_records (id, submission_id, problem_id, language, error_type, message, created_at, learning_category, category_source)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(randomUUID(), rec.submissionId, rec.problemId, rec.language, rec.errorType, rec.message, Date.now())
+      .run(
+        randomUUID(),
+        rec.submissionId,
+        rec.problemId,
+        rec.language,
+        rec.errorType,
+        rec.message,
+        Date.now(),
+        rec.learningCategory !== undefined && rec.learningCategory !== null && rec.learningCategory !== 'unknown'
+          ? rec.learningCategory
+          : null,
+        rec.learningCategory !== undefined && rec.learningCategory !== null && rec.learningCategory !== 'unknown'
+          ? 'auto'
+          : null
+      )
   }
 
   list(query: SubmissionQuery): (Submission & { problemTitle: string })[] {

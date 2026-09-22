@@ -8,12 +8,15 @@ import type {
   AppSettings,
   DashboardStats,
   Difficulty,
+  ErrorCategory,
   JudgeResult,
   JudgeStatus,
   KnowledgePoint,
   LanguageId,
   MasteryInfo,
   MistakeBookEntry,
+  MistakeHistoryEntry,
+  MistakeNote,
   PracticeSession,
   ReviewItem,
   Problem,
@@ -88,6 +91,14 @@ export interface AppApi {
   // 错题本
   listMistakes(): Promise<IpcResult<MistakeBookEntry[]>>
   setMistakeMastered(problemId: string, mastered: boolean): Promise<IpcResult<void>>
+
+  // 错题复盘（v1.2）
+  getMistakeHistory(problemId: string): Promise<IpcResult<MistakeHistoryEntry[]>>
+  getMistakeFirstLatestCode(problemId: string): Promise<IpcResult<{ firstCode: string | null; latestCode: string | null }>>
+  getMistakeNote(problemId: string): Promise<IpcResult<MistakeNote | null>>
+  setMistakeNote(problemId: string, note: string): Promise<IpcResult<MistakeNote>>
+  setMistakeCategory(problemId: string, category: ErrorCategory): Promise<IpcResult<void>>
+  getMistakeLatestCategory(problemId: string): Promise<IpcResult<ErrorCategory | null>>
 
   // 统计
   getDashboardStats(): Promise<IpcResult<DashboardStats>>

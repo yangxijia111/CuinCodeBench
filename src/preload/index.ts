@@ -34,6 +34,13 @@ const api: AppApi = {
   listMistakes: () => invoke('mistakes.list'),
   setMistakeMastered: (problemId, mastered) => invoke('mistakes.setMastered', problemId, mastered),
 
+  getMistakeHistory: (problemId) => invoke('mistake.history', problemId),
+  getMistakeFirstLatestCode: (problemId) => invoke('mistake.firstLatestCode', problemId),
+  getMistakeNote: (problemId) => invoke('mistake.notes.get', problemId),
+  setMistakeNote: (problemId, note) => invoke('mistake.notes.set', [problemId, note]),
+  setMistakeCategory: (problemId, category) => invoke('mistake.setCategory', [problemId, category]),
+  getMistakeLatestCategory: (problemId) => invoke('mistake.latestCategory', problemId),
+
   getDashboardStats: () => invoke('stats.dashboard'),
 
   getSettings: () => invoke('settings.get'),

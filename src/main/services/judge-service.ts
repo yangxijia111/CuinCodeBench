@@ -16,6 +16,7 @@ import { decideCaseStatus } from '../judge/normalize'
 import type { ToolchainService } from './toolchain-service'
 import type { ServiceContext } from './index'
 import { logger } from '../lib/logger'
+import { autoCategory } from './mistake-review-service'
 
 /**
  * 判题与运行服务（ARCHITECTURE §3/§5）：
@@ -205,7 +206,8 @@ export class JudgeService {
         problemId,
         language,
         errorType: status,
-        message: summarizeError(status, compile, results)
+        message: summarizeError(status, compile, results),
+        learningCategory: autoCategory(status)
       })
     }
     svc.mistakes.recompute(problemId)

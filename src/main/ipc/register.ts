@@ -9,7 +9,7 @@ import {
   appSettingsPatchSchema,
   backupJsonTextSchema
 } from '@shared/schemas'
-import type { AppSettings } from '@shared/types'
+import type { AppSettings, ErrorCategory } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
 import { getServices } from '../services'
 import { BackupService, type BackupSummary } from '../services/backup-service'
@@ -108,6 +108,23 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     svc().learning.unbindProblem(problemId, kpId)
     return undefined
   })
+
+  // —— 错题复盘（v1.2）——
+  handle('mistake.history', z.string(), (problemId) => svc().mistakeReview.getHistory(problemId))
+  handle('mistake.firstLatestCode', z.string(), (problemId) =>
+    svc().mistakeReview.firstAndLatestCode(problemId)
+  )
+  handle('mistake.notes.get', z.string(), (problemId) => svc().mistakeReview.getNote(problemId))
+  handle('mistake.notes.set', z.tuple([z.string(), z.string().max(100_000)]), ([problemId, note]) =>
+    svc().mistakeReview.setNote(problemId, note, Date.now())
+  )
+  handle('mistake.setCategory', z.tuple([z.string(), z.string().max(30)]), ([problemId, category]) => {
+    svc().mistakeReview.setCategory(problemId, category as ErrorCategory, Date.now())
+    return undefined
+  })
+  handle('mistake.latestCategory', z.string(), (problemId) =>
+    svc().mistakeReview.latestCategory(problemId)
+  )
 
   // —— 间隔复习（v1.2）——
   handle('review.today', noArgs, () => svc().reviewSvc.todayOverview(Date.now()))
