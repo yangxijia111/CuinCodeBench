@@ -42,6 +42,7 @@ const api: AppApi = {
   getMistakeLatestCategory: (problemId) => invoke('mistake.latestCategory', problemId),
 
   getDashboardStats: () => invoke('stats.dashboard'),
+  getDashboardV2Stats: () => invoke('stats.dashboardV2'),
 
   getSettings: () => invoke('settings.get'),
   updateSettings: (patch) => invoke('settings.update', patch),

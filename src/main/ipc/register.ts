@@ -82,6 +82,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
 
   // —— 统计 ——
   handle('stats.dashboard', noArgs, () => svc().stats.getDashboard())
+  handle('stats.dashboardV2', noArgs, () => svc().stats.getDashboardV2(Date.now()))
 
   // —— 设置 ——
   handle('settings.get', noArgs, () => svc().settings.get())

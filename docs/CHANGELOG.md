@@ -14,6 +14,7 @@
 ### Changed
 - SQLite schema 版本 1 → 2（只增不删，v1.1 数据零改动；v1.1 代码可正常打开 v2 库）
 
+- **P6 Dashboard 2.0**：新增今日复习/错题待复习/知识点掌握度列表；7 天与 30 天趋势（每日提交/AC/复习，SQL 聚合 + 本地日历日连续序列）；自研轻量 SVG 趋势图（无新依赖）；Knowledge Heatmap（颜色进度条 + 点击进入学习路线）；stats.dashboardV2 IPC
 - **P5 错题复盘增强**：错误历史（时间线 + 错误信息 + 错误代码，从提交记录派生）；首次/最近错误代码对比；错因笔记（本地 mistake_notes）；学习错误分类（编译→语法、超时→算法效率 自动规则，其余手动归类 unknown 不伪装判断）；错题本「错误复盘」展开 UI
 - **P4 间隔复习系统**：确定性阶梯调度算法（good [1,3,7,14,30,60] / easy [2,5,10,21,45,60] / hard ×1.2 / again 当日 10 分钟重现，60 天封顶，纯函数可对拍）；复习项自动生命周期（错题入选即到期、知识点首次学习次日进入循环、标记掌握删除、再次失败重建）；Review Session（错题优先组题、知识点展开、会话去重、判题自动回报、完成页四档记忆等级确认与下次复习时间）；复习页（今日待复习计数 + 按知识点聚合）
 - **P3 Knowledge Mastery 掌握度**：可解释规则模型（表现 45% + 覆盖 30% + 复习 15% + 连击 10%，指数衰减 0.85）；防刷分（每题样本上限 2 次 + <3 题信心折扣）；五态状态机（not_started/learning/weak/familiar/mastered，含 45 天惰性衰减）；判题落库后自动重算 hook（失败不阻断判题）；mastery.list/recalc IPC
@@ -24,12 +25,13 @@
 
 ### Testing
 - 新增 migration v2 / 内置路线灌入 / 旧题映射 / 绑定幂等测试（tests/migrations.test.ts，7 项）；既有 migration 断言随版本号更新
+- 新增 Dashboard 2.0 聚合测试（tests/dashboard-v2.test.ts，4 项：空库零值/趋势计数/复习与到期/错题计数）
 - 新增错题复盘测试（tests/mistake-review.test.ts，7 项：自动分类规则/历史派生/首末代码/笔记/手动分类/auto 落库语义）
 - 新增复习调度阶梯表对拍与 Review Session 集成测试（tests/review-scheduler.test.ts，11 项：全阶梯/again 重置/hard/60 天上限/组题优先级/完整会话流/历史追加）
 - 新增掌握度 spec 对拍与集成测试（tests/mastery.test.ts，13 项：未做题/单题刷分封顶/weak 优先级/复习压制/45 天衰减/重算幂等/样本限量等）
 - 新增学习路线进度聚合/绑定幂等/解绑回落测试（tests/learning-path.test.ts，6 项）
 - 新增备份往返/损坏 JSON/版本错误/字段缺失/引用断裂/重复主键/事务中途失败注入/verify 失败注入/settings 特例测试（tests/backup.test.ts，13 项）
-- 测试总数 137 → 194
+- 测试总数 137 → 198
 
 ## [1.1.0] — 2026-09-21
 

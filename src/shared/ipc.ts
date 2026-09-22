@@ -7,6 +7,7 @@
 import type {
   AppSettings,
   DashboardStats,
+  DashboardV2Stats,
   Difficulty,
   ErrorCategory,
   JudgeResult,
@@ -102,6 +103,7 @@ export interface AppApi {
 
   // 统计
   getDashboardStats(): Promise<IpcResult<DashboardStats>>
+  getDashboardV2Stats(): Promise<IpcResult<DashboardV2Stats>>
 
   // 设置
   getSettings(): Promise<IpcResult<AppSettings>>

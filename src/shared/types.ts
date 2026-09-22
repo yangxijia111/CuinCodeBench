@@ -427,3 +427,26 @@ export interface TrendPoint {
   reviews: number
 }
 
+/** 知识点掌握热力图条目 */
+export interface MasteryHeatmapEntry {
+  knowledgePointId: string
+  name: string
+  score: number
+  status: MasteryStatus
+}
+
+/** Dashboard 2.0 统计（v1.1 指标 + 学习指标与趋势） */
+export interface DashboardV2Stats extends DashboardStats {
+  /** 今日已完成的复习评分次数 */
+  todayReviews: number
+  /** 当前到期的复习项数 */
+  dueReviewCount: number
+  /** 错题本待复习数（未掌握） */
+  mistakeDueCount: number
+  /** 全部知识点掌握度（含未开始的 0 分项） */
+  masteryList: MasteryHeatmapEntry[]
+  /** 最近 7 天 / 30 天趋势（按本地日历日，最旧在前） */
+  trend7: TrendPoint[]
+  trend30: TrendPoint[]
+}
+
