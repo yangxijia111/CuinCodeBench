@@ -19,6 +19,7 @@ import { LearningService } from './learning-service'
 import { MasteryService } from './mastery-service'
 import { ReviewService } from './review-service'
 import { MistakeReviewService } from './mistake-review-service'
+import { PracticeSessionService } from './practice-session-service'
 import { AppError } from '../lib/app-error'
 
 /**
@@ -171,6 +172,8 @@ export interface ServiceContext {
   reviewSvc: ReviewService
   /** v1.2：错题复盘服务（错误历史/笔记/学习分类） */
   mistakeReview: MistakeReviewService
+  /** v1.2：练习会话服务（随机练习/专项训练） */
+  practiceSvc: PracticeSessionService
   /** 语言列表便捷访问 */
   languages: LanguageId[]
   /** 每题统计 */
@@ -202,6 +205,7 @@ export function initServices(db: Database.Database): ServiceContext {
     masterySvc,
     reviewSvc,
     mistakeReview: new MistakeReviewService(db),
+    practiceSvc: new PracticeSessionService(db),
     languages: ['c', 'cpp', 'python'],
     problemStats: (problemId) => new HistoryRepository(db).getProblemStats(problemId)
   }

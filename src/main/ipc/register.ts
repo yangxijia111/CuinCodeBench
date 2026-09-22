@@ -7,7 +7,8 @@ import {
   judgeSubmitSchema,
   submissionQuerySchema,
   appSettingsPatchSchema,
-  backupJsonTextSchema
+  backupJsonTextSchema,
+  randomSessionConfigSchema
 } from '@shared/schemas'
 import type { AppSettings, ErrorCategory } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
@@ -152,6 +153,25 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   handle('mastery.list', noArgs, () => svc().mastery.listAll())
   handle('mastery.recalc', noArgs, () => {
     svc().masterySvc.recalcAll(Date.now())
+    return undefined
+  })
+
+  // —— 练习会话（v1.2）——
+  handle('sessions.createRandom', z.unknown(), (input) => {
+    const parsed = randomSessionConfigSchema.parse(input)
+    return svc().practiceSvc.createRandomSession(parsed, Date.now())
+  })
+  handle('sessions.createKp', z.tuple([z.string(), z.number().int().min(1).max(50)]), ([kpId, size]) =>
+    svc().practiceSvc.createKpSession(kpId, size, Date.now())
+  )
+  handle('sessions.get', z.string(), (id) => {
+    const s = svc().practiceSvc.getSession(id)
+    if (s === null) throw new AppError('not_found', `会话不存在: ${id}`)
+    return s
+  })
+  handle('sessions.summary', z.string(), (id) => svc().practiceSvc.summarize(id))
+  handle('sessions.finish', z.string(), (id) => {
+    svc().practiceSvc.sessions.finish(id, Date.now())
     return undefined
   })
 

@@ -23,6 +23,9 @@ const LearningPathView = lazy(() =>
   import('./views/LearningPathView').then((m) => ({ default: m.LearningPathView }))
 )
 const ReviewView = lazy(() => import('./views/ReviewView').then((m) => ({ default: m.ReviewView })))
+const PracticeSessionView = lazy(() =>
+  import('./views/PracticeSessionView').then((m) => ({ default: m.PracticeSessionView }))
+)
 const DashboardView = lazy(() =>
   import('./views/DashboardView').then((m) => ({ default: m.DashboardView }))
 )
@@ -78,6 +81,7 @@ export function App(): React.JSX.Element {
                 <Route path="/problems/new" element={<ProblemEditView />} />
                 <Route path="/problems/:id/edit" element={<ProblemEditView />} />
                 <Route path="/practice/:id" element={<PracticeView />} />
+                <Route path="/session/:id" element={<PracticeSessionView />} />
                 <Route path="/learning" element={<LearningPathView />} />
                 <Route path="/review" element={<ReviewView />} />
                 <Route path="/mistakes" element={<MistakesView />} />

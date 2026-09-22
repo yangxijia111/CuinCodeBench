@@ -32,6 +32,9 @@ export function PracticeView(): React.JSX.Element {
 
   const [problem, setProblem] = useState<ProblemDetail | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  // v1.2：题库顺序导航（上一题/下一题）与知识点徽章
+  const [problemIds, setProblemIds] = useState<string[]>([])
+  const [kpNames, setKpNames] = useState<string[]>([])
 
   const [language, setLanguage] = useState<LanguageId>('python')
   const [codeByLang, setCodeByLang] = useState<Record<LanguageId, string>>({
@@ -68,6 +71,10 @@ export function PracticeView(): React.JSX.Element {
           cpp: loadDraft(p.id, 'cpp', p.initialCode.cpp),
           python: loadDraft(p.id, 'python', p.initialCode.python)
         })
+        // v1.2：知识点徽章（静默加载，失败不阻塞）
+        void window.api.getProblemKnowledgePoints(p.id).then((res) => {
+          if (alive && res.ok) setKpNames(res.data.map((k) => k.name))
+        })
       } catch (e) {
         if (alive) setLoadError(e instanceof Error ? e.message : String(e))
       }
@@ -76,6 +83,26 @@ export function PracticeView(): React.JSX.Element {
       alive = false
     }
   }, [id])
+
+  // v1.2：题库顺序导航（首切题时拉一次 id 列表）
+  useEffect(() => {
+    let alive = true
+    void unwrap(window.api.listProblems({ keyword: '', difficulty: 'all', tag: 'all' }))
+      .then((list) => {
+        if (alive) setProblemIds(list.map((x) => x.id))
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const currentIndex = id === undefined ? -1 : problemIds.indexOf(id)
+
+  function goToProblem(delta: number): void {
+    const next = problemIds[currentIndex + delta]
+    if (next !== undefined) void navigate(`/practice/${next}`)
+  }
 
   const currentCode = codeByLang[language]
 
@@ -155,6 +182,23 @@ export function PracticeView(): React.JSX.Element {
             {DIFFICULTY_META[problem.difficulty].label}
           </span>
           <h2 className="problem-panel-title">{problem.title}</h2>
+        </div>
+        <div className="problem-nav">
+          <button disabled={currentIndex <= 0} onClick={() => goToProblem(-1)}>
+            ← 上一题
+          </button>
+          {kpNames.map((n) => (
+            <button key={n} className="kp-badge" onClick={() => void navigate('/learning')} title="查看学习路线">
+              {n}
+            </button>
+          ))}
+          <span className="problem-nav-pos">{currentIndex >= 0 ? `${currentIndex + 1} / ${problemIds.length}` : ''}</span>
+          <button
+            disabled={currentIndex < 0 || currentIndex >= problemIds.length - 1}
+            onClick={() => goToProblem(1)}
+          >
+            下一题 →
+          </button>
         </div>
         <div className="problem-panel-body">
           <MarkdownView text={problem.description} />

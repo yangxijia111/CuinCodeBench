@@ -91,6 +91,23 @@ function KpCard(props: { kp: KnowledgePointProgress }): React.JSX.Element {
                   </span>
                 </div>
               ))}
+              <button
+                className="lp-kp-train-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void (async () => {
+                    try {
+                      const res = await window.api.createKpSession(kp.knowledgePoint.id, 10)
+                      if (res.ok) void navigate(`/session/${res.data.id}`)
+                      else setError(res.message)
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : String(err))
+                    }
+                  })()
+                }}
+              >
+                专项训练（10 题）
+              </button>
             </div>
           )}
         </div>

@@ -221,6 +221,8 @@ export interface ProblemQuery {
   keyword: string
   difficulty: Difficulty | 'all'
   tag: string
+  /** v1.2：按知识点筛选 */
+  knowledgePointId?: string
 }
 
 /** 提交历史查询 */
@@ -409,14 +411,14 @@ export interface PracticeSession {
   items: PracticeSessionItem[]
 }
 
-/** 随机练习过滤器（config 的结构化定义） */
+/** 随机练习过滤器（config 的结构化定义；缺省 = all / 10 题） */
 export interface RandomSessionConfig {
-  difficulty: Difficulty | 'all'
-  language: LanguageId | 'all'
-  tag: string
-  knowledgePointId: string
-  scope: 'all' | 'unsolved' | 'mistakes' | 'weak'
-  size: number
+  difficulty?: Difficulty | 'all'
+  language?: LanguageId | 'all'
+  tag?: string
+  knowledgePointId?: string
+  scope?: 'all' | 'unsolved' | 'mistakes' | 'weak'
+  size?: number
 }
 
 /** 趋势数据点（Dashboard 2.0） */

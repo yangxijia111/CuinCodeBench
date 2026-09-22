@@ -56,7 +56,8 @@ export const problemInputSchema: z.ZodType<ProblemInput> = problemBaseSchema.ext
 export const problemQuerySchema = z.object({
   keyword: z.string().max(100),
   difficulty: z.enum(['easy', 'medium', 'hard', 'all']),
-  tag: z.string().max(20)
+  tag: z.string().max(20),
+  knowledgePointId: z.string().max(100).optional()
 })
 
 export const submissionQuerySchema = z.object({
@@ -283,6 +284,16 @@ export const backupEnvelopeSchema = z.object({
 
 /** 备份文件文本（IPC 入参约束：≤512MB） */
 export const backupJsonTextSchema = z.string().min(1).max(512 * 1024 * 1024)
+
+/** 随机练习过滤器（docs/V1_2_ROADMAP.md P7） */
+export const randomSessionConfigSchema = z.object({
+  difficulty: z.enum(['easy', 'medium', 'hard', 'all']).optional(),
+  language: z.enum(['c', 'cpp', 'python', 'all']).optional(),
+  tag: z.string().max(20).optional(),
+  knowledgePointId: z.string().max(100).optional(),
+  scope: z.enum(['all', 'unsolved', 'mistakes', 'weak']).optional(),
+  size: z.number().int().min(1).max(50).optional()
+})
 
 export type BackupEnvelope = z.output<typeof backupEnvelopeSchema>
 export type BackupData = z.output<typeof backupDataSchema>

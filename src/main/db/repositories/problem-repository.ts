@@ -166,13 +166,26 @@ export class ProblemRepository {
   }
 
   /** 列表（不含用例内容，避免大查询）；筛选条件可组合 */
-  list(query: { keyword: string; difficulty: Difficulty | 'all'; tag: string }): Problem[] {
+  list(query: {
+    keyword: string
+    difficulty: Difficulty | 'all'
+    tag: string
+    knowledgePointId?: string
+  }): Problem[] {
     const conditions: string[] = []
     const params: unknown[] = []
     if (query.keyword.trim() !== '') {
-      conditions.push('(title LIKE ? OR description LIKE ?)')
+      // v1.2：关键词覆盖标题/描述/标签/知识点名称
+      conditions.push(
+        `(title LIKE ? OR description LIKE ? OR tags LIKE ?
+          OR EXISTS (
+            SELECT 1 FROM problem_knowledge_points pk
+            JOIN knowledge_points k ON k.id = pk.knowledge_point_id
+            WHERE pk.problem_id = p.id AND k.name LIKE ?
+          ))`
+      )
       const like = `%${query.keyword.trim()}%`
-      params.push(like, like)
+      params.push(like, like, like, like)
     }
     if (query.difficulty !== 'all') {
       conditions.push('difficulty = ?')
@@ -184,9 +197,15 @@ export class ProblemRepository {
       const escaped = query.tag.replace(/[\\%_]/g, (c) => `\\${c}`)
       params.push(`%"${escaped}"%`)
     }
+    if (query.knowledgePointId !== undefined && query.knowledgePointId !== '' && query.knowledgePointId !== 'all') {
+      conditions.push(
+        'EXISTS (SELECT 1 FROM problem_knowledge_points pk WHERE pk.problem_id = p.id AND pk.knowledge_point_id = ?)'
+      )
+      params.push(query.knowledgePointId)
+    }
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
     const rows = this.db
-      .prepare(`SELECT * FROM problems ${where} ORDER BY updated_at DESC`)
+      .prepare(`SELECT * FROM problems p ${where} ORDER BY p.updated_at DESC`)
       .all(...params) as ProblemRow[]
     return rows.map((r) => rowToProblem(r))
   }

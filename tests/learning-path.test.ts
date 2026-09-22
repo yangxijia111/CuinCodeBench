@@ -128,3 +128,34 @@ describe('学习路线（LearningService）', () => {
     expect(paths[0]?.totalProblems).toBe(1)
   })
 })
+
+describe('P8 搜索增强（problem-repository.list）', () => {
+  let db: Database.Database
+  let repo: LearningRepository
+  let problems: ProblemRepository
+
+  beforeEach(() => {
+    db = openDatabase({ file: ':memory:' })
+    repo = new LearningRepository(db)
+    problems = new ProblemRepository(db)
+    repo.ensureBuiltinPath(SEED)
+  })
+
+  it('关键词覆盖标签与知识点名称；knowledgePointId 与难度组合', () => {
+    const a = problems.create({ ...makeProblem('求和'), tags: ['前缀和'] }, true)
+    repo.bindProblem(a.id, 'kp:c-basics:0:0')
+
+    // 知识点名称「输入输出」可搜到绑定题
+    const byKpName = problems.list({ keyword: '输入输出', difficulty: 'all', tag: 'all' })
+    expect(byKpName.map((p) => p.id)).toEqual([a.id])
+    // 标签关键词
+    const byTagKw = problems.list({ keyword: '前缀和', difficulty: 'all', tag: 'all' })
+    expect(byTagKw.map((p) => p.id)).toEqual([a.id])
+    // knowledgePointId 筛选（组合知识点 + 难度）
+    const combo = problems.list({ keyword: '', difficulty: 'all', tag: 'all', knowledgePointId: 'kp:c-basics:0:0' })
+    expect(combo.map((p) => p.id)).toEqual([a.id])
+    // 未绑定该知识点的题不出现在结果中（b 未绑定任何知识点）
+    const other = problems.list({ keyword: '', difficulty: 'all', tag: 'all', knowledgePointId: 'kp:c-basics:0:1' })
+    expect(other).toEqual([])
+  })
+})

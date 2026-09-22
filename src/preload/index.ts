@@ -34,6 +34,12 @@ const api: AppApi = {
   listMistakes: () => invoke('mistakes.list'),
   setMistakeMastered: (problemId, mastered) => invoke('mistakes.setMastered', problemId, mastered),
 
+  createRandomSession: (config) => invoke('sessions.createRandom', config),
+  createKpSession: (kpId, size) => invoke('sessions.createKp', [kpId, size]),
+  getSession: (id) => invoke('sessions.get', id),
+  getSessionSummary: (id) => invoke('sessions.summary', id),
+  finishSession: (id) => invoke('sessions.finish', id),
+
   getMistakeHistory: (problemId) => invoke('mistake.history', problemId),
   getMistakeFirstLatestCode: (problemId) => invoke('mistake.firstLatestCode', problemId),
   getMistakeNote: (problemId) => invoke('mistake.notes.get', problemId),

@@ -93,6 +93,24 @@ export interface AppApi {
   listMistakes(): Promise<IpcResult<MistakeBookEntry[]>>
   setMistakeMastered(problemId: string, mastered: boolean): Promise<IpcResult<void>>
 
+  // 练习会话（v1.2）
+  createRandomSession(
+    config: {
+      difficulty?: Difficulty | 'all'
+      language?: LanguageId | 'all'
+      tag?: string
+      knowledgePointId?: string
+      scope?: 'all' | 'unsolved' | 'mistakes' | 'weak'
+      size?: number
+    }
+  ): Promise<IpcResult<PracticeSession>>
+  createKpSession(kpId: string, size: number): Promise<IpcResult<PracticeSession>>
+  getSession(id: string): Promise<IpcResult<PracticeSession>>
+  getSessionSummary(
+    id: string
+  ): Promise<IpcResult<{ total: number; answered: number; accepted: number; firstAccepted: number }>>
+  finishSession(id: string): Promise<IpcResult<void>>
+
   // 错题复盘（v1.2）
   getMistakeHistory(problemId: string): Promise<IpcResult<MistakeHistoryEntry[]>>
   getMistakeFirstLatestCode(problemId: string): Promise<IpcResult<{ firstCode: string | null; latestCode: string | null }>>
