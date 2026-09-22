@@ -39,3 +39,6 @@ temp/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# E2E 运行时数据目录
+.e2e-data/

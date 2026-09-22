@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell, dialog } from 'electron'
 import { join } from 'path'
 import { logger } from './lib/logger'
 import { registerIpcHandlers } from './ipc/register'
@@ -85,6 +85,26 @@ const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
+  // —— E2E 测试钩子（docs/V1_2_E2E_PLAN.md §2）——
+  // 仅在 CCB_E2E=1 时生效：把系统文件对话框替换为受控桩（路径来自测试注入的环境变量），
+  // 使「备份导出/导入」可端到端自动化。生产环境无此变量，行为完全不变。
+  if (process.env['CCB_E2E'] === '1') {
+    // E2E 下关闭 sandbox：规避 Electron 44 + remote-debugging 场景中
+    // "startupData is null" 的 sandboxed renderer 二次加载崩溃（仅测试进程生效）
+    app.commandLine.appendSwitch('no-sandbox')
+    const stubDialog = dialog as unknown as Record<string, unknown>
+    stubDialog['showSaveDialog'] = (): Promise<{ canceled: boolean; filePath?: string }> => {
+      const filePath = process.env['CCB_E2E_SAVE_PATH'] ?? ''
+      if (filePath === '') return Promise.resolve({ canceled: true })
+      return Promise.resolve({ canceled: false, filePath })
+    }
+    stubDialog['showOpenDialog'] = (): Promise<{ canceled: boolean; filePaths: string[] }> => {
+      const filePath = process.env['CCB_E2E_OPEN_PATH'] ?? ''
+      if (filePath === '') return Promise.resolve({ canceled: true, filePaths: [] })
+      return Promise.resolve({ canceled: false, filePaths: [filePath] })
+    }
+  }
+
   app.on('second-instance', () => {
     const [win] = BrowserWindow.getAllWindows()
     if (win) {

@@ -187,7 +187,7 @@ describe('ReviewService（集成，注入时钟）', () => {
     expect(session).not.toBeNull()
     const sid = session!.id
 
-    // 模拟判题 hook：该题 AC
+    // 模拟判题 hook：该题 AC（单题会话 → hook 自动收尾并按默认映射评分推进）
     const accepted = history.insertSubmission(
       { problemId: p.id, language: 'c', code: 'ok', status: 'accepted', passedCount: 1, totalCount: 1, durationMs: 1 },
       []
@@ -196,29 +196,25 @@ describe('ReviewService（集成，注入时钟）', () => {
 
     const updated = svc.sessions.getSession(sid)
     expect(updated!.items[0].status).toBe('accepted')
-
-    // 完成会话（默认等级映射 AC→good）
-    const res = svc.finishSession(sid, {}, NOW + 3000)
-    expect(res.graded).toBe(1)
+    expect(updated!.status).toBe('finished')
 
     // 错题项调度推进：good 首次 → 1 天后
     const item = svc.reviews.getByTarget('problem', p.id)
     expect(item!.intervalDays).toBe(1)
     expect(item!.successStreak).toBe(1)
-    expect(item!.nextReviewAt).toBe(NOW + 3000 + DAY)
-    expect(res.nextReviewAt[p.id]).toBe(NOW + 3000 + DAY)
+    expect(item!.nextReviewAt).toBe(NOW + 2000 + DAY)
 
     // 当日不再到期
-    expect(svc.reviews.listDue(NOW + 3000).filter((i) => i.targetId === p.id)).toHaveLength(0)
+    expect(svc.reviews.listDue(NOW + 2000).filter((i) => i.targetId === p.id)).toHaveLength(0)
   })
 
   it('review history 追加可查', () => {
     const p = problems.create(makeProblem('A'))
     makeMistake(p.id, NOW)
-    const { session } = svc.startSession(5, NOW + 1000)
-    // 模拟作答通过（judge hook 报告）后再确认等级
+    svc.startSession(5, NOW + 1000)
+    // 模拟作答通过（judge hook 报告）→ 会话自动收尾评分
     svc.onSubmission(p.id, true, null, NOW + 1500)
-    svc.finishSession(session!.id, { [p.id]: 'good' }, NOW + 2000)
+    // hook 自动收尾评分后，手动 finishSession 不应重复评分（幂等）
 
     const item = svc.reviews.getByTarget('problem', p.id)
     const hist = svc.reviews.listHistory(item!.id)

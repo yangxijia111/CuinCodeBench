@@ -155,6 +155,7 @@ export interface AppApi {
   ): Promise<IpcResult<{ session: PracticeSession | null; created: boolean }>>
   getReviewSession(id: string): Promise<IpcResult<PracticeSession>>
   getLatestActiveReviewSession(): Promise<IpcResult<PracticeSession | null>>
+  getLastFinishedReviewSession(): Promise<IpcResult<PracticeSession | null>>
   finishReviewSession(
     sessionId: string,
     grades: Record<string, 'again' | 'hard' | 'good' | 'easy'>

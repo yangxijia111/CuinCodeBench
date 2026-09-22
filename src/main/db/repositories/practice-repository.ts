@@ -107,6 +107,17 @@ export class PracticeRepository {
     return row ? this.toSession(row) : null
   }
 
+  /** 最近完成的指定 kind 会话（finished_at >= since） */
+  getLatestFinished(kind: PracticeSession['kind'], since: number): PracticeSession | null {
+    const row = this.db
+      .prepare(
+        `SELECT * FROM practice_sessions WHERE kind = ? AND status = 'finished' AND finished_at >= ?
+         ORDER BY finished_at DESC, rowid DESC LIMIT 1`
+      )
+      .get(kind, since) as SessionRow | undefined
+    return row ? this.toSession(row) : null
+  }
+
   /** 判题 hook：找到包含该题的 active 复习/练习会话 */
   findActiveSessionsForProblem(problemId: string, kinds: PracticeSession['kind'][]): PracticeSession[] {
     const placeholders = kinds.map(() => '?').join(',')

@@ -16,7 +16,9 @@
     "test:coverage": "vitest run --coverage",
     "ui:smoke": "node scripts/ui-smoke.mjs",
     "dist": "electron-vite build && electron-builder --win",
-    "dist:dir": "electron-vite build && electron-builder --win --dir"
+    "dist:dir": "electron-vite build && electron-builder --win --dir",
+    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "e2e:build": "electron-vite build && vitest run --config vitest.e2e.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

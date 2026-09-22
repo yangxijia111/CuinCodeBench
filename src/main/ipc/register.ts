@@ -139,6 +139,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     return session
   })
   handle('review.latestActive', noArgs, () => svc().reviewSvc.sessions.getLatestActive('review'))
+  handle('review.lastFinished', noArgs, () => svc().reviewSvc.lastFinishedSession(Date.now()))
   handle(
     'review.finishSession',
     z.tuple([z.string(), z.record(z.string(), z.enum(['again', 'hard', 'good', 'easy']))]),

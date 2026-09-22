@@ -25,16 +25,29 @@ export function ReviewView(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // 挂载时恢复未完成的复习会话
+  // 挂载时恢复：未完成会话 → 会话页；最近完成（10 分钟内）→ 完成统计页
   useEffect(() => {
     let alive = true
-    void window.api.getLatestActiveReviewSession().then((res) => {
+    void (async () => {
+      const active = await window.api.getLatestActiveReviewSession()
       if (!alive) return
-      if (res.ok && res.data !== null) {
-        setSession(res.data)
+      if (active.ok && active.data !== null) {
+        setSession(active.data)
         setPhase('session')
+        return
       }
-    })
+      const finished = await window.api.getLastFinishedReviewSession()
+      if (!alive) return
+      if (finished.ok && finished.data !== null) {
+        setSession(finished.data)
+        const answered = finished.data.items.filter((i) => i.status === 'accepted' || i.status === 'failed')
+        setSummary({
+          graded: answered.length,
+          nextReviewAt: {}
+        })
+        setPhase('done')
+      }
+    })()
     return () => {
       alive = false
     }

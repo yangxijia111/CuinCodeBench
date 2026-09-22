@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
+    // E2E（*.e2e.test.ts）需要先 build 产物，由独立 config（vitest.e2e.config.ts）与 npm run e2e 驱动
+    exclude: ['tests/e2e/**'],
     testTimeout: 30000,
     hookTimeout: 30000,
     pool: 'forks',

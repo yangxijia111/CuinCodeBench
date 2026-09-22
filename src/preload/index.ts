@@ -68,6 +68,7 @@ const api: AppApi = {
   startReviewSession: (size) => invoke('review.startSession', size),
   getReviewSession: (id) => invoke('review.getSession', id),
   getLatestActiveReviewSession: () => invoke('review.latestActive'),
+  getLastFinishedReviewSession: () => invoke('review.lastFinished'),
   finishReviewSession: (sessionId, grades) => invoke('review.finishSession', [sessionId, grades]),
   cancelReviewSession: (id) => invoke('review.cancelSession', id),
 

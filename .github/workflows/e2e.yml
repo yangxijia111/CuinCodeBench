@@ -1,0 +1,37 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    # Electron E2E 在真实用户平台（Windows）运行；判题用例依赖 python（runner 自带）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建产物
+        run: npm run build
+
+      - name: 端到端测试（Electron via CDP）
+        run: npx vitest run --config vitest.e2e.config.ts
+
+      - name: 归档失败现场
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-data
+          path: .e2e-data
+          if-no-files-found: ignore

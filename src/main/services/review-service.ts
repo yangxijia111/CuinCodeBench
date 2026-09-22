@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import type { ReviewGrade, ReviewItem } from '@shared/types'
+import type { PracticeSession, ReviewGrade, ReviewItem } from '@shared/types'
 import { ReviewRepository } from '../db/repositories/review-repository'
 import { PracticeRepository } from '../db/repositories/practice-repository'
 import { MasteryRepository } from '../db/repositories/mastery-repository'
@@ -70,8 +70,18 @@ export class ReviewService {
     }
 
     for (const session of this.sessions.findActiveSessionsForProblem(problemId, ['review', 'random', 'knowledge_point'])) {
-      void this.sessions.reportResult(session.id, problemId, accepted, submissionId, now)
+      const updated = this.sessions.reportResult(session.id, problemId, accepted, submissionId, now)
+      // 复习会话全部作答完毕：按做题结果自动映射等级并推进调度（spec §3，AC→good 失败→again）
+      if (updated !== null && session.kind === 'review' && updated.status === 'finished') {
+        this.finishSession(updated.id, {}, now)
+      }
     }
+  }
+
+  /** 最近完成的复习会话（10 分钟内收尾），供完成页展示 */
+  lastFinishedSession(now: number): PracticeSession | null {
+    const s = this.sessions.getLatestFinished('review', now - 10 * 60_000)
+    return s
   }
 
   /** 用户标记错题已掌握 → 删除该题复习项（重新失败时重建） */
