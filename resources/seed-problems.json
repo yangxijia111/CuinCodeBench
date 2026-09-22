@@ -4,12 +4,21 @@
       "title": "A+B 问题",
       "description": "计算两个整数的和。\n\n这是最经典的入门题：读入两个整数，输出它们的和。",
       "difficulty": "easy",
-      "tags": ["入门", "数学"],
+      "tags": [
+        "入门",
+        "数学"
+      ],
       "inputDesc": "一行，两个整数 a 和 b（-10^8 ≤ a, b ≤ 10^8），以空格分隔。",
       "outputDesc": "一行，一个整数，即 a + b 的值。",
       "samples": [
-        { "input": "1 2", "output": "3" },
-        { "input": "10 -3", "output": "7" }
+        {
+          "input": "1 2",
+          "output": "3"
+        },
+        {
+          "input": "10 -3",
+          "output": "7"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b;\n    if (scanf(\"%d %d\", &a, &b) != 2) return 1;\n    printf(\"%d\\n\", a + b);\n    return 0;\n}\n",
@@ -17,23 +26,52 @@
         "python": "a, b = map(int, input().split())\nprint(a + b)\n"
       },
       "testCases": [
-        { "stdin": "1 2", "expectedStdout": "3", "timeoutMs": 5000 },
-        { "stdin": "10 -3", "expectedStdout": "7", "timeoutMs": 5000 },
-        { "stdin": "0 0", "expectedStdout": "0", "timeoutMs": 5000 },
-        { "stdin": "99999999 99999999", "expectedStdout": "199999998", "timeoutMs": 5000 },
-        { "stdin": "-100000000 -100000000", "expectedStdout": "-200000000", "timeoutMs": 5000 }
+        {
+          "stdin": "1 2",
+          "expectedStdout": "3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "10 -3",
+          "expectedStdout": "7",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0 0",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "99999999 99999999",
+          "expectedStdout": "199999998",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-100000000 -100000000",
+          "expectedStdout": "-200000000",
+          "timeoutMs": 5000
+        }
       ]
     },
     {
       "title": "FizzBuzz",
       "description": "从 1 到 n 逐行输出，规则：\n\n- 3 的倍数输出 `Fizz`\n- 5 的倍数输出 `Buzz`\n- 既是 3 又是 5 的倍数输出 `FizzBuzz`\n- 其余输出数字本身",
       "difficulty": "easy",
-      "tags": ["模拟", "循环"],
+      "tags": [
+        "模拟",
+        "循环"
+      ],
       "inputDesc": "一行，一个整数 n（1 ≤ n ≤ 100）。",
       "outputDesc": "n 行，按规则输出。",
       "samples": [
-        { "input": "5", "output": "1\n2\nFizz\n4\nBuzz" },
-        { "input": "3", "output": "1\n2\nFizz" }
+        {
+          "input": "5",
+          "output": "1\n2\nFizz\n4\nBuzz"
+        },
+        {
+          "input": "3",
+          "output": "1\n2\nFizz"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 1; i <= n; i++) {\n        // TODO: 按规则输出\n    }\n    return 0;\n}\n",
@@ -41,22 +79,51 @@
         "python": "n = int(input())\nfor i in range(1, n + 1):\n    # TODO: 按规则输出\n    pass\n"
       },
       "testCases": [
-        { "stdin": "5", "expectedStdout": "1\n2\nFizz\n4\nBuzz", "timeoutMs": 5000 },
-        { "stdin": "3", "expectedStdout": "1\n2\nFizz", "timeoutMs": 5000 },
-        { "stdin": "15", "expectedStdout": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz", "timeoutMs": 5000 },
-        { "stdin": "1", "expectedStdout": "1", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "5",
+          "expectedStdout": "1\n2\nFizz\n4\nBuzz",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3",
+          "expectedStdout": "1\n2\nFizz",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "15",
+          "expectedStdout": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 1; i <= n; i++) {\n        if (i % 15 == 0) printf(\"FizzBuzz\\n\");\n        else if (i % 3 == 0) printf(\"Fizz\\n\");\n        else if (i % 5 == 0) printf(\"Buzz\\n\");\n        else printf(\"%d\\n\", i);\n    }\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        if (i % 15 == 0) std::cout << \"FizzBuzz\\n\";\n        else if (i % 3 == 0) std::cout << \"Fizz\\n\";\n        else if (i % 5 == 0) std::cout << \"Buzz\\n\";\n        else std::cout << i << \"\\n\";\n    }\n    return 0;\n}\n",
+        "python": "n = int(input())\nfor i in range(1, n + 1):\n    if i % 15 == 0: print(\"FizzBuzz\")\n    elif i % 3 == 0: print(\"Fizz\")\n    elif i % 5 == 0: print(\"Buzz\")\n    else: print(i)\n"
+      }
     },
     {
       "title": "字符串反转",
       "description": "读入一行字符串，将其反转后输出。",
       "difficulty": "easy",
-      "tags": ["字符串"],
+      "tags": [
+        "字符串"
+      ],
       "inputDesc": "一行，一个非空字符串（长度 ≤ 1000，可能包含空格）。",
       "outputDesc": "一行，反转后的字符串。",
       "samples": [
-        { "input": "hello", "output": "olleh" },
-        { "input": "AbC d", "output": "d CbA" }
+        {
+          "input": "hello",
+          "output": "olleh"
+        },
+        {
+          "input": "AbC d",
+          "output": "d CbA"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char s[1001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    // TODO: 反转输出\n    return 0;\n}\n",
@@ -64,22 +131,52 @@
         "python": "s = input()\n# TODO: 反转输出\n"
       },
       "testCases": [
-        { "stdin": "hello", "expectedStdout": "olleh", "timeoutMs": 5000 },
-        { "stdin": "AbC d", "expectedStdout": "d CbA", "timeoutMs": 5000 },
-        { "stdin": "a", "expectedStdout": "a", "timeoutMs": 5000 },
-        { "stdin": "1234567890", "expectedStdout": "0987654321", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "hello",
+          "expectedStdout": "olleh",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "AbC d",
+          "expectedStdout": "d CbA",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "a",
+          "expectedStdout": "a",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1234567890",
+          "expectedStdout": "0987654321",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char s[1001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    long long len = strlen(s);\n    for (long long i = len - 1; i >= 0; i--) putchar(s[i]);\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n#include <algorithm>\n\nint main() {\n    std::string s;\n    std::getline(std::cin, s);\n    std::reverse(s.begin(), s.end());\n    std::cout << s << std::endl;\n    return 0;\n}\n",
+        "python": "s = input()\nprint(s[::-1])\n"
+      }
     },
     {
       "title": "判断回文",
       "description": "读入一行字符串，判断它是否为回文串（正读反读完全相同）。\n\n**区分大小写**，不做任何字符过滤。",
       "difficulty": "easy",
-      "tags": ["字符串", "双指针"],
+      "tags": [
+        "字符串",
+        "双指针"
+      ],
       "inputDesc": "一行，一个非空字符串（长度 ≤ 10000）。",
       "outputDesc": "一行：是回文输出 `yes`，否则输出 `no`。",
       "samples": [
-        { "input": "level", "output": "yes" },
-        { "input": "hello", "output": "no" }
+        {
+          "input": "level",
+          "output": "yes"
+        },
+        {
+          "input": "hello",
+          "output": "no"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char s[10001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    // TODO: 判断回文，输出 yes 或 no\n    return 0;\n}\n",
@@ -87,24 +184,64 @@
         "python": "s = input()\n# TODO: 判断回文，输出 yes 或 no\n"
       },
       "testCases": [
-        { "stdin": "level", "expectedStdout": "yes", "timeoutMs": 5000 },
-        { "stdin": "hello", "expectedStdout": "no", "timeoutMs": 5000 },
-        { "stdin": "a", "expectedStdout": "yes", "timeoutMs": 5000 },
-        { "stdin": "abba", "expectedStdout": "yes", "timeoutMs": 5000 },
-        { "stdin": "Level", "expectedStdout": "no", "timeoutMs": 5000 },
-        { "stdin": "aa", "expectedStdout": "yes", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "level",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "hello",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "a",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "abba",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "Level",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "aa",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char s[10001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    int len = (int)strlen(s);\n    int ok = 1;\n    for (int i = 0; i < len / 2; i++) {\n        if (s[i] != s[len - 1 - i]) { ok = 0; break; }\n    }\n    printf(\"%s\\n\", ok ? \"yes\" : \"no\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n\nint main() {\n    std::string s;\n    std::getline(std::cin, s);\n    int len = static_cast<int>(s.size());\n    bool ok = true;\n    for (int i = 0; i < len / 2; i++) {\n        if (s[i] != s[len - 1 - i]) { ok = false; break; }\n    }\n    std::cout << (ok ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "s = input()\nprint(\"yes\" if s == s[::-1] else \"no\")\n"
+      }
     },
     {
       "title": "最大公约数",
       "description": "求两个正整数的最大公约数（GCD）。\n\n提示：辗转相除法（欧几里得算法）。",
       "difficulty": "easy",
-      "tags": ["数学", "入门"],
+      "tags": [
+        "数学",
+        "入门"
+      ],
       "inputDesc": "一行，两个正整数 a 和 b（1 ≤ a, b ≤ 10^9）。",
       "outputDesc": "一行，一个正整数，即 gcd(a, b)。",
       "samples": [
-        { "input": "12 18", "output": "6", "note": "12 = 6×2，18 = 6×3" },
-        { "input": "7 13", "output": "1", "note": "互质" }
+        {
+          "input": "12 18",
+          "output": "6",
+          "note": "12 = 6×2，18 = 6×3"
+        },
+        {
+          "input": "7 13",
+          "output": "1",
+          "note": "互质"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    long long a, b;\n    if (scanf(\"%lld %lld\", &a, &b) != 2) return 1;\n    // TODO: 辗转相除法\n    return 0;\n}\n",
@@ -112,23 +249,58 @@
         "python": "import math\na, b = map(int, input().split())\n# TODO: 输出最大公约数\n"
       },
       "testCases": [
-        { "stdin": "12 18", "expectedStdout": "6", "timeoutMs": 5000 },
-        { "stdin": "7 13", "expectedStdout": "1", "timeoutMs": 5000 },
-        { "stdin": "100 75", "expectedStdout": "25", "timeoutMs": 5000 },
-        { "stdin": "1 999999999", "expectedStdout": "1", "timeoutMs": 5000 },
-        { "stdin": "1000000000 1000000000", "expectedStdout": "1000000000", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "12 18",
+          "expectedStdout": "6",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7 13",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "100 75",
+          "expectedStdout": "25",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 999999999",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1000000000 1000000000",
+          "expectedStdout": "1000000000",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long a, b;\n    if (scanf(\"%lld %lld\", &a, &b) != 2) return 1;\n    while (b != 0) {\n        long long t = a % b;\n        a = b;\n        b = t;\n    }\n    printf(\"%lld\\n\", a);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nlong long gcd(long long a, long long b) { return b == 0 ? a : gcd(b, a % b); }\n\nint main() {\n    long long a, b;\n    std::cin >> a >> b;\n    std::cout << gcd(a, b) << std::endl;\n    return 0;\n}\n",
+        "python": "import math\na, b = map(int, input().split())\nprint(math.gcd(a, b))\n"
+      }
     },
     {
       "title": "统计元音字母",
       "description": "统计一行文本中元音字母（`a`、`e`、`i`、`o`、`u`）出现的次数。\n\n**不区分大小写**（`A` 也算元音）。",
       "difficulty": "easy",
-      "tags": ["字符串", "入门"],
+      "tags": [
+        "字符串",
+        "入门"
+      ],
       "inputDesc": "一行，一段文本（长度 ≤ 10000，可能含空格与标点）。",
       "outputDesc": "一行，一个整数：元音字母总数。",
       "samples": [
-        { "input": "Hello World", "output": "3", "note": "e、o、o" },
-        { "input": "xyz", "output": "0" }
+        {
+          "input": "Hello World",
+          "output": "3",
+          "note": "e、o、o"
+        },
+        {
+          "input": "xyz",
+          "output": "0"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    char s[10001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    // TODO: 统计元音\n    return 0;\n}\n",
@@ -136,23 +308,57 @@
         "python": "line = input()\n# TODO: 统计元音\n"
       },
       "testCases": [
-        { "stdin": "Hello World", "expectedStdout": "3", "timeoutMs": 5000 },
-        { "stdin": "xyz", "expectedStdout": "0", "timeoutMs": 5000 },
-        { "stdin": "AEIOU aeiou", "expectedStdout": "10", "timeoutMs": 5000 },
-        { "stdin": "bcdfg", "expectedStdout": "0", "timeoutMs": 5000 },
-        { "stdin": "Programming is fun!", "expectedStdout": "5", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "Hello World",
+          "expectedStdout": "3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "xyz",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "AEIOU aeiou",
+          "expectedStdout": "10",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "bcdfg",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "Programming is fun!",
+          "expectedStdout": "5",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint isVowel(int ch) {\n    return ch == 'a' || ch == 'e' || ch == 'i' || ch == 'o' || ch == 'u' ||\n           ch == 'A' || ch == 'E' || ch == 'I' || ch == 'O' || ch == 'U';\n}\n\nint main(void) {\n    char s[10001];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    int count = 0;\n    for (int i = 0; s[i] != '\\0'; i++) {\n        if (isVowel((unsigned char)s[i])) count++;\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n\nint main() {\n    std::string line;\n    std::getline(std::cin, line);\n    int count = 0;\n    for (char c : line) {\n        c = static_cast<char>(tolower(static_cast<unsigned char>(c)));\n        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') count++;\n    }\n    std::cout << count << std::endl;\n    return 0;\n}\n",
+        "python": "line = input()\nprint(sum(1 for c in line.lower() if c in \"aeiou\"))\n"
+      }
     },
     {
       "title": "冒泡排序",
       "description": "读入 n 个整数，将它们**从小到大**排序后输出。\n\n练习目标：手写冒泡排序（当然，任何正确的排序算法都能通过）。",
       "difficulty": "medium",
-      "tags": ["排序", "数组"],
+      "tags": [
+        "排序",
+        "数组"
+      ],
       "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 1000）；第二行 n 个整数（-10^6 ≤ a_i ≤ 10^6），以空格分隔。",
       "outputDesc": "一行，排序后的 n 个整数，以空格分隔，行尾无多余空格。",
       "samples": [
-        { "input": "5\n3 1 4 1 5", "output": "1 1 3 4 5" },
-        { "input": "1\n42", "output": "42" }
+        {
+          "input": "5\n3 1 4 1 5",
+          "output": "1 1 3 4 5"
+        },
+        {
+          "input": "1\n42",
+          "output": "42"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int a[1000];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    // TODO: 冒泡排序\n    return 0;\n}\n",
@@ -160,27 +366,57 @@
         "python": "n = int(input())\na = list(map(int, input().split()))\n# TODO: 排序后输出\n"
       },
       "testCases": [
-        { "stdin": "5\n3 1 4 1 5", "expectedStdout": "1 1 3 4 5", "timeoutMs": 5000 },
-        { "stdin": "1\n42", "expectedStdout": "42", "timeoutMs": 5000 },
-        { "stdin": "3\n-1 0 -5", "expectedStdout": "-5 -1 0", "timeoutMs": 5000 },
-        { "stdin": "6\n9 8 7 6 5 4", "expectedStdout": "4 5 6 7 8 9", "timeoutMs": 5000 },
+        {
+          "stdin": "5\n3 1 4 1 5",
+          "expectedStdout": "1 1 3 4 5",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n42",
+          "expectedStdout": "42",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n-1 0 -5",
+          "expectedStdout": "-5 -1 0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "6\n9 8 7 6 5 4",
+          "expectedStdout": "4 5 6 7 8 9",
+          "timeoutMs": 5000
+        },
         {
           "stdin": "10\n10 9 8 7 6 5 4 3 2 1",
           "expectedStdout": "1 2 3 4 5 6 7 8 9 10",
           "timeoutMs": 5000
         }
-      ]
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int a[1000];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    for (int i = 0; i < n - 1; i++) {\n        for (int j = 0; j < n - 1 - i; j++) {\n            if (a[j] > a[j + 1]) {\n                int t = a[j];\n                a[j] = a[j + 1];\n                a[j + 1] = t;\n            }\n        }\n    }\n    for (int i = 0; i < n; i++) {\n        printf(\"%d\", a[i]);\n        if (i < n - 1) printf(\" \");\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <algorithm>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a[1000];\n    for (int i = 0; i < n; i++) std::cin >> a[i];\n    std::sort(a, a + n);\n    for (int i = 0; i < n; i++) {\n        if (i > 0) std::cout << \" \";\n        std::cout << a[i];\n    }\n    std::cout << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = sorted(map(int, input().split()))\nprint(\" \".join(map(str, a)))\n"
+      }
     },
     {
       "title": "矩阵转置",
       "description": "读入一个 n 行 m 列的矩阵，输出它的转置（m 行 n 列）。",
       "difficulty": "medium",
-      "tags": ["二维数组", "模拟"],
+      "tags": [
+        "二维数组",
+        "模拟"
+      ],
       "inputDesc": "第一行两个整数 n、m（1 ≤ n, m ≤ 100）；接下来 n 行，每行 m 个整数。",
       "outputDesc": "m 行，每行 n 个整数（转置后的矩阵），行内以空格分隔。",
       "samples": [
-        { "input": "2 3\n1 2 3\n4 5 6", "output": "1 4\n2 5\n3 6" },
-        { "input": "1 1\n7", "output": "7" }
+        {
+          "input": "2 3\n1 2 3\n4 5 6",
+          "output": "1 4\n2 5\n3 6"
+        },
+        {
+          "input": "1 1\n7",
+          "output": "7"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    int n, m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 1;\n    int a[100][100];\n    for (int i = 0; i < n; i++)\n        for (int j = 0; j < m; j++)\n            scanf(\"%d\", &a[i][j]);\n    // TODO: 输出转置\n    return 0;\n}\n",
@@ -188,22 +424,53 @@
         "python": "n, m = map(int, input().split())\nmatrix = [list(map(int, input().split())) for _ in range(n)]\n# TODO: 输出转置\n"
       },
       "testCases": [
-        { "stdin": "2 3\n1 2 3\n4 5 6", "expectedStdout": "1 4\n2 5\n3 6", "timeoutMs": 5000 },
-        { "stdin": "1 1\n7", "expectedStdout": "7", "timeoutMs": 5000 },
-        { "stdin": "3 2\n1 2\n3 4\n5 6", "expectedStdout": "1 3 5\n2 4 6", "timeoutMs": 5000 },
-        { "stdin": "2 2\n0 0\n0 0", "expectedStdout": "0 0\n0 0", "timeoutMs": 5000 }
-      ]
+        {
+          "stdin": "2 3\n1 2 3\n4 5 6",
+          "expectedStdout": "1 4\n2 5\n3 6",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 1\n7",
+          "expectedStdout": "7",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3 2\n1 2\n3 4\n5 6",
+          "expectedStdout": "1 3 5\n2 4 6",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2 2\n0 0\n0 0",
+          "expectedStdout": "0 0\n0 0",
+          "timeoutMs": 5000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n, m;\n    if (scanf(\"%d %d\", &n, &m) != 2) return 1;\n    static int a[100][100];\n    for (int i = 0; i < n; i++)\n        for (int j = 0; j < m; j++)\n            scanf(\"%d\", &a[i][j]);\n    for (int j = 0; j < m; j++) {\n        for (int i = 0; i < n; i++) {\n            printf(\"%d\", a[i][j]);\n            if (i < n - 1) printf(\" \");\n        }\n        printf(\"\\n\");\n    }\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n, m;\n    std::cin >> n >> m;\n    static int a[100][100];\n    for (int i = 0; i < n; i++)\n        for (int j = 0; j < m; j++)\n            std::cin >> a[i][j];\n    for (int j = 0; j < m; j++) {\n        for (int i = 0; i < n; i++) {\n            if (i > 0) std::cout << \" \";\n            std::cout << a[i][j];\n        }\n        std::cout << \"\\n\";\n    }\n    return 0;\n}\n",
+        "python": "n, m = map(int, input().split())\nmatrix = [list(map(int, input().split())) for _ in range(n)]\nfor j in range(m):\n    print(\" \".join(str(matrix[i][j]) for i in range(n)))\n"
+      }
     },
     {
       "title": "二分查找",
       "description": "在一个**升序排列**的数组中进行 q 次查询：每次查询一个数，若存在输出其**下标（从 0 开始）**，不存在输出 `-1`。\n\n练习目标：手写二分查找，时间复杂度 O(log n)。",
       "difficulty": "medium",
-      "tags": ["二分", "查找", "数组"],
+      "tags": [
+        "二分",
+        "查找",
+        "数组"
+      ],
       "inputDesc": "第一行整数 n（1 ≤ n ≤ 100000）；第二行 n 个**升序**整数；第三行整数 q（1 ≤ q ≤ 100000）；接下来 q 行，每行一个待查整数（绝对值 ≤ 10^9）。",
       "outputDesc": "q 行，每行一个整数：目标下标或 -1。若有重复元素，输出**任意一个**匹配下标（判题只验证存在性与合法性范围内的正确下标，本题数据保证无重复）。",
       "samples": [
-        { "input": "5\n1 3 5 7 9\n3\n5\n9\n4", "output": "2\n4\n-1" },
-        { "input": "1\n10\n1\n10", "output": "0" }
+        {
+          "input": "5\n1 3 5 7 9\n3\n5\n9\n4",
+          "output": "2\n4\n-1"
+        },
+        {
+          "input": "1\n10\n1\n10",
+          "output": "0"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    static int a[100000];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    int q;\n    scanf(\"%d\", &q);\n    while (q--) {\n        int target;\n        scanf(\"%d\", &target);\n        // TODO: 二分查找，输出下标或 -1\n    }\n    return 0;\n}\n",
@@ -211,9 +478,21 @@
         "python": "n = int(input())\na = list(map(int, input().split()))\nq = int(input())\nfor _ in range(q):\n    target = int(input())\n    # TODO: 二分查找，输出下标或 -1\n"
       },
       "testCases": [
-        { "stdin": "5\n1 3 5 7 9\n3\n5\n9\n4", "expectedStdout": "2\n4\n-1", "timeoutMs": 5000 },
-        { "stdin": "1\n10\n1\n10", "expectedStdout": "0", "timeoutMs": 5000 },
-        { "stdin": "2\n-5 5\n2\n-5\n6", "expectedStdout": "0\n-1", "timeoutMs": 5000 },
+        {
+          "stdin": "5\n1 3 5 7 9\n3\n5\n9\n4",
+          "expectedStdout": "2\n4\n-1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n10\n1\n10",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2\n-5 5\n2\n-5\n6",
+          "expectedStdout": "0\n-1",
+          "timeoutMs": 5000
+        },
         {
           "stdin": "6\n2 4 6 8 10 12\n6\n2\n4\n6\n8\n10\n12",
           "expectedStdout": "0\n1\n2\n3\n4\n5",
@@ -224,18 +503,33 @@
           "expectedStdout": "-1\n-1\n-1",
           "timeoutMs": 5000
         }
-      ]
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    static int a[100000];\n    for (int i = 0; i < n; i++) scanf(\"%d\", &a[i]);\n    int q;\n    scanf(\"%d\", &q);\n    while (q--) {\n        int target;\n        scanf(\"%d\", &target);\n        int lo = 0, hi = n - 1, ans = -1;\n        while (lo <= hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (a[mid] == target) { ans = mid; break; }\n            else if (a[mid] < target) lo = mid + 1;\n            else hi = mid - 1;\n        }\n        printf(\"%d\\n\", ans);\n    }\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    static int a[100000];\n    for (int i = 0; i < n; i++) std::cin >> a[i];\n    int q;\n    std::cin >> q;\n    while (q--) {\n        int target;\n        std::cin >> target;\n        int lo = 0, hi = n - 1, ans = -1;\n        while (lo <= hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (a[mid] == target) { ans = mid; break; }\n            else if (a[mid] < target) lo = mid + 1;\n            else hi = mid - 1;\n        }\n        std::cout << ans << \"\\n\";\n    }\n    return 0;\n}\n",
+        "python": "import bisect\nn = int(input())\na = list(map(int, input().split()))\nq = int(input())\nfor _ in range(q):\n    target = int(input())\n    i = bisect.bisect_left(a, target)\n    print(i if i < n and a[i] == target else -1)\n"
+      }
     },
     {
       "title": "最长公共子序列（LCS）",
       "description": "给定两个字符串，求它们的最长公共**子序列**长度（子序列可以不连续，但相对顺序不变）。\n\n经典动态规划入门题，时间复杂度 O(len1 × len2)。",
       "difficulty": "hard",
-      "tags": ["动态规划", "字符串"],
+      "tags": [
+        "动态规划",
+        "字符串"
+      ],
       "inputDesc": "两行，每行一个字符串（长度 ≤ 1000，仅小写字母）。",
       "outputDesc": "一行，一个整数：最长公共子序列长度。",
       "samples": [
-        { "input": "abcde\nace", "output": "3", "note": "LCS 为 ace" },
-        { "input": "abc\ndef", "output": "0" }
+        {
+          "input": "abcde\nace",
+          "output": "3",
+          "note": "LCS 为 ace"
+        },
+        {
+          "input": "abc\ndef",
+          "output": "0"
+        }
       ],
       "initialCode": {
         "c": "#include <stdio.h>\n#include <string.h>\n\n#define MAXN 1001\n\nint dp[MAXN][MAXN];\n\nint main(void) {\n    char s[MAXN], t[MAXN];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    if (fgets(t, sizeof(t), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    t[strcspn(t, \"\\r\\n\")] = '\\0';\n    // TODO: 动态规划求 LCS 长度\n    return 0;\n}\n",
@@ -243,14 +537,1510 @@
         "python": "s = input()\nt = input()\n# TODO: 动态规划求 LCS 长度\n"
       },
       "testCases": [
-        { "stdin": "abcde\nace", "expectedStdout": "3", "timeoutMs": 10000 },
-        { "stdin": "abc\nabc", "expectedStdout": "3", "timeoutMs": 10000 },
-        { "stdin": "abc\ndef", "expectedStdout": "0", "timeoutMs": 10000 },
-        { "stdin": "a\na", "expectedStdout": "1", "timeoutMs": 10000 },
+        {
+          "stdin": "abcde\nace",
+          "expectedStdout": "3",
+          "timeoutMs": 10000
+        },
+        {
+          "stdin": "abc\nabc",
+          "expectedStdout": "3",
+          "timeoutMs": 10000
+        },
+        {
+          "stdin": "abc\ndef",
+          "expectedStdout": "0",
+          "timeoutMs": 10000
+        },
+        {
+          "stdin": "a\na",
+          "expectedStdout": "1",
+          "timeoutMs": 10000
+        },
         {
           "stdin": "dynamicprogrammingisfun\npracticeeveryday",
           "expectedStdout": "5",
           "timeoutMs": 10000
+        }
+      ],
+      "referenceSolution": {
+        "c": "#include <stdio.h>\n#include <string.h>\n\n#define MAXN 1001\n\nint dp[MAXN][MAXN];\n\nint main(void) {\n    char s[MAXN], t[MAXN];\n    if (fgets(s, sizeof(s), stdin) == NULL) return 1;\n    if (fgets(t, sizeof(t), stdin) == NULL) return 1;\n    s[strcspn(s, \"\\r\\n\")] = '\\0';\n    t[strcspn(t, \"\\r\\n\")] = '\\0';\n    int n = (int)strlen(s), m = (int)strlen(t);\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= m; j++) {\n            if (s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;\n            else {\n                int best = dp[i - 1][j];\n                if (dp[i][j - 1] > best) best = dp[i][j - 1];\n                dp[i][j] = best;\n            }\n        }\n    }\n    printf(\"%d\\n\", dp[n][m]);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n#include <vector>\n\nint main() {\n    std::string s, t;\n    std::getline(std::cin, s);\n    std::getline(std::cin, t);\n    int n = static_cast<int>(s.size()), m = static_cast<int>(t.size());\n    std::vector<std::vector<int>> dp(n + 1, std::vector<int>(m + 1, 0));\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= m; j++) {\n            if (s[i - 1] == t[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;\n            else dp[i][j] = dp[i - 1][j] > dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];\n        }\n    }\n    std::cout << dp[n][m] << std::endl;\n    return 0;\n}\n",
+        "python": "s = input()\nt = input()\nn, m = len(s), len(t)\ndp = [[0] * (m + 1) for _ in range(n + 1)]\nfor i in range(1, n + 1):\n    for j in range(1, m + 1):\n        if s[i - 1] == t[j - 1]:\n            dp[i][j] = dp[i - 1][j - 1] + 1\n        else:\n            dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])\nprint(dp[n][m])\n"
+      }
+    },
+    {
+      "title": "交换两个数",
+      "description": "读入两个整数 a 和 b，交换它们的值后输出。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "变量"
+      ],
+      "inputDesc": "一行，两个整数 a 和 b，以空格分隔。",
+      "outputDesc": "一行，交换后的两个数，以空格分隔。",
+      "samples": [
+        {
+          "input": "3 7",
+          "output": "7 3"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b, t;\n    if (scanf(\"%d %d\", &a, &b) != 2) return 1;\n    t = a; a = b; b = t;\n    printf(\"%d %d\\n\", a, b);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int a, b;\n    std::cin >> a >> b;\n    int t = a; a = b; b = t;\n    std::cout << a << \" \" << b << std::endl;\n    return 0;\n}\n",
+        "python": "a, b = map(int, input().split())\na, b = b, a\nprint(a, b)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3 7",
+          "expectedStdout": "7 3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-1 100",
+          "expectedStdout": "100 -1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0 0",
+          "expectedStdout": "0 0",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "华氏温度转摄氏温度",
+      "description": "读入一个华氏温度 F，转换为摄氏温度 C。\n\n公式：C = 5 × (F − 32) ÷ 9，结果保留 2 位小数。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "数学"
+      ],
+      "inputDesc": "一行，一个整数 F（−100 ≤ F ≤ 200）。",
+      "outputDesc": "一行，对应的摄氏温度，保留 2 位小数。",
+      "samples": [
+        {
+          "input": "100",
+          "output": "37.78"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int f;\n    if (scanf(\"%d\", &f) != 1) return 1;\n    printf(\"%.2f\\n\", 5.0 * (f - 32) / 9.0);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <iomanip>\n\nint main() {\n    int f;\n    std::cin >> f;\n    std::cout << std::fixed << std::setprecision(2) << 5.0 * (f - 32) / 9.0 << std::endl;\n    return 0;\n}\n",
+        "python": "f = int(input())\nprint(f\"{5 * (f - 32) / 9:.2f}\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "100",
+          "expectedStdout": "37.78",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "32",
+          "expectedStdout": "0.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "212",
+          "expectedStdout": "100.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "-17.78",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "平均成绩",
+      "description": "读入三门课的成绩（整数），输出平均分，保留 2 位小数。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "数学"
+      ],
+      "inputDesc": "一行，三个整数 a、b、c，以空格分隔。",
+      "outputDesc": "一行，平均分，保留 2 位小数。",
+      "samples": [
+        {
+          "input": "80 90 85",
+          "output": "85.00"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b, c;\n    if (scanf(\"%d %d %d\", &a, &b, &c) != 3) return 1;\n    printf(\"%.2f\\n\", (a + b + c) / 3.0);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <iomanip>\n\nint main() {\n    int a, b, c;\n    std::cin >> a >> b >> c;\n    std::cout << std::fixed << std::setprecision(2) << (a + b + c) / 3.0 << std::endl;\n    return 0;\n}\n",
+        "python": "a, b, c = map(int, input().split())\nprint(f\"{(a + b + c) / 3:.2f}\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "80 90 85",
+          "expectedStdout": "85.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 2 4",
+          "expectedStdout": "2.33",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0 0 0",
+          "expectedStdout": "0.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "100 100 99",
+          "expectedStdout": "99.67",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "字符的 ASCII 码",
+      "description": "读入一个字符（字母或数字），输出它的 ASCII 码。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "字符"
+      ],
+      "inputDesc": "一行，一个字符。",
+      "outputDesc": "一行，该字符的 ASCII 码（整数）。",
+      "samples": [
+        {
+          "input": "A",
+          "output": "65"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int ch = getchar();\n    printf(\"%d\\n\", ch);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    char ch;\n    std::cin >> ch;\n    std::cout << static_cast<int>(ch) << std::endl;\n    return 0;\n}\n",
+        "python": "ch = input()\nprint(ord(ch))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "A",
+          "expectedStdout": "65",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "a",
+          "expectedStdout": "97",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "48",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "Z",
+          "expectedStdout": "90",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "圆的面积与周长",
+      "description": "读入圆的半径 r（整数），输出面积与周长，保留 2 位小数，以空格分隔。\n\nπ 取 3.14159。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "数学"
+      ],
+      "inputDesc": "一行，一个整数 r（1 ≤ r ≤ 1000）。",
+      "outputDesc": "一行，面积与周长，保留 2 位小数，空格分隔。",
+      "samples": [
+        {
+          "input": "3",
+          "output": "28.27 18.85"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\n#define PI 3.14159\n\nint main(void) {\n    int r;\n    if (scanf(\"%d\", &r) != 1) return 1;\n    printf(\"%.2f %.2f\\n\", PI * r * r, 2 * PI * r);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <iomanip>\n\nint main() {\n    const double PI = 3.14159;\n    int r;\n    std::cin >> r;\n    std::cout << std::fixed << std::setprecision(2) << PI * r * r << \" \" << 2 * PI * r << std::endl;\n    return 0;\n}\n",
+        "python": "PI = 3.14159\nr = int(input())\nprint(f\"{PI * r * r:.2f} {2 * PI * r:.2f}\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3",
+          "expectedStdout": "28.27 18.85",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "3.14 6.28",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "10",
+          "expectedStdout": "314.16 62.83",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "奇偶判断",
+      "description": "读入一个整数，如果是偶数输出 `even`，奇数输出 `odd`。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "条件"
+      ],
+      "inputDesc": "一行，一个整数 n。",
+      "outputDesc": "一行，`even` 或 `odd`。",
+      "samples": [
+        {
+          "input": "4",
+          "output": "even"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    if (n % 2 == 0) printf(\"even\\n\");\n    else printf(\"odd\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    std::cout << (n % 2 == 0 ? \"even\" : \"odd\") << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nprint(\"even\" if n % 2 == 0 else \"odd\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "4",
+          "expectedStdout": "even",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7",
+          "expectedStdout": "odd",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "even",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-3",
+          "expectedStdout": "odd",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "闰年判断",
+      "description": "读入一个年份，判断是否为闰年。\n\n闰年规则：能被 4 整除但不能被 100 整除，或能被 400 整除。是输出 `yes`，不是输出 `no`。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "条件"
+      ],
+      "inputDesc": "一行，一个年份 y（1 ≤ y ≤ 9999）。",
+      "outputDesc": "一行，`yes` 或 `no`。",
+      "samples": [
+        {
+          "input": "2024",
+          "output": "yes"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int y;\n    if (scanf(\"%d\", &y) != 1) return 1;\n    int leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);\n    printf(\"%s\\n\", leap ? \"yes\" : \"no\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int y;\n    std::cin >> y;\n    bool leap = (y % 4 == 0 && y % 100 != 0) || (y % 400 == 0);\n    std::cout << (leap ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "y = int(input())\nprint(\"yes\" if (y % 4 == 0 and y % 100 != 0) or y % 400 == 0 else \"no\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "2024",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2023",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1900",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2000",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "三个数中的最大值",
+      "description": "读入三个整数，输出其中最大的数。",
+      "difficulty": "easy",
+      "tags": [
+        "入门",
+        "条件"
+      ],
+      "inputDesc": "一行，三个整数 a、b、c，以空格分隔。",
+      "outputDesc": "一行，最大值。",
+      "samples": [
+        {
+          "input": "3 9 2",
+          "output": "9"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b, c;\n    if (scanf(\"%d %d %d\", &a, &b, &c) != 3) return 1;\n    int max = a;\n    if (b > max) max = b;\n    if (c > max) max = c;\n    printf(\"%d\\n\", max);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <algorithm>\n\nint main() {\n    int a, b, c;\n    std::cin >> a >> b >> c;\n    std::cout << std::max({a, b, c}) << std::endl;\n    return 0;\n}\n",
+        "python": "a, b, c = map(int, input().split())\nprint(max(a, b, c))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3 9 2",
+          "expectedStdout": "9",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-5 -1 -3",
+          "expectedStdout": "-1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "5 5 5",
+          "expectedStdout": "5",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 2 3",
+          "expectedStdout": "3",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "成绩等级",
+      "description": "读入一个百分制成绩，输出等级：\n\n- 90–100：`A`\n- 80–89：`B`\n- 70–79：`C`\n- 60–69：`D`\n- 60 以下：`E`",
+      "difficulty": "easy",
+      "tags": [
+        "条件",
+        "分支"
+      ],
+      "inputDesc": "一行，一个整数 score（0 ≤ score ≤ 100）。",
+      "outputDesc": "一行，等级字母。",
+      "samples": [
+        {
+          "input": "85",
+          "output": "B"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int s;\n    if (scanf(\"%d\", &s) != 1) return 1;\n    if (s >= 90) printf(\"A\\n\");\n    else if (s >= 80) printf(\"B\\n\");\n    else if (s >= 70) printf(\"C\\n\");\n    else if (s >= 60) printf(\"D\\n\");\n    else printf(\"E\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int s;\n    std::cin >> s;\n    if (s >= 90) std::cout << \"A\" << std::endl;\n    else if (s >= 80) std::cout << \"B\" << std::endl;\n    else if (s >= 70) std::cout << \"C\" << std::endl;\n    else if (s >= 60) std::cout << \"D\" << std::endl;\n    else std::cout << \"E\" << std::endl;\n    return 0;\n}\n",
+        "python": "s = int(input())\nif s >= 90: print(\"A\")\nelif s >= 80: print(\"B\")\nelif s >= 70: print(\"C\")\nelif s >= 60: print(\"D\")\nelse: print(\"E\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "85",
+          "expectedStdout": "B",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "95",
+          "expectedStdout": "A",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "60",
+          "expectedStdout": "D",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "59",
+          "expectedStdout": "E",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "E",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "能否构成三角形",
+      "description": "读入三条边长，判断能否构成三角形（任意两边之和大于第三边）。能输出 `yes`，不能输出 `no`。",
+      "difficulty": "easy",
+      "tags": [
+        "条件",
+        "数学"
+      ],
+      "inputDesc": "一行，三个正整数 a、b、c，以空格分隔。",
+      "outputDesc": "一行，`yes` 或 `no`。",
+      "samples": [
+        {
+          "input": "3 4 5",
+          "output": "yes"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b, c;\n    if (scanf(\"%d %d %d\", &a, &b, &c) != 3) return 1;\n    if (a + b > c && a + c > b && b + c > a) printf(\"yes\\n\");\n    else printf(\"no\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int a, b, c;\n    std::cin >> a >> b >> c;\n    std::cout << ((a + b > c && a + c > b && b + c > a) ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "a, b, c = map(int, input().split())\nprint(\"yes\" if a + b > c and a + c > b and b + c > a else \"no\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3 4 5",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 2 3",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "5 5 5",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1 1 10",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "简单计算器",
+      "description": "读入形如 `a op b` 的表达式，其中 op 是 `+`、`-`、`*`、`/` 之一，输出运算结果。\n\n除法为整数除法（向零取整），数据保证除数不为 0。",
+      "difficulty": "easy",
+      "tags": [
+        "switch",
+        "分支"
+      ],
+      "inputDesc": "一行：整数 a，运算符 op，整数 b，以空格分隔。",
+      "outputDesc": "一行，运算结果。",
+      "samples": [
+        {
+          "input": "7 + 2",
+          "output": "9"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int a, b;\n    char op;\n    if (scanf(\"%d %c %d\", &a, &op, &b) != 3) return 1;\n    switch (op) {\n        case '+': printf(\"%d\\n\", a + b); break;\n        case '-': printf(\"%d\\n\", a - b); break;\n        case '*': printf(\"%d\\n\", a * b); break;\n        case '/': printf(\"%d\\n\", a / b); break;\n        default: return 1;\n    }\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int a, b;\n    char op;\n    std::cin >> a >> op >> b;\n    switch (op) {\n        case '+': std::cout << a + b << std::endl; break;\n        case '-': std::cout << a - b << std::endl; break;\n        case '*': std::cout << a * b << std::endl; break;\n        case '/': std::cout << a / b << std::endl; break;\n    }\n    return 0;\n}\n",
+        "python": "parts = input().split()\na, op, b = int(parts[0]), parts[1], int(parts[2])\nif op == '+': print(a + b)\nelif op == '-': print(a - b)\nelif op == '*': print(a * b)\nelif op == '/': print(int(a / b))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "7 + 2",
+          "expectedStdout": "9",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7 - 10",
+          "expectedStdout": "-3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "6 * 7",
+          "expectedStdout": "42",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7 / 2",
+          "expectedStdout": "3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-6 / 4",
+          "expectedStdout": "-1",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "星期几",
+      "description": "读入一个数字 1–7，输出对应的英文星期名：Monday、Tuesday、Wednesday、Thursday、Friday、Saturday、Sunday。",
+      "difficulty": "easy",
+      "tags": [
+        "switch",
+        "分支"
+      ],
+      "inputDesc": "一行，一个整数 d（1 ≤ d ≤ 7）。",
+      "outputDesc": "一行，对应的英文星期名。",
+      "samples": [
+        {
+          "input": "3",
+          "output": "Wednesday"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int d;\n    if (scanf(\"%d\", &d) != 1) return 1;\n    switch (d) {\n        case 1: printf(\"Monday\\n\"); break;\n        case 2: printf(\"Tuesday\\n\"); break;\n        case 3: printf(\"Wednesday\\n\"); break;\n        case 4: printf(\"Thursday\\n\"); break;\n        case 5: printf(\"Friday\\n\"); break;\n        case 6: printf(\"Saturday\\n\"); break;\n        case 7: printf(\"Sunday\\n\"); break;\n        default: return 1;\n    }\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int d;\n    std::cin >> d;\n    const char* names[] = { \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\", \"Sunday\" };\n    if (d >= 1 && d <= 7) std::cout << names[d - 1] << std::endl;\n    return 0;\n}\n",
+        "python": "d = int(input())\nnames = [\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\", \"Sunday\"]\nprint(names[d - 1])\n"
+      },
+      "testCases": [
+        {
+          "stdin": "1",
+          "expectedStdout": "Monday",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3",
+          "expectedStdout": "Wednesday",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7",
+          "expectedStdout": "Sunday",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "1 到 N 求和",
+      "description": "读入正整数 n，输出 1 + 2 + … + n 的和。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "for"
+      ],
+      "inputDesc": "一行，一个正整数 n（1 ≤ n ≤ 100000）。",
+      "outputDesc": "一行，和。",
+      "samples": [
+        {
+          "input": "10",
+          "output": "55"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long n, sum = 0;\n    if (scanf(\"%lld\", &n) != 1) return 1;\n    for (long long i = 1; i <= n; i++) sum += i;\n    printf(\"%lld\\n\", sum);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    long long n, sum = 0;\n    std::cin >> n;\n    for (long long i = 1; i <= n; i++) sum += i;\n    std::cout << sum << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nprint(sum(range(1, n + 1)))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "10",
+          "expectedStdout": "55",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "100000",
+          "expectedStdout": "5000050000",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "阶乘",
+      "description": "读入非负整数 n，输出 n!（阶乘）。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "for"
+      ],
+      "inputDesc": "一行，一个整数 n（0 ≤ n ≤ 12）。",
+      "outputDesc": "一行，n!。",
+      "samples": [
+        {
+          "input": "5",
+          "output": "120"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    long long fact = 1;\n    for (int i = 2; i <= n; i++) fact *= i;\n    printf(\"%lld\\n\", fact);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    long long fact = 1;\n    for (int i = 2; i <= n; i++) fact *= i;\n    std::cout << fact << std::endl;\n    return 0;\n}\n",
+        "python": "import math\nn = int(input())\nprint(math.factorial(n))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "5",
+          "expectedStdout": "120",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "12",
+          "expectedStdout": "479001600",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "乘法口诀表的一行",
+      "description": "读入整数 n（1–9），输出乘法口诀表的第 n 行：n×1, n×2, …, n×n，结果之间以一个空格分隔。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "for"
+      ],
+      "inputDesc": "一行，一个整数 n（1 ≤ n ≤ 9）。",
+      "outputDesc": "一行，n 个乘积，空格分隔。",
+      "samples": [
+        {
+          "input": "7",
+          "output": "7 14 21 28 35 42 49"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 1; i <= n; i++) {\n        printf(\"%d\", n * i);\n        if (i < n) printf(\" \");\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        if (i > 1) std::cout << \" \";\n        std::cout << n * i;\n    }\n    std::cout << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nprint(\" \".join(str(n * i) for i in range(1, n + 1)))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "7",
+          "expectedStdout": "7 14 21 28 35 42 49",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "9",
+          "expectedStdout": "9 18 27 36 45 54 63 72 81",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "斐波那契数列",
+      "description": "斐波那契数列定义为 f(1) = 1，f(2) = 1，f(n) = f(n−1) + f(n−2)。读入 n，输出第 n 项。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "while"
+      ],
+      "inputDesc": "一行，一个整数 n（1 ≤ n ≤ 30）。",
+      "outputDesc": "一行，f(n)。",
+      "samples": [
+        {
+          "input": "10",
+          "output": "55"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    long long a = 1, b = 1;\n    for (int i = 3; i <= n; i++) {\n        long long t = a + b;\n        a = b;\n        b = t;\n    }\n    printf(\"%lld\\n\", n <= 2 ? 1 : b);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    long long a = 1, b = 1;\n    for (int i = 3; i <= n; i++) {\n        long long t = a + b;\n        a = b;\n        b = t;\n    }\n    std::cout << (n <= 2 ? 1 : b) << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na, b = 1, 1\nfor _ in range(3, n + 1):\n    a, b = b, a + b\nprint(1 if n <= 2 else b)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "10",
+          "expectedStdout": "55",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "30",
+          "expectedStdout": "832040",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "质数判断",
+      "description": "读入一个正整数，判断它是不是质数（素数）。是输出 `yes`，不是输出 `no`。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "数学"
+      ],
+      "inputDesc": "一行，一个正整数 n（1 ≤ n ≤ 1000000）。",
+      "outputDesc": "一行，`yes` 或 `no`。",
+      "samples": [
+        {
+          "input": "17",
+          "output": "yes"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int isPrime = n >= 2;\n    for (int i = 2; (long long)i * i <= n; i++) {\n        if (n % i == 0) { isPrime = 0; break; }\n    }\n    printf(\"%s\\n\", isPrime ? \"yes\" : \"no\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    bool isPrime = n >= 2;\n    for (int i = 2; static_cast<long long>(i) * i <= n; i++) {\n        if (n % i == 0) { isPrime = false; break; }\n    }\n    std::cout << (isPrime ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nis_prime = n >= 2\ni = 2\nwhile i * i <= n:\n    if n % i == 0:\n        is_prime = False\n        break\n    i += 1\nprint(\"yes\" if is_prime else \"no\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "17",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "9",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "999983",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "数位之和",
+      "description": "读入一个非负整数，输出它的各位数字之和。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "while"
+      ],
+      "inputDesc": "一行，一个非负整数 n（0 ≤ n ≤ 10^9）。",
+      "outputDesc": "一行，各位数字之和。",
+      "samples": [
+        {
+          "input": "1234",
+          "output": "10"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long n;\n    if (scanf(\"%lld\", &n) != 1) return 1;\n    int sum = 0;\n    while (n > 0) {\n        sum += (int)(n % 10);\n        n /= 10;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    long long n;\n    std::cin >> n;\n    int sum = 0;\n    while (n > 0) {\n        sum += static_cast<int>(n % 10);\n        n /= 10;\n    }\n    std::cout << sum << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nprint(sum(int(c) for c in str(n)))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "1234",
+          "expectedStdout": "10",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "99999",
+          "expectedStdout": "45",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "数字反转",
+      "description": "读入一个非负整数，把它各位数字反序组成一个新的整数并输出（前导零自动去掉）。\n\n例如 1200 反转后是 21（00021 的前导零去掉）。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "while"
+      ],
+      "inputDesc": "一行，一个非负整数 n（0 ≤ n ≤ 10^9）。",
+      "outputDesc": "一行，反转后的整数。",
+      "samples": [
+        {
+          "input": "123",
+          "output": "321"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long n, rev = 0;\n    if (scanf(\"%lld\", &n) != 1) return 1;\n    while (n > 0) {\n        rev = rev * 10 + n % 10;\n        n /= 10;\n    }\n    printf(\"%lld\\n\", rev);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    long long n, rev = 0;\n    std::cin >> n;\n    while (n > 0) {\n        rev = rev * 10 + n % 10;\n        n /= 10;\n    }\n    std::cout << rev << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nrev = 0\nwhile n > 0:\n    rev = rev * 10 + n % 10\n    n //= 10\nprint(rev)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "123",
+          "expectedStdout": "321",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1200",
+          "expectedStdout": "21",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7",
+          "expectedStdout": "7",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "最小公倍数",
+      "description": "读入两个正整数，输出它们的最小公倍数。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "数学"
+      ],
+      "inputDesc": "一行，两个正整数 a、b（1 ≤ a, b ≤ 1000），以空格分隔。",
+      "outputDesc": "一行，最小公倍数。",
+      "samples": [
+        {
+          "input": "4 6",
+          "output": "12"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long a, b, x, y;\n    if (scanf(\"%lld %lld\", &a, &b) != 2) return 1;\n    x = a; y = b;\n    while (y != 0) {\n        long long t = x % y;\n        x = y;\n        y = t;\n    }\n    printf(\"%lld\\n\", a * b / x);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nlong long gcd(long long x, long long y) { return y == 0 ? x : gcd(y, x % y); }\n\nint main() {\n    long long a, b;\n    std::cin >> a >> b;\n    std::cout << a * b / gcd(a, b) << std::endl;\n    return 0;\n}\n",
+        "python": "import math\na, b = map(int, input().split())\nprint(a * b // math.gcd(a, b))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "4 6",
+          "expectedStdout": "12",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3 5",
+          "expectedStdout": "15",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7 7",
+          "expectedStdout": "7",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "12 18",
+          "expectedStdout": "36",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "数组逆序输出",
+      "description": "读入 n 个整数，按相反顺序输出，每个数之间用一个空格分隔。",
+      "difficulty": "easy",
+      "tags": [
+        "数组",
+        "循环"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 100）；第二行 n 个整数，以空格分隔。",
+      "outputDesc": "一行，逆序后的 n 个整数，空格分隔。",
+      "samples": [
+        {
+          "input": "5\n1 2 3 4 5",
+          "output": "5 4 3 2 1"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    int a[100];\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%d\", &a[i]) != 1) return 1;\n    }\n    for (int i = n - 1; i >= 0; i--) {\n        printf(\"%d\", a[i]);\n        if (i > 0) printf(\" \");\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a[100];\n    for (int i = 0; i < n; i++) std::cin >> a[i];\n    for (int i = n - 1; i >= 0; i--) {\n        std::cout << a[i];\n        if (i > 0) std::cout << \" \";\n    }\n    std::cout << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = list(map(int, input().split()))\nprint(\" \".join(str(x) for x in reversed(a)))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "5\n1 2 3 4 5",
+          "expectedStdout": "5 4 3 2 1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n42",
+          "expectedStdout": "42",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n-1 0 1",
+          "expectedStdout": "1 0 -1",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "最大值及其下标",
+      "description": "读入 n 个整数，输出最大值和它第一次出现的位置（下标从 0 开始），以空格分隔。",
+      "difficulty": "easy",
+      "tags": [
+        "数组",
+        "循环"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 100）；第二行 n 个整数。",
+      "outputDesc": "一行：最大值 下标。",
+      "samples": [
+        {
+          "input": "4\n1 7 3 7",
+          "output": "7 1"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    int a[100];\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%d\", &a[i]) != 1) return 1;\n    }\n    int best = 0;\n    for (int i = 1; i < n; i++) {\n        if (a[i] > a[best]) best = i;\n    }\n    printf(\"%d %d\\n\", a[best], best);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a[100];\n    for (int i = 0; i < n; i++) std::cin >> a[i];\n    int best = 0;\n    for (int i = 1; i < n; i++) {\n        if (a[i] > a[best]) best = i;\n    }\n    std::cout << a[best] << \" \" << best << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = list(map(int, input().split()))\nb = 0\nfor i in range(1, n):\n    if a[i] > a[b]:\n        b = i\nprint(a[b], b)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "4\n1 7 3 7",
+          "expectedStdout": "7 1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n-5",
+          "expectedStdout": "-5 0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n9 2 9",
+          "expectedStdout": "9 0",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "高于平均分的人数",
+      "description": "读入 n 名学生的成绩，输出高于平均分的人数。",
+      "difficulty": "easy",
+      "tags": [
+        "数组",
+        "循环"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 100）；第二行 n 个整数（0–100）。",
+      "outputDesc": "一行，高于平均分的人数。",
+      "samples": [
+        {
+          "input": "5\n60 70 80 90 100",
+          "output": "2"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    int a[100];\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int sum = 0;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%d\", &a[i]) != 1) return 1;\n        sum += a[i];\n    }\n    double avg = (double)sum / n;\n    int count = 0;\n    for (int i = 0; i < n; i++) {\n        if (a[i] > avg) count++;\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a[100], sum = 0;\n    for (int i = 0; i < n; i++) { std::cin >> a[i]; sum += a[i]; }\n    double avg = static_cast<double>(sum) / n;\n    int count = 0;\n    for (int i = 0; i < n; i++) if (a[i] > avg) count++;\n    std::cout << count << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = list(map(int, input().split()))\navg = sum(a) / n\nprint(len([x for x in a if x > avg]))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "5\n60 70 80 90 100",
+          "expectedStdout": "2",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n50 50 50",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n100",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "移除零元素",
+      "description": "读入 n 个整数，删除其中所有的 0，按原顺序输出剩下的数（数量可能为 0）。",
+      "difficulty": "medium",
+      "tags": [
+        "数组",
+        "循环"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 100）；第二行 n 个整数。",
+      "outputDesc": "一行，非零整数，空格分隔；若没有非零数，输出空行。",
+      "samples": [
+        {
+          "input": "6\n0 1 0 2 3 0",
+          "output": "1 2 3"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n, first = 1;\n    int x;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int count = 0;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%d\", &x) != 1) return 1;\n        if (x != 0) {\n            if (!first) printf(\" \");\n            printf(\"%d\", x);\n            first = 0;\n            count++;\n        }\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    bool first = true;\n    for (int i = 0; i < n; i++) {\n        int x;\n        std::cin >> x;\n        if (x != 0) {\n            if (!first) std::cout << \" \";\n            std::cout << x;\n            first = false;\n        }\n    }\n    std::cout << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = list(map(int, input().split()))\nprint(\" \".join(str(x) for x in a if x != 0))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "6\n0 1 0 2 3 0",
+          "expectedStdout": "1 2 3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n0 0 0",
+          "expectedStdout": "",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "4\n5 0 -2 7",
+          "expectedStdout": "5 -2 7",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "统计单词数",
+      "description": "读入一行英文（单词之间以空格分隔，可能有连续空格），输出单词的个数。",
+      "difficulty": "easy",
+      "tags": [
+        "字符串",
+        "循环"
+      ],
+      "inputDesc": "一行英文，只含小写字母和空格，长度不超过 200。",
+      "outputDesc": "一行，单词个数。",
+      "samples": [
+        {
+          "input": "hello world",
+          "output": "2"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n#include <string.h>\n\nint main(void) {\n    char line[256];\n    if (fgets(line, sizeof(line), stdin) == NULL) return 1;\n    int count = 0, inWord = 0;\n    for (int i = 0; line[i] != '\\0'; i++) {\n        if (line[i] == '\\n' || line[i] == '\\r') break;\n        if (line[i] != ' ' && !inWord) {\n            inWord = 1;\n            count++;\n        } else if (line[i] == ' ') {\n            inWord = 0;\n        }\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n#include <sstream>\n\nint main() {\n    std::string line;\n    std::getline(std::cin, line);\n    std::istringstream iss(line);\n    std::string w;\n    int count = 0;\n    while (iss >> w) count++;\n    std::cout << count << std::endl;\n    return 0;\n}\n",
+        "python": "print(len(input().split()))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "hello world",
+          "expectedStdout": "2",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "  a  b  c ",
+          "expectedStdout": "3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "   ",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "one",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "小写转大写",
+      "description": "读入一行字符串，把其中所有小写字母转换成大写字母，其他字符不变，然后输出。",
+      "difficulty": "easy",
+      "tags": [
+        "字符串",
+        "循环"
+      ],
+      "inputDesc": "一行字符串（长度不超过 200，可能含空格与数字）。",
+      "outputDesc": "一行，转换后的字符串。",
+      "samples": [
+        {
+          "input": "Hello World",
+          "output": "HELLO WORLD"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n#include <ctype.h>\n\nint main(void) {\n    char line[256];\n    if (fgets(line, sizeof(line), stdin) == NULL) return 1;\n    for (int i = 0; line[i] != '\\0'; i++) {\n        if (line[i] == '\\n') break;\n        putchar(toupper((unsigned char)line[i]));\n    }\n    printf(\"\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n#include <cctype>\n\nint main() {\n    std::string line;\n    std::getline(std::cin, line);\n    for (char &c : line) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));\n    std::cout << line << std::endl;\n    return 0;\n}\n",
+        "python": "print(input().upper())\n"
+      },
+      "testCases": [
+        {
+          "stdin": "Hello World",
+          "expectedStdout": "HELLO WORLD",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "abc123",
+          "expectedStdout": "ABC123",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "",
+          "expectedStdout": "",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "汉诺塔移动次数",
+      "description": "n 个盘子的汉诺塔最少需要移动多少次？用递归公式求解：f(1) = 1，f(n) = 2·f(n−1) + 1。",
+      "difficulty": "easy",
+      "tags": [
+        "递归",
+        "函数"
+      ],
+      "inputDesc": "一行，一个整数 n（1 ≤ n ≤ 30）。",
+      "outputDesc": "一行，最少移动次数。",
+      "samples": [
+        {
+          "input": "3",
+          "output": "7"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nlong long moves(int n) {\n    if (n == 1) return 1;\n    return 2 * moves(n - 1) + 1;\n}\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    printf(\"%lld\\n\", moves(n));\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nlong long moves(int n) {\n    if (n == 1) return 1;\n    return 2 * moves(n - 1) + 1;\n}\n\nint main() {\n    int n;\n    std::cin >> n;\n    std::cout << moves(n) << std::endl;\n    return 0;\n}\n",
+        "python": "def moves(n):\n    return 1 if n == 1 else 2 * moves(n - 1) + 1\n\nprint(moves(int(input())))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3",
+          "expectedStdout": "7",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "10",
+          "expectedStdout": "1023",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "30",
+          "expectedStdout": "1073741823",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "用函数交换两个数",
+      "description": "编写函数 `swap(int *a, int *b)`，通过指针参数交换两个整数的值。主函数读入两个整数，调用 swap 后输出。",
+      "difficulty": "medium",
+      "tags": [
+        "指针",
+        "函数"
+      ],
+      "inputDesc": "一行，两个整数 a 和 b，空格分隔。",
+      "outputDesc": "一行，交换后的两个数，空格分隔。",
+      "samples": [
+        {
+          "input": "3 7",
+          "output": "7 3"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nvoid swap(int *a, int *b) {\n    int t = *a;\n    *a = *b;\n    *b = t;\n}\n\nint main(void) {\n    int a, b;\n    if (scanf(\"%d %d\", &a, &b) != 2) return 1;\n    swap(&a, &b);\n    printf(\"%d %d\\n\", a, b);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nvoid swap(int &a, int &b) {\n    int t = a;\n    a = b;\n    b = t;\n}\n\nint main() {\n    int a, b;\n    std::cin >> a >> b;\n    swap(a, b);\n    std::cout << a << \" \" << b << std::endl;\n    return 0;\n}\n",
+        "python": "a, b = map(int, input().split())\na, b = b, a\nprint(a, b)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3 7",
+          "expectedStdout": "7 3",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-2 8",
+          "expectedStdout": "8 -2",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "5 5",
+          "expectedStdout": "5 5",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "指针遍历数组求和",
+      "description": "读入 n 个整数，使用指针遍历数组求它们的和并输出。",
+      "difficulty": "medium",
+      "tags": [
+        "指针",
+        "数组"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 100）；第二行 n 个整数（绝对值 ≤ 1000）。",
+      "outputDesc": "一行，和。",
+      "samples": [
+        {
+          "input": "4\n1 2 3 4",
+          "output": "10"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    int a[100];\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%d\", &a[i]) != 1) return 1;\n    }\n    int sum = 0;\n    for (int *p = a; p < a + n; p++) sum += *p;\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a[100], sum = 0;\n    for (int i = 0; i < n; i++) std::cin >> a[i];\n    for (int *p = a; p < a + n; p++) sum += *p;\n    std::cout << sum << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na = list(map(int, input().split()))\nprint(sum(a))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "4\n1 2 3 4",
+          "expectedStdout": "10",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "3\n-5 5 1",
+          "expectedStdout": "1",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\n1000",
+          "expectedStdout": "1000",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "最高分的学生",
+      "description": "读入 n 名学生的姓名与成绩，用结构体存储，输出成绩最高的学生姓名（保证最高分唯一）。",
+      "difficulty": "medium",
+      "tags": [
+        "struct",
+        "结构体"
+      ],
+      "inputDesc": "第一行一个整数 n（1 ≤ n ≤ 50）；接下来 n 行，每行：姓名（不含空格） 成绩。",
+      "outputDesc": "一行，最高分学生的姓名。",
+      "samples": [
+        {
+          "input": "3\nAlice 90\nBob 95\nCara 88",
+          "output": "Bob"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nstruct Student {\n    char name[64];\n    int score;\n};\n\nint main(void) {\n    int n;\n    struct Student s[50];\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 0; i < n; i++) {\n        if (scanf(\"%63s %d\", s[i].name, &s[i].score) != 2) return 1;\n    }\n    int best = 0;\n    for (int i = 1; i < n; i++) {\n        if (s[i].score > s[best].score) best = i;\n    }\n    printf(\"%s\\n\", s[best].name);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n\nstruct Student {\n    std::string name;\n    int score;\n};\n\nint main() {\n    int n;\n    std::cin >> n;\n    Student s[50];\n    for (int i = 0; i < n; i++) std::cin >> s[i].name >> s[i].score;\n    int best = 0;\n    for (int i = 1; i < n; i++) if (s[i].score > s[best].score) best = i;\n    std::cout << s[best].name << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nbest_name, best_score = \"\", -1\nfor _ in range(n):\n    name, score = input().split()\n    if int(score) > best_score:\n        best_name, best_score = name, int(score)\nprint(best_name)\n"
+      },
+      "testCases": [
+        {
+          "stdin": "3\nAlice 90\nBob 95\nCara 88",
+          "expectedStdout": "Bob",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1\nSolo 60",
+          "expectedStdout": "Solo",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2\nAnn 70\nBen 70",
+          "expectedStdout": "Ann",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "两点的距离",
+      "description": "读入平面上两点的坐标 (x1, y1) 与 (x2, y2)，输出两点距离，保留 2 位小数。\n\n提示：距离 = √((x1−x2)² + (y1−y2)²)。",
+      "difficulty": "medium",
+      "tags": [
+        "struct",
+        "数学"
+      ],
+      "inputDesc": "一行，四个整数 x1 y1 x2 y2（绝对值 ≤ 100），空格分隔。",
+      "outputDesc": "一行，距离，保留 2 位小数。",
+      "samples": [
+        {
+          "input": "0 0 3 4",
+          "output": "5.00"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n#include <math.h>\n\nstruct Point {\n    int x;\n    int y;\n};\n\nint main(void) {\n    struct Point p1, p2;\n    if (scanf(\"%d %d %d %d\", &p1.x, &p1.y, &p2.x, &p2.y) != 4) return 1;\n    double dx = p1.x - p2.x;\n    double dy = p1.y - p2.y;\n    printf(\"%.2f\\n\", sqrt(dx * dx + dy * dy));\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <iomanip>\n#include <cmath>\n\nstruct Point { int x, y; };\n\nint main() {\n    Point p1, p2;\n    std::cin >> p1.x >> p1.y >> p2.x >> p2.y;\n    double d = std::sqrt(std::pow(p1.x - p2.x, 2) + std::pow(p1.y - p2.y, 2));\n    std::cout << std::fixed << std::setprecision(2) << d << std::endl;\n    return 0;\n}\n",
+        "python": "import math\nx1, y1, x2, y2 = map(int, input().split())\nprint(f\"{math.dist((x1, y1), (x2, y2)):.2f}\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "0 0 3 4",
+          "expectedStdout": "5.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "0 0 0 0",
+          "expectedStdout": "0.00",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "-1 -1 2 3",
+          "expectedStdout": "5.00",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "回文数判断",
+      "description": "读入一个正整数，判断它是不是回文数（正着读和倒着读一样）。是输出 `yes`，不是输出 `no`。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "数学"
+      ],
+      "inputDesc": "一行，一个正整数 n（1 ≤ n ≤ 10^9）。",
+      "outputDesc": "一行，`yes` 或 `no`。",
+      "samples": [
+        {
+          "input": "121",
+          "output": "yes"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    long long n, rev = 0, t;\n    if (scanf(\"%lld\", &n) != 1) return 1;\n    t = n;\n    while (t > 0) {\n        rev = rev * 10 + t % 10;\n        t /= 10;\n    }\n    printf(\"%s\\n\", rev == n ? \"yes\" : \"no\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    long long n, rev = 0;\n    std::cin >> n;\n    long long t = n;\n    while (t > 0) {\n        rev = rev * 10 + t % 10;\n        t /= 10;\n    }\n    std::cout << (rev == n ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "n = input()\nprint(\"yes\" if n == n[::-1] else \"no\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "121",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "123",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "7",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1001",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "3 或 5 的倍数之和",
+      "description": "读入正整数 n，输出 1 到 n 中所有 3 的倍数或 5 的倍数之和。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "条件"
+      ],
+      "inputDesc": "一行，一个正整数 n（1 ≤ n ≤ 10000）。",
+      "outputDesc": "一行，和。",
+      "samples": [
+        {
+          "input": "10",
+          "output": "33"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    long long sum = 0;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    for (int i = 1; i <= n; i++) {\n        if (i % 3 == 0 || i % 5 == 0) sum += i;\n    }\n    printf(\"%lld\\n\", sum);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    long long sum = 0;\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        if (i % 3 == 0 || i % 5 == 0) sum += i;\n    }\n    std::cout << sum << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\nprint(sum(i for i in range(1, n + 1) if i % 3 == 0 or i % 5 == 0))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "10",
+          "expectedStdout": "33",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "15",
+          "expectedStdout": "60",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "2",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "1",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "水仙花数判断",
+      "description": "三位「水仙花数」等于它各位数字的立方和（如 153 = 1³ + 5³ + 3³）。读入一个三位数，判断是不是水仙花数。是输出 `yes`，不是输出 `no`。",
+      "difficulty": "easy",
+      "tags": [
+        "循环",
+        "数学"
+      ],
+      "inputDesc": "一行，一个三位整数 n（100 ≤ n ≤ 999）。",
+      "outputDesc": "一行，`yes` 或 `no`。",
+      "samples": [
+        {
+          "input": "153",
+          "output": "yes"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n\nint main(void) {\n    int n;\n    if (scanf(\"%d\", &n) != 1) return 1;\n    int a = n / 100, b = n / 10 % 10, c = n % 10;\n    if (a * a * a + b * b * b + c * c * c == n) printf(\"yes\\n\");\n    else printf(\"no\\n\");\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n\nint main() {\n    int n;\n    std::cin >> n;\n    int a = n / 100, b = n / 10 % 10, c = n % 10;\n    std::cout << ((a * a * a + b * b * b + c * c * c == n) ? \"yes\" : \"no\") << std::endl;\n    return 0;\n}\n",
+        "python": "n = int(input())\na, b, c = n // 100, n // 10 % 10, n % 10\nprint(\"yes\" if a**3 + b**3 + c**3 == n else \"no\")\n"
+      },
+      "testCases": [
+        {
+          "stdin": "153",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "154",
+          "expectedStdout": "no",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "370",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "407",
+          "expectedStdout": "yes",
+          "timeoutMs": 5000
+        }
+      ]
+    },
+    {
+      "title": "统计字母个数",
+      "description": "读入一行字符（可能含字母、数字、空格），输出其中英文字母的个数（大小写都算）。",
+      "difficulty": "easy",
+      "tags": [
+        "字符串",
+        "循环"
+      ],
+      "inputDesc": "一行字符（长度不超过 200）。",
+      "outputDesc": "一行，字母个数。",
+      "samples": [
+        {
+          "input": "a1 b2",
+          "output": "2"
+        }
+      ],
+      "initialCode": {
+        "c": "#include <stdio.h>\n#include <ctype.h>\n\nint main(void) {\n    char line[256];\n    if (fgets(line, sizeof(line), stdin) == NULL) return 1;\n    int count = 0;\n    for (int i = 0; line[i] != '\\0'; i++) {\n        if (isalpha((unsigned char)line[i])) count++;\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+        "cpp": "#include <iostream>\n#include <string>\n#include <cctype>\n\nint main() {\n    std::string line;\n    std::getline(std::cin, line);\n    int count = 0;\n    for (char c : line) if (isalpha(static_cast<unsigned char>(c))) count++;\n    std::cout << count << std::endl;\n    return 0;\n}\n",
+        "python": "line = input()\nprint(len([c for c in line if c.isalpha()]))\n"
+      },
+      "testCases": [
+        {
+          "stdin": "a1 b2",
+          "expectedStdout": "2",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "Hello, World!",
+          "expectedStdout": "10",
+          "timeoutMs": 5000
+        },
+        {
+          "stdin": "123 456",
+          "expectedStdout": "0",
+          "timeoutMs": 5000
         }
       ]
     }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'fs'
 import { resolve, join } from 'path'
 import { loadSeedProblems } from '../src/main/seed/seed'
 import type { ProblemInput } from '../src/shared/types'
@@ -144,12 +145,32 @@ describe('seed 题库', () => {
     }
   })
 
-  it('全部期望输出与参考解一致', () => {
+  it('全部期望输出与参考解一致（TS 对拍；其余题由真实工具链验证覆盖）', () => {
+    // v1.2 起题库分两类：有 TS solver 的老题在此对拍快验；新题必须带 referenceSolution，
+    // 由 tests/seed-verify.integration.test.ts 在真实 gcc/python 上逐用例验证。
+    const raw = JSON.parse(readFileSync(seedFile, 'utf-8')) as {
+      problems: Array<{ title: string; referenceSolution?: unknown; initialCode: Record<string, string> }>
+    }
+    // 验证基准：referenceSolution（骨架题）或完整的 initialCode（v1.2 新题，初始代码即参考解）
+    const hasRealRef = new Set(
+      raw.problems
+        .filter(
+          (p) =>
+            p.referenceSolution !== undefined ||
+            Object.values(p.initialCode).every((c) => c.trim() !== '' && !c.includes('TODO'))
+        )
+        .map((p) => p.title)
+    )
     let checked = 0
     for (const p of seeds) {
       const solver = solvers[p.title]
-      expect(solver, `题目 ${p.title} 缺少参考解`).toBeDefined()
-      if (!solver) continue
+      if (solver === undefined) {
+        expect(
+          hasRealRef.has(p.title),
+          `题目 ${p.title} 缺少参考解（TS solver / referenceSolution / 完整初始代码 至少有一）`
+        ).toBe(true)
+        continue
+      }
       for (let i = 0; i < p.testCases.length; i++) {
         const tc = p.testCases[i]
         expect(norm(solver(tc.stdin)), `${p.title} 用例#${i + 1}`).toBe(norm(tc.expectedStdout))

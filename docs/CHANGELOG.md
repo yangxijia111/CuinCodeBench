@@ -14,6 +14,8 @@
 ### Changed
 - SQLite schema 版本 1 → 2（只增不删，v1.1 数据零改动；v1.1 代码可正常打开 v2 库）
 
+- **P9 种子题库扩充与验证**：题库 10 → **45 道**（新增 35 道高质量 C 基础题，覆盖输入输出/变量/运算符/if/switch/循环/数组/字符串/函数/递归/指针/struct 全知识点）；每题三语言参考解；新增 referenceSolution 机制（v1.1 骨架题与学生初始代码分离）；`seed-verify` 集成测试在真实 gcc/python 上对全部 45 题逐用例验证（92 项，无工具链环境自动跳过）；内置路线知识点映射覆盖全部题目
+- **性能门禁**：tests/perf-large-db.test.ts——100 题/10000 提交/大量错误与复习数据下 Dashboard、错题列表、复习队列、学习路线聚合、关键词搜索均 < 2s
 - **P7 练习体验增强**：练习页上一题/下一题（题库顺序导航 + 位置指示）与知识点徽章（点击进入学习路线）；随机练习（难度/语言初始代码/知识点过滤 + 未做题/错题/低掌握度范围，随机组题 5/10/20）；专项训练（学习路线知识点一键组题）；练习会话页（进度 x/y、判题自动回报、完成总结：正确率与首次 AC 数）
 - **P8 搜索增强**：关键词覆盖标题/描述/标签/知识点名称；新增知识点筛选下拉，支持「知识点 + 难度」组合筛选
 - **P6 Dashboard 2.0**：新增今日复习/错题待复习/知识点掌握度列表；7 天与 30 天趋势（每日提交/AC/复习，SQL 聚合 + 本地日历日连续序列）；自研轻量 SVG 趋势图（无新依赖）；Knowledge Heatmap（颜色进度条 + 点击进入学习路线）；stats.dashboardV2 IPC
@@ -27,6 +29,7 @@
 
 ### Testing
 - 新增 migration v2 / 内置路线灌入 / 旧题映射 / 绑定幂等测试（tests/migrations.test.ts，7 项）；既有 migration 断言随版本号更新
+- 新增种子验证测试（tests/seed-verify.integration.test.ts，92 项：45 题 × C/Python 真实编译运行比对 + 结构检查）与性能测试（tests/perf-large-db.test.ts，5 项）
 - 新增随机练习/专项训练/范围过滤/会话总结测试（tests/practice-session.test.ts，6 项）；搜索增强用例并入 tests/learning-path.test.ts
 - 新增 Dashboard 2.0 聚合测试（tests/dashboard-v2.test.ts，4 项：空库零值/趋势计数/复习与到期/错题计数）
 - 新增错题复盘测试（tests/mistake-review.test.ts，7 项：自动分类规则/历史派生/首末代码/笔记/手动分类/auto 落库语义）
