@@ -41,6 +41,10 @@ jobs:
 
       - name: Test
         run: npm run test
+        env:
+          # v1.2.1：在 DST 时区跑单测，激活日历边界属性测试（本机无 DST 时自动跳过；
+          # Windows 忽略 TZ 环境变量，该用例仅在 ubuntu 生效）
+          TZ: America/New_York
 
       - name: Build
         run: npm run build

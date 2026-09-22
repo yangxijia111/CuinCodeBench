@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { join } from 'path'
 import Database from 'better-sqlite3'
-import { launchApp, e2eDataRoot, hasPython } from './cdp-harness'
+import { afterAll } from 'vitest'
+import { launchApp, e2eDataRoot, hasPython, findOrphanElectronProcesses, rmDirForce } from './cdp-harness'
+
+// P1-D 全局断言：本文件全部用例结束后不允许遗留本项目 Electron 测试进程
+afterAll(() => {
+  const orphans = findOrphanElectronProcesses()
+  if (orphans.length > 0) {
+    throw new Error(`E2E 结束后存在遗留 Electron 进程: ${JSON.stringify(orphans)}`)
+  }
+})
 
 /**
  * 主流程 E2E（docs/V1_2_E2E_PLAN.md §4.1）。
@@ -14,7 +23,8 @@ function dataDir(name: string): string {
 
 describe('E2E 主流程', () => {
   it('启动 → 题库种子题可见，导航完整', async () => {
-    const app = await launchApp(dataDir('boot'))
+    const dir = dataDir('boot')
+    const app = await launchApp(dir)
     try {
       const navCount = await app.evaluate<number>(
         `Array.from(document.querySelectorAll('.nav-item')).map(n => n.textContent.trim()).join('|')`
@@ -29,11 +39,13 @@ describe('E2E 主流程', () => {
       expect(title.length).toBeGreaterThan(0)
     } finally {
       await app.close()
+      await rmDirForce(dir)
     }
   }, 90_000)
 
   it('学习路线页：C 基础路线与阶段可见', async () => {
-    const app = await launchApp(dataDir('lp'))
+    const dir = dataDir('lp')
+    const app = await launchApp(dir)
     try {
       await app.evaluate(`document.querySelector('a[href="#/learning"]')?.click()`)
       await app.waitFor(`document.querySelector('.lp-overview h3')?.textContent === 'C 基础'`)
@@ -44,11 +56,13 @@ describe('E2E 主流程', () => {
       expect(kpCount).toBe(15)
     } finally {
       await app.close()
+      await rmDirForce(dir)
     }
   }, 90_000)
 
   it('Dashboard 2.0：卡片与 Heatmap 渲染', async () => {
-    const app = await launchApp(dataDir('dash'))
+    const dir = dataDir('dash')
+    const app = await launchApp(dir)
     try {
       await app.evaluate(`document.querySelector('a[href="#/dashboard"]')?.click()`)
       await app.waitFor(`document.querySelector('.stat-card') !== null`)
@@ -66,11 +80,13 @@ describe('E2E 主流程', () => {
       await app.waitFor(`document.querySelector('.trend-chart svg') !== null`)
     } finally {
       await app.close()
+      await rmDirForce(dir)
     }
   }, 90_000)
 
   it('复习页：空数据时今日待复习为 0 且不可开始', async () => {
-    const app = await launchApp(dataDir('review-empty'))
+    const dir = dataDir('review-empty')
+    const app = await launchApp(dir)
     try {
       await app.evaluate(`document.querySelector('a[href="#/review"]')?.click()`)
       await app.waitFor(`document.querySelector('.review-count-num') !== null`, 20_000)
@@ -82,11 +98,13 @@ describe('E2E 主流程', () => {
       expect(disabled).toBe(true)
     } finally {
       await app.close()
+      await rmDirForce(dir)
     }
   }, 90_000)
 
   it('设置页：数据管理区域（导出/导入 + 隐私提示）', async () => {
-    const app = await launchApp(dataDir('settings'))
+    const dir = dataDir('settings')
+    const app = await launchApp(dir)
     try {
       await app.evaluate(`document.querySelector('a[href="#/settings"]')?.click()`)
       await app.waitFor(
@@ -100,12 +118,14 @@ describe('E2E 主流程', () => {
       expect(privacy).toContain('本地私人数据')
     } finally {
       await app.close()
+      await rmDirForce(dir)
     }
   }, 90_000)
 
   describe.skipIf(!hasPython())('判题流（需要 python）', () => {
     it('创建题目 → AC → 制造错题 → 错题笔记 → 复习会话闭环', async () => {
-      const app = await launchApp(dataDir('judge-flow'))
+      const dir = dataDir('judge-flow')
+    const app = await launchApp(dir)
       try {
         const ev = app.evaluate
         const wt = app.waitFor
@@ -217,6 +237,7 @@ describe('E2E 主流程', () => {
         db.close()
       } finally {
         await app.close()
+        await rmDirForce(dir)
       }
     }, 240_000)
   })

@@ -1,6 +1,7 @@
-import type { MasteryStatus, ReviewGrade } from '@shared/types'
+import type { MasteryInfo, MasteryStatus, ReviewGrade } from '@shared/types'
 import type { MasteryRepository } from '../db/repositories/mastery-repository'
 import type { LearningRepository } from '../db/repositories/learning-repository'
+import { effectiveMasteryStatus } from '../mastery/mastery-status'
 
 /**
  * 知识点掌握度服务（docs/V1_2_MASTERY_SPEC.md，可解释规则、无 AI）。
@@ -29,9 +30,8 @@ const FAMILIAR_SCORE = 60
 /** weak 判定：最近 5 次提交失败数阈值 */
 const WEAK_WINDOW = 5
 const WEAK_FAILS = 3
-/** mastered 惰性衰减：超过该天数无活动降为 familiar */
-const STALE_DAYS = 45
-const DAY_MS = 86_400_000
+// 注：mastered 45 天惰性衰减阈值移至 @shared/constants（MASTERY_STALE_DAYS），
+// 读侧（effective on read）与写侧（computeMastery）共用同一规则源。
 
 /** 计算输入（全部时间倒序） */
 export interface MasteryInput {
@@ -124,12 +124,9 @@ export function computeMastery(input: MasteryInput): MasteryOutput {
     status = 'learning'
   }
 
-  // 时间惰性衰减：长期无活动的 mastered 降为 familiar
-  const stale =
-    input.lastActivityAt !== null && input.now - input.lastActivityAt > STALE_DAYS * DAY_MS
-  if (status === 'mastered' && stale) status = 'familiar'
-
-  return { score, status, factors: { performance, coverage, review, streak } }
+  // 时间惰性衰减：长期无活动的 mastered 降为 familiar（规则单源：mastery/mastery-status.ts）
+  const staleStatus = effectiveMasteryStatus(status, input.lastActivityAt, input.now)
+  return { score, status: staleStatus, factors: { performance, coverage, review, streak } }
 }
 
 export class MasteryService {
@@ -178,7 +175,26 @@ export class MasteryService {
     }
   }
 
-  list(): ReturnType<MasteryRepository['listAll']> {
-    return this.repo.listAll()
+  /**
+   * 读路径列表（v1.2.1 P1-B：effective on read）。
+   * 时间流逝本身使 mastered 的展示状态正确衰减（45 天无活动 → familiar），
+   * 不写库、不做全库重算——每行 O(1) 状态修正，确定性可测（now 注入）。
+   */
+  list(now: number = Date.now()): MasteryInfo[] {
+    const lastActivity = this.repo.lastActivityMap()
+    return this.repo.listAll().map((m) => ({
+      ...m,
+      status: effectiveMasteryStatus(m.status, lastActivity.get(m.knowledgePointId) ?? null, now)
+    }))
+  }
+
+  /** 读路径单点（effective on read，规则同 list） */
+  getEffective(knowledgePointId: string, now: number = Date.now()): MasteryInfo | null {
+    const m = this.repo.get(knowledgePointId)
+    if (m === null) return null
+    return {
+      ...m,
+      status: effectiveMasteryStatus(m.status, this.repo.lastActivityAt(knowledgePointId), now)
+    }
   }
 }

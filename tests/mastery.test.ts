@@ -153,15 +153,17 @@ describe('MasteryService（集成）', () => {
     problems = new ProblemRepository(db)
     history = new HistoryRepository(db)
     learning.ensureBuiltinPath({
+      seedVersion: 2,
       path: { slug: 'c-basics', title: 'C 基础', description: '' },
       stages: [
         {
+          slug: 'getting-started',
           title: '起步',
           description: '',
           knowledgePoints: [
-            { name: '输入输出', description: '', tags: [] },
-            { name: '变量与类型', description: '', tags: [] },
-            { name: '运算符', description: '', tags: [] }
+            { slug: 'io', name: '输入输出', description: '', tags: [] },
+            { slug: 'variables-types', name: '变量与类型', description: '', tags: [] },
+            { slug: 'operators', name: '运算符', description: '', tags: [] }
           ]
         }
       ],
@@ -178,43 +180,43 @@ describe('MasteryService（集成）', () => {
 
   it('8. 重算幂等：recalc 两次结果一致；无提交时移除缓存', () => {
     const ps = [problems.create(makeProblem('A')), problems.create(makeProblem('B')), problems.create(makeProblem('C'))]
-    for (const p of ps) learning.bindProblem(p.id, 'kp:c-basics:0:0')
+    for (const p of ps) learning.bindProblem(p.id, 'kp:c-basics:io')
     for (const p of ps) submit(p.id, 'accepted')
 
-    service.recalc('kp:c-basics:0:0', SVC_NOW)
-    const first = masteryRepo.get('kp:c-basics:0:0')
-    service.recalc('kp:c-basics:0:0', SVC_NOW)
-    const second = masteryRepo.get('kp:c-basics:0:0')
+    service.recalc('kp:c-basics:io', SVC_NOW)
+    const first = masteryRepo.get('kp:c-basics:io')
+    service.recalc('kp:c-basics:io', SVC_NOW)
+    const second = masteryRepo.get('kp:c-basics:io')
     expect(second).toEqual(first)
     expect(second?.status).toBe('mastered')
 
     // 删数据重算 → 缓存行移除
     db.prepare('DELETE FROM submissions').run()
-    service.recalc('kp:c-basics:0:0', SVC_NOW)
-    expect(masteryRepo.get('kp:c-basics:0:0')).toBeNull()
+    service.recalc('kp:c-basics:io', SVC_NOW)
+    expect(masteryRepo.get('kp:c-basics:io')).toBeNull()
   })
 
   it('recalcForProblem 只影响该题关联的知识点', () => {
     const p1 = problems.create(makeProblem('A'))
-    learning.bindProblem(p1.id, 'kp:c-basics:0:0')
+    learning.bindProblem(p1.id, 'kp:c-basics:io')
     const p2 = problems.create(makeProblem('B'))
-    learning.bindProblem(p2.id, 'kp:c-basics:0:1')
+    learning.bindProblem(p2.id, 'kp:c-basics:variables-types')
 
     submit(p1.id, 'accepted')
     service.recalcForProblem(p1.id, SVC_NOW)
 
-    expect(masteryRepo.get('kp:c-basics:0:0')).not.toBeNull()
+    expect(masteryRepo.get('kp:c-basics:io')).not.toBeNull()
     expect(masteryRepo.get('kp:c-basics:0:1')).toBeNull()
   })
 
   it('样本限量：单题 5WA+1AC 不落入 weak（每题样本上限生效）', () => {
     const p1 = problems.create(makeProblem('A'))
-    learning.bindProblem(p1.id, 'kp:c-basics:0:0')
+    learning.bindProblem(p1.id, 'kp:c-basics:io')
     for (let i = 0; i < 5; i++) submit(p1.id, 'wrong_answer')
     submit(p1.id, 'accepted')
 
-    service.recalc('kp:c-basics:0:0', SVC_NOW)
-    const info = masteryRepo.get('kp:c-basics:0:0')
+    service.recalc('kp:c-basics:io', SVC_NOW)
+    const info = masteryRepo.get('kp:c-basics:io')
     // 表现样本 = 每题最近 2 次 = [AC, AC] → performance=100
     // recent 5 次原始提交含 4 次失败 → weak 判定优先（spec §4 状态 2）
     expect(info?.status).toBe('weak')
@@ -224,12 +226,12 @@ describe('MasteryService（集成）', () => {
 
   it('样本限量：3WA+3AC（最近 5 次失败 <3）→ familiar，AC 样本主导表现', () => {
     const p1 = problems.create(makeProblem('A'))
-    learning.bindProblem(p1.id, 'kp:c-basics:0:0')
+    learning.bindProblem(p1.id, 'kp:c-basics:io')
     for (let i = 0; i < 3; i++) submit(p1.id, 'wrong_answer')
     for (let i = 0; i < 3; i++) submit(p1.id, 'accepted')
 
-    service.recalc('kp:c-basics:0:0', SVC_NOW)
-    const info = masteryRepo.get('kp:c-basics:0:0')
+    service.recalc('kp:c-basics:io', SVC_NOW)
+    const info = masteryRepo.get('kp:c-basics:io')
     // 样本 = [AC, AC] → performance=100；coverage 折扣 33；streak=3 → 60；中性复习 50
     // score ≈ 45*1 + 30*33.3 + 15*50 + 10*60 = 45+10+7.5+6 = 68.5 → familiar
     expect(info?.status).toBe('familiar')

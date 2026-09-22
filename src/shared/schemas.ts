@@ -243,6 +243,15 @@ const backupSessionItemSchema = z.object({
   firstResultAt: z.number().int().min(0).nullable()
 })
 
+/** v1.2.1 起导出；optional 保证 v1 备份（无此表数据）可导入 */
+export const backupReviewSessionResultSchema = z.object({
+  sessionId: z.string().min(1).max(100),
+  reviewItemId: z.string().min(1).max(100),
+  grade: z.enum(['again', 'hard', 'good', 'easy']),
+  submissionId: z.string().max(100).nullable(),
+  gradedAt: z.number().int().min(0)
+})
+
 export const backupPracticeSessionSchema = z.object({
   id: z.string().min(1).max(100),
   kind: z.enum(['random', 'knowledge_point', 'review', 'mistake']),
@@ -271,6 +280,8 @@ export const backupDataSchema = z.object({
   mastery: z.array(backupMasterySchema).max(10_000),
   reviewItems: z.array(backupReviewItemSchema).max(500_000),
   reviewHistory: z.array(backupReviewHistorySchema).max(1_000_000),
+  /** v1.2.1 会话评分 exactly-once 记录（v1 备份缺失该字段 → 空数组语义） */
+  reviewSessionResults: z.array(backupReviewSessionResultSchema).max(500_000).optional(),
   practiceSessions: z.array(backupPracticeSessionSchema).max(100_000)
 })
 

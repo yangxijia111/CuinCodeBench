@@ -24,8 +24,11 @@ describe('Dashboard 2.0（stats.getDashboardV2）', () => {
     stats = new StatsRepository(db)
     history = new HistoryRepository(db)
     new LearningRepository(db).ensureBuiltinPath({
+      seedVersion: 2,
       path: { slug: 'c-basics', title: 'C', description: '' },
-      stages: [{ title: 's', description: '', knowledgePoints: [{ name: '数组', description: '', tags: [] }] }],
+      stages: [
+        { slug: 's0', title: 's', description: '', knowledgePoints: [{ slug: 'array', name: '数组', description: '', tags: [] }] }
+      ],
       builtinProblemMap: {}
     })
   })

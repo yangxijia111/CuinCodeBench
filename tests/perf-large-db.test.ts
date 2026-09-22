@@ -40,14 +40,16 @@ describe.skipIf(process.env['CCB_SKIP_PERF'] === '1')('性能（100 题 / 10000 
     const problems = new ProblemRepository(db)
     const learning = new LearningRepository(db)
     learning.ensureBuiltinPath({
+      seedVersion: 2,
       path: { slug: 'c-basics', title: 'C', description: '' },
       stages: [
         {
+          slug: 's0',
           title: 's',
           description: '',
           knowledgePoints: [
-            { name: 'kp-a', description: '', tags: [] },
-            { name: 'kp-b', description: '', tags: [] }
+            { slug: 'kp-a', name: 'kp-a', description: '', tags: [] },
+            { slug: 'kp-b', name: 'kp-b', description: '', tags: [] }
           ]
         }
       ],
@@ -59,7 +61,7 @@ describe.skipIf(process.env['CCB_SKIP_PERF'] === '1')('性能（100 题 / 10000 
       const p = problems.create(makeProblem(`题-${i}`), true)
       ids.push(p.id)
       // 每题绑定知识点（一半 a 一半 b）
-      learning.bindProblem(p.id, i % 2 === 0 ? 'kp:c-basics:0:0' : 'kp:c-basics:0:1')
+      learning.bindProblem(p.id, i % 2 === 0 ? 'kp:c-basics:kp-a' : 'kp:c-basics:kp-b')
     }
 
     // 批量灌 10000 提交 + 约 3000 错误记录（单事务）

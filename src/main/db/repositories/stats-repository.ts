@@ -9,10 +9,21 @@ import type {
   TrendPoint
 } from '@shared/types'
 import { LANGUAGE_IDS, MISTAKE_THRESHOLD } from '@shared/constants'
+import {
+  lastNLocalDayKeys,
+  localDaySerial,
+  nextLocalDayStartMs,
+  toLocalDayKey,
+  localDayStartMs
+} from '@shared/local-calendar-day'
+import { kpLastActivityMap } from './mastery-repository'
+import { effectiveMasteryStatus } from '../../mastery/mastery-status'
 
 /**
  * 统计查询仓储：Dashboard 指标（FR-D1–D3）与 Dashboard 2.0 学习指标，只读聚合。
- * 时间口径：本地时区自然日（DATE(created_at/1000, 'localtime')）。
+ * 时间口径：本地时区自然日。v1.2.1 起统一走 LocalCalendarDay（本地日历算术，
+ * 禁止 ms 减法冒充日历日——DST 切换周本地日长 23/25 小时）；「今天」一律以注入
+ * now 计算（SQL 只做区间过滤，不再引用 DATE('now')），测试可控。
  */
 
 interface CountRow {
@@ -35,7 +46,7 @@ interface SubmissionRow {
 export class StatsRepository {
   constructor(private readonly db: Database.Database) {}
 
-  getDashboard(): DashboardStats {
+  getDashboard(now: number = Date.now()): DashboardStats {
     const totalProblemsAttempted = (
       this.db.prepare('SELECT COUNT(DISTINCT problem_id) AS c FROM submissions').get() as CountRow
     ).c
@@ -60,9 +71,9 @@ export class StatsRepository {
     const todaySubmissions = (
       this.db
         .prepare(
-          "SELECT COUNT(*) AS c FROM submissions WHERE DATE(created_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')"
+          'SELECT COUNT(*) AS c FROM submissions WHERE created_at >= ? AND created_at < ?'
         )
-        .get() as CountRow
+        .get(localDayStartMs(toLocalDayKey(now)), nextLocalDayStartMs(toLocalDayKey(now))) as CountRow
     ).c
 
     const languageCounts: Record<LanguageId, number> = { c: 0, cpp: 0, python: 0 }
@@ -111,14 +122,18 @@ export class StatsRepository {
       accuracy: totalSubmissions === 0 ? 0 : acceptedSubmissions / totalSubmissions,
       totalSubmissions,
       todaySubmissions,
-      streakDays: this.computeStreak(),
+      streakDays: this.computeStreak(now),
       languageCounts,
       errorTypeCounts,
       recentSubmissions
     }
   }
 
-  /** 连续练习天数：从今天（或昨天）向前连续有提交的天数（FR-D1） */  computeStreak(): number {
+  /**
+   * 连续练习天数（FR-D1）：从今天（或昨天）向前连续有提交的本地日历天数。
+   * now 注入（UTC ms）；相邻判断用本地日序号差 = 1（Date.UTC 编码，跨月/跨年/闰年正确，与 DST 无关）。
+   */
+  computeStreak(now: number = Date.now()): number {
     const rows = this.db
       .prepare(
         `SELECT DISTINCT DATE(created_at / 1000, 'unixepoch', 'localtime') AS day
@@ -127,57 +142,32 @@ export class StatsRepository {
       .all() as { day: string }[]
     if (rows.length === 0) return 0
 
-    // 以本地时区的“天序号”比较（用日历差而非 86400s，规避夏令时）
-    const toDayNumber = (day: string): number => {
-      const [y, m, d] = day.split('-').map((x) => Number.parseInt(x, 10))
-      return (y ?? 0) * 10000 + (m ?? 0) * 100 + (d ?? 0)
-    }
-    const now = new Date()
-    const fmt = (dt: Date): string =>
-      `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-    const todayNum = toDayNumber(fmt(now))
-    const yesterday = new Date(now)
-    yesterday.setDate(now.getDate() - 1)
-    const yesterdayNum = toDayNumber(fmt(yesterday))
-
-    const days = rows.map((r) => toDayNumber(r.day))
-    if (days[0] !== todayNum && days[0] !== yesterdayNum) return 0
+    const serials = rows.map((r) => localDaySerial(r.day))
+    // DESC 序：serials[0] 最新。最新提交须是今天或昨天，否则连续已中断记 0
+    const todaySerial = localDaySerial(toLocalDayKey(now))
+    if (serials[0] !== todaySerial && serials[0] !== todaySerial - 1) return 0
 
     let streak = 1
-    for (let i = 1; i < days.length; i++) {
-      const prev = days[i - 1] ?? 0
-      const curr = days[i] ?? 0
-      // 相邻记录日历相邻（差 1 天）才延续；用日历回退一天验证
-      const expectedPrev = this.prevDayNumber(curr)
-      if (prev === expectedPrev) streak++
+    for (let i = 1; i < serials.length; i++) {
+      // serials[i-1] 更新、serials[i] 更旧：两者日序号差恰为 1（相邻本地日）才延续
+      if ((serials[i - 1] ?? 0) - (serials[i] ?? 0) === 1) streak++
       else break
     }
     return streak
-  }
-
-  /** 给定 YYYYMMDD 序号，返回前一天的序号 */
-  private prevDayNumber(dayNum: number): number {
-    const y = Math.floor(dayNum / 10000)
-    const m = Math.floor((dayNum % 10000) / 100)
-    const d = dayNum % 100
-    const dt = new Date(y, m - 1, d)
-    dt.setDate(dt.getDate() - 1)
-    return dt.getFullYear() * 10000 + (dt.getMonth() + 1) * 100 + dt.getDate()
   }
 
   // —— Dashboard 2.0（v1.2，docs/V1_2_ROADMAP.md P6）——
 
   /** Dashboard 2.0：v1.1 指标 + 复习/错题/掌握度/趋势。now 注入（UTC ms）。 */
   getDashboardV2(now: number): DashboardV2Stats {
-    const base = this.getDashboard()
+    const base = this.getDashboard(now)
 
+    // 「今天」以注入 now 的本地日边界计算（与趋势/连续天数同一口径，测试可控）
+    const todayKey = toLocalDayKey(now)
     const todayReviews = (
       this.db
-        .prepare(
-          `SELECT COUNT(*) AS c FROM review_history
-           WHERE DATE(reviewed_at / 1000, 'unixepoch', 'localtime') = DATE('now', 'localtime')`
-        )
-        .get() as CountRow
+        .prepare('SELECT COUNT(*) AS c FROM review_history WHERE reviewed_at >= ? AND reviewed_at < ?')
+        .get(localDayStartMs(todayKey), nextLocalDayStartMs(todayKey)) as CountRow
     ).c
 
     const dueReviewCount = (
@@ -189,6 +179,8 @@ export class StatsRepository {
         .prepare('SELECT COUNT(*) AS c FROM mistake_book WHERE failed_count >= ? AND mastered = 0')
         .get(MISTAKE_THRESHOLD) as CountRow
     ).c
+
+    const lastActivity = kpLastActivityMap(this.db)
 
     const masteryList = (
       this.db
@@ -204,7 +196,12 @@ export class StatsRepository {
       knowledgePointId: r.knowledge_point_id,
       name: r.name,
       score: r.score,
-      status: r.status as MasteryStatus
+      // P1-B：读侧 effective 状态——时间流逝使长期无活动的 mastered 正确显示为 familiar
+      status: effectiveMasteryStatus(
+        r.status as MasteryStatus,
+        lastActivity.get(r.knowledge_point_id) ?? null,
+        now
+      )
     }))
 
     return {
@@ -218,9 +215,11 @@ export class StatsRepository {
     }
   }
 
-  /** 最近 N 天趋势（本地日历日连续序列，最旧在前；SQL 聚合无全表 JS 扫描） */
+  /** 最近 N 天趋势（本地日历日连续序列，最旧在前；日序列由 LocalCalendarDay 生成，DST 安全） */
   private buildTrend(days: number, now: number): TrendPoint[] {
-    const since = now - days * 86_400_000
+    const keys = lastNLocalDayKeys(days, now)
+    // since 取最旧一天的本地 00:00（日历边界，非 ms 减法——DST 周本地日长可为 23/25h）
+    const since = localDayStartMs(keys[0] ?? toLocalDayKey(now))
 
     const subRows = this.db
       .prepare(
@@ -239,18 +238,14 @@ export class StatsRepository {
     const subMap = new Map(subRows.map((r) => [r.day, r]))
     const reviewMap = new Map(reviewRows.map((r) => [r.day, r.c]))
 
-    const points: TrendPoint[] = []
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now - i * 86_400_000)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return keys.map((key) => {
       const sub = subMap.get(key)
-      points.push({
+      return {
         day: key,
         submissions: sub?.c ?? 0,
         accepted: sub?.acc ?? 0,
         reviews: reviewMap.get(key) ?? 0
-      })
-    }
-    return points
+      }
+    })
   }
 }

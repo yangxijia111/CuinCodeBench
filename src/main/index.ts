@@ -8,9 +8,9 @@ import { initServices, getServices, closeServices } from './services'
 import { ToolchainService } from './services/toolchain-service'
 import { JudgeService } from './services/judge-service'
 import { loadSeedProblems, resolveSeedFile } from './seed/seed'
-import { ensureLearningSeedFromFile } from './learning/learning-seed'
+import { runLearningSeedStep, resolveLearningSeedFile } from './learning/learning-seed'
 import { LearningRepository } from './db/repositories/learning-repository'
-import { LEARNING_V2_MAPPED_KEY } from './db/repositories/settings-repository'
+import { LEARNING_V2_MAPPED_KEY, LEARNING_SEED_V2_KEY } from './db/repositories/settings-repository'
 import { cleanLegacyTempDirs } from './runner/temp-dir'
 import { killAllActiveChildren } from './runner/execute'
 import { isAllowedExternalUrl } from './lib/external-url'
@@ -137,21 +137,14 @@ if (!gotLock) {
     const toolchains = new ToolchainService(() => services.settings.get().manualToolchains)
     const judge = new JudgeService(toolchains, () => getServices())
 
-    // v1.2：内置学习路线 + 旧题知识点映射（一次性幂等；失败不阻塞启动，下次启动重试）
-    if (!services.settings.hasMarker(LEARNING_V2_MAPPED_KEY)) {
-      try {
-        ensureLearningSeedFromFile(
-          new LearningRepository(db),
-          app.isPackaged,
-          app.getAppPath(),
-          process.resourcesPath
-        )
-      } catch (err) {
-        logger.error('学习路线灌入失败（下次启动重试）', err instanceof Error ? err.stack : String(err))
-      } finally {
-        services.settings.markMarker(LEARNING_V2_MAPPED_KEY)
-      }
-    }
+    // v1.2：内置学习路线 + 旧题知识点映射（一次性幂等；失败不阻塞启动）
+    // v1.2.1（P0-B）：marker 仅在灌入成功后标记——失败/文件缺失都会在下次启动真实重试
+    const learningRepo = new LearningRepository(db)
+    const learningSeedFile = resolveLearningSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
+    runLearningSeedStep(services.settings, learningRepo, LEARNING_V2_MAPPED_KEY, learningSeedFile)
+    // v1.2.1（P1）：稳定语义 ID。v1.2 老库 learning_v2_mapped 已置但 id 仍为位置型——
+    // 新 marker 保证所有升级用户都执行一次 id 重写 + 内容 upsert（幂等）
+    runLearningSeedStep(services.settings, learningRepo, LEARNING_SEED_V2_KEY, learningSeedFile)
 
     // 清扫上次运行遗留的临时目录（尽力而为，不阻塞启动）
     void cleanLegacyTempDirs().then((n) => {
@@ -183,6 +176,11 @@ if (!gotLock) {
     killAllActiveChildren()
     closeServices()
     app.quit()
+  })
+
+  // 兜底：app.quit() 由其它路径触发（如 about 面板、自动更新）时同样清理子进程
+  app.on('before-quit', () => {
+    killAllActiveChildren()
   })
 
   // 兜底：不静默吞掉未捕获异常（NFR-7）

@@ -277,6 +277,44 @@ CREATE TABLE settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL      -- JSON 编码
 );
+
+-- v2（学习体验表：learning_paths / learning_stages / knowledge_points /
+--    problem_knowledge_points / mastery / review_items / review_history /
+--    mistake_notes / practice_sessions / practice_session_items 见
+--    docs/V1_2_LEARNING_MODEL.md §2 与 db/migrations.ts version=2）
+
+-- v3（v1.2.1 深度审计修复，docs/V1_2_1_DEEP_AUDIT.md P0-C/P0-D）
+-- 会话评分 exactly-once 记录：同一 (session, review_item) 至多一行——
+-- 重复 finish / 并发 IPC / 事务重试都不会对同一复习项产生第二次有效评分
+CREATE TABLE review_session_results (
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  review_item_id TEXT NOT NULL REFERENCES review_items(id) ON DELETE CASCADE,
+  grade TEXT NOT NULL CHECK (grade IN ('again','hard','good','easy')),
+  submission_id TEXT,
+  graded_at INTEGER NOT NULL,
+  PRIMARY KEY (session_id, review_item_id)
+);
+
+-- review_items(target_type, target_id) 为多态引用，无法用普通 FK 表达——
+-- DB 层防线：删除题目/知识点时清理对应复习项（服务层另有第二道防线）
+CREATE TRIGGER trg_problems_delete_review_cleanup
+AFTER DELETE ON problems BEGIN
+  DELETE FROM review_items WHERE target_type = 'problem' AND target_id = OLD.id;
+END;
+CREATE TRIGGER trg_kp_delete_review_cleanup
+AFTER DELETE ON knowledge_points BEGIN
+  DELETE FROM review_items WHERE target_type = 'knowledge_point' AND target_id = OLD.id;
+END;
+
+-- review_history.submission_id / practice_session_items.first_accepted_submission_id
+-- 重建为 ON DELETE SET NULL（v2 之前无 FK，悬挂引用在迁移中置 NULL）
+-- 重建后定义：
+--   review_history.submission_id TEXT REFERENCES submissions(id) ON DELETE SET NULL
+--   practice_session_items.first_accepted_submission_id TEXT REFERENCES submissions(id) ON DELETE SET NULL
+
+-- 内置内容稳定语义 ID（P1）：v1.2 位置型 id（ls:{slug}:{i} / kp:{slug}:{i}:{j}）
+-- 由启动步骤按 seed v2 的 slug 重写为 ls:{slug}:{stage-slug} / kp:{slug}:{kp-slug}
+-- （单事务 + 名称安全网，见 learning-repository.migrateBuiltinContentIds）
 ```
 
 迁移机制：`db/migrations.ts` 内有序迁移数组（version + SQL），启动时在事务内补齐未应用版本，写入 `schema_migrations`。

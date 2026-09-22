@@ -108,6 +108,62 @@ export class ReviewRepository {
     this.deleteByTarget('problem', problemId)
   }
 
+  // —— 会话评分 exactly-once（v1.2.1 P0-C，表 review_session_results）——
+
+  /**
+   * 登记会话评分记录：INSERT OR IGNORE。
+   * 返回 true = 本次插入成功（该会话内此复习项首次评分，调用方应推进调度）；
+   * false = 已存在（重复 finish / 并发重试），调用方必须跳过评分。
+   * 须与评分推进处于同一事务：事务回滚时记录一并消失，重试安全。
+   */
+  recordSessionResult(
+    sessionId: string,
+    reviewItemId: string,
+    grade: ReviewGrade,
+    submissionId: string | null,
+    now: number
+  ): boolean {
+    const res = this.db
+      .prepare(
+        `INSERT OR IGNORE INTO review_session_results (session_id, review_item_id, grade, submission_id, graded_at)
+         VALUES (?, ?, ?, ?, ?)`
+      )
+      .run(sessionId, reviewItemId, grade, submissionId, now)
+    return res.changes === 1
+  }
+
+  /** 会话已登记的评分记录（含复习项当前调度状态，供幂等读返回） */
+  listSessionResults(
+    sessionId: string
+  ): {
+    reviewItemId: string
+    targetType: 'knowledge_point' | 'problem'
+    targetId: string
+    grade: ReviewGrade
+    nextReviewAt: number
+  }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT r.review_item_id, i.target_type, i.target_id, r.grade, i.next_review_at
+         FROM review_session_results r JOIN review_items i ON i.id = r.review_item_id
+         WHERE r.session_id = ?`
+      )
+      .all(sessionId) as {
+      review_item_id: string
+      target_type: 'knowledge_point' | 'problem'
+      target_id: string
+      grade: ReviewGrade
+      next_review_at: number
+    }[]
+    return rows.map((r) => ({
+      reviewItemId: r.review_item_id,
+      targetType: r.target_type,
+      targetId: r.target_id,
+      grade: r.grade,
+      nextReviewAt: r.next_review_at
+    }))
+  }
+
   listHistory(itemId: string, limit = 20): ReviewHistoryEntry[] {
     const rows = this.db
       .prepare('SELECT * FROM review_history WHERE review_item_id = ? ORDER BY reviewed_at DESC LIMIT ?')

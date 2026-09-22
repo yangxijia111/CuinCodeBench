@@ -6,27 +6,49 @@ import type { KnowledgePoint, LearningPath, LearningStage } from '@shared/types'
  * 内置数据使用确定性 id（slug/索引派生），重启与备份恢复后幂等不冲突。
  */
 
-/** seed-learning-path.json 的内存结构（schema 校验见 learning-seed.ts） */
+/** seed-learning-path.json（v2）的内存结构（schema 校验见 learning-seed.ts） */
 export interface LearningPathSeed {
+  /** 种子格式版本（v2 = 稳定语义 ID；v1.2 为位置型 ID，已由迁移重写） */
+  seedVersion: 2
   path: { slug: string; title: string; description: string }
   stages: {
+    /** 阶段稳定标识（长期身份，禁止用数组下标） */
+    slug: string
     title: string
     description: string
-    knowledgePoints: { name: string; description: string; tags: string[] }[]
+    knowledgePoints: {
+      /** 知识点稳定标识（长期身份，禁止用数组下标） */
+      slug: string
+      name: string
+      description: string
+      tags: string[]
+    }[]
   }[]
   /** 内置题目标题 → 知识点名列表（一次性映射） */
   builtinProblemMap: Record<string, string[]>
 }
 
-/** 内置数据的确定性 id 约定（导出/恢复保持一致） */
+/**
+ * 内置数据的确定性 id 约定（v1.2.1 P1：稳定语义 ID，与数组顺序解耦）。
+ * v1.2 及之前使用位置型 id（ls:{slug}:{index} / kp:{slug}:{i}:{j}）——插入/重排会
+ * 使既有 mastery / review / mapping 的语义漂移，已由 migrateBuiltinContentIds 重写。
+ */
 export function builtinPathId(slug: string): string {
   return `lp:${slug}`
 }
-export function builtinStageId(slug: string, stageIndex: number): string {
-  return `ls:${slug}:${stageIndex}`
+export function builtinStageId(pathSlug: string, stageSlug: string): string {
+  return `ls:${pathSlug}:${stageSlug}`
 }
-export function builtinKpId(slug: string, stageIndex: number, kpIndex: number): string {
-  return `kp:${slug}:${stageIndex}:${kpIndex}`
+export function builtinKpId(pathSlug: string, kpSlug: string): string {
+  return `kp:${pathSlug}:${kpSlug}`
+}
+
+/** v1.2 位置型 id（仅迁移识别用，禁止新代码生成） */
+export function legacyBuiltinStageId(pathSlug: string, stageIndex: number): string {
+  return `ls:${pathSlug}:${stageIndex}`
+}
+export function legacyBuiltinKpId(pathSlug: string, stageIndex: number, kpIndex: number): string {
+  return `kp:${pathSlug}:${stageIndex}:${kpIndex}`
 }
 
 interface PathRow {
@@ -84,46 +106,155 @@ function rowToKp(r: KpRow): KnowledgePoint {
 export class LearningRepository {
   constructor(private readonly db: Database.Database) {}
 
-  /** 幂等灌入一条内置路线（含阶段与知识点），存在即跳过 */
+  /**
+   * v1.2 位置型 id → v2 稳定语义 id 的数据迁移（P1，高风险，单事务）。
+   *
+   * 映射依据：v1.2 的 id = (path.slug, stage 数组序, kp 数组序)，seed v2 按相同
+   * 数组顺序携带 slug，一一对应。级联更新全部引用方：
+   * knowledge_points.stage_id / problem_knowledge_points / mastery /
+   * review_items(target_id) / practice_sessions.knowledge_point_id。
+   *
+   * 事务内先关外键（SQLite 的 PRAGMA foreign_keys 在事务内是 no-op，必须在事务外切换），
+   * 手动改完子表后恢复。幂等：旧 id 不存在（已迁移/全新库）即跳过。
+   * 失败整体回滚，不留半迁移状态。
+   */
+  migrateBuiltinContentIds(seed: LearningPathSeed): { stagesRenamed: number; kpsRenamed: number } {
+    const pathSlug = seed.path.slug
+    let stagesRenamed = 0
+    let kpsRenamed = 0
+    const stageExists = this.db.prepare('SELECT 1 AS ok FROM learning_stages WHERE id = ?')
+    const kpExists = this.db.prepare('SELECT 1 AS ok FROM knowledge_points WHERE id = ?')
+    const stageName = this.db.prepare('SELECT title AS t FROM learning_stages WHERE id = ?')
+    const kpName = this.db.prepare('SELECT name AS n FROM knowledge_points WHERE id = ?')
+
+    // 安全网：映射按数组位置对应（v1.2 顺序 ↔ seed v2 顺序）。改名前核对旧 id 的
+    // 名称与 seed 中同位置条目一致——seed 若相对 v1.2 发生插入/重排，此处 fail fast，
+    // 不会把 mastery/review 迁到错误语义上（事务未开始，无部分状态）。
+    const mismatches: string[] = []
+    seed.stages.forEach((stage, si) => {
+      const legacyStage = stageName.get(legacyBuiltinStageId(pathSlug, si)) as { t: string } | undefined
+      if (legacyStage !== undefined && legacyStage.t !== stage.title) {
+        mismatches.push(`stage[${si}] 数据库="${legacyStage.t}" seed="${stage.title}"`)
+      }
+      stage.knowledgePoints.forEach((kp, ki) => {
+        const legacyKp = kpName.get(legacyBuiltinKpId(pathSlug, si, ki)) as { n: string } | undefined
+        if (legacyKp !== undefined && legacyKp.n !== kp.name) {
+          mismatches.push(`kp[${si}][${ki}] 数据库="${legacyKp.n}" seed="${kp.name}"`)
+        }
+      })
+    })
+    if (mismatches.length > 0) {
+      throw new Error(
+        `内置内容 id 迁移中止：seed 与 v1.2 数据顺序不一致（${mismatches.join('；')}）。` +
+          '请勿在 seed 中相对 v1.2 插入/重排条目，只能追加或改内容。'
+      )
+    }
+
+    const renameStage = (oldId: string, newId: string): void => {
+      if (oldId === newId || stageExists.get(oldId) === undefined || stageExists.get(newId) !== undefined) return
+      this.db.prepare('UPDATE learning_stages SET id = ? WHERE id = ?').run(newId, oldId)
+      this.db.prepare('UPDATE knowledge_points SET stage_id = ? WHERE stage_id = ?').run(newId, oldId)
+      stagesRenamed++
+    }
+    const renameKp = (oldId: string, newId: string): void => {
+      if (oldId === newId || kpExists.get(oldId) === undefined || kpExists.get(newId) !== undefined) return
+      this.db.prepare('UPDATE knowledge_points SET id = ? WHERE id = ?').run(newId, oldId)
+      this.db.prepare('UPDATE problem_knowledge_points SET knowledge_point_id = ? WHERE knowledge_point_id = ?').run(newId, oldId)
+      this.db.prepare('UPDATE mastery SET knowledge_point_id = ? WHERE knowledge_point_id = ?').run(newId, oldId)
+      this.db
+        .prepare(`UPDATE review_items SET target_id = ? WHERE target_type = 'knowledge_point' AND target_id = ?`)
+        .run(newId, oldId)
+      this.db.prepare('UPDATE practice_sessions SET knowledge_point_id = ? WHERE knowledge_point_id = ?').run(newId, oldId)
+      kpsRenamed++
+    }
+
+    const tx = this.db.transaction(() => {
+      seed.stages.forEach((stage, si) => {
+        renameStage(legacyBuiltinStageId(pathSlug, si), builtinStageId(pathSlug, stage.slug))
+        stage.knowledgePoints.forEach((kp, ki) => {
+          renameKp(legacyBuiltinKpId(pathSlug, si, ki), builtinKpId(pathSlug, kp.slug))
+        })
+      })
+    })
+    // 事务外切外键开关；异常时恢复 ON 再上抛（连接层约定 foreign_keys=ON）
+    this.db.pragma('foreign_keys = OFF')
+    try {
+      tx()
+    } finally {
+      this.db.pragma('foreign_keys = ON')
+    }
+    if (stagesRenamed > 0 || kpsRenamed > 0) {
+      // 迁移后完整性自检：发现悬挂引用立即失败（整体已回滚或需人工介入）
+      const dangling = this.countDanglingReferences()
+      if (dangling > 0) {
+        throw new Error(`内置内容 id 迁移后存在 ${dangling} 条悬挂引用（事务已回滚或数据异常）`)
+      }
+    }
+    return { stagesRenamed, kpsRenamed }
+  }
+
+  /** 引用完整性计数（migrate 自检与测试用） */
+  countDanglingReferences(): number {
+    const q = (sql: string): number => (this.db.prepare(sql).get() as { c: number }).c
+    return (
+      q(`SELECT COUNT(*) AS c FROM knowledge_points WHERE stage_id NOT IN (SELECT id FROM learning_stages)`) +
+      q(`SELECT COUNT(*) AS c FROM problem_knowledge_points WHERE knowledge_point_id NOT IN (SELECT id FROM knowledge_points)`) +
+      q(`SELECT COUNT(*) AS c FROM problem_knowledge_points WHERE problem_id NOT IN (SELECT id FROM problems)`) +
+      q(`SELECT COUNT(*) AS c FROM mastery WHERE knowledge_point_id NOT IN (SELECT id FROM knowledge_points)`) +
+      q(`SELECT COUNT(*) AS c FROM review_items WHERE target_type = 'knowledge_point' AND target_id NOT IN (SELECT id FROM knowledge_points)`) +
+      q(`SELECT COUNT(*) AS c FROM review_items WHERE target_type = 'problem' AND target_id NOT IN (SELECT id FROM problems)`) +
+      q(`SELECT COUNT(*) AS c FROM practice_sessions WHERE knowledge_point_id IS NOT NULL AND knowledge_point_id NOT IN (SELECT id FROM knowledge_points)`)
+    )
+  }
+
+  /**
+   * 幂等灌入/更新一条内置路线（v2 语义：按稳定 id upsert）。
+   * - 新增 stage/kp → 插入；
+   * - 已存在（同 id）→ 更新 title/description/sort_order/tags（内容迭代不破坏引用）；
+   * - seed 中移除的 kp 不删除（保留用户 mastery/review 数据）。
+   */
   ensureBuiltinPath(seed: LearningPathSeed): void {
     const tx = this.db.transaction(() => {
       const pathId = builtinPathId(seed.path.slug)
       this.db
         .prepare(
-          `INSERT OR IGNORE INTO learning_paths (id, slug, title, description, is_builtin, sort_order)
-           VALUES (?, ?, ?, ?, 1, 0)`
+          `INSERT INTO learning_paths (id, slug, title, description, is_builtin, sort_order)
+           VALUES (?, ?, ?, ?, 1, 0)
+           ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description`
         )
         .run(pathId, seed.path.slug, seed.path.title, seed.path.description)
-      const insStage = this.db.prepare(
-        `INSERT OR IGNORE INTO learning_stages (id, path_id, title, description, sort_order)
-         VALUES (?, ?, ?, ?, ?)`
+      const upsertStage = this.db.prepare(
+        `INSERT INTO learning_stages (id, path_id, title, description, sort_order)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET title = excluded.title, description = excluded.description, sort_order = excluded.sort_order`
       )
-      const insKp = this.db.prepare(
-        `INSERT OR IGNORE INTO knowledge_points (id, stage_id, name, description, sort_order, tags)
-         VALUES (?, ?, ?, ?, ?, ?)`
+      const upsertKp = this.db.prepare(
+        `INSERT INTO knowledge_points (id, stage_id, name, description, sort_order, tags)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET name = excluded.name, description = excluded.description, sort_order = excluded.sort_order, tags = excluded.tags`
       )
       seed.stages.forEach((stage, si) => {
-        const stageId = builtinStageId(seed.path.slug, si)
-        insStage.run(stageId, pathId, stage.title, stage.description, si)
+        const stageId = builtinStageId(seed.path.slug, stage.slug)
+        upsertStage.run(stageId, pathId, stage.title, stage.description, si)
         stage.knowledgePoints.forEach((kp, ki) => {
-          insKp.run(builtinKpId(seed.path.slug, si, ki), stageId, kp.name, kp.description, ki, JSON.stringify(kp.tags))
+          upsertKp.run(builtinKpId(seed.path.slug, kp.slug), stageId, kp.name, kp.description, ki, JSON.stringify(kp.tags))
         })
       })
     })
     tx()
   }
 
-  /** 内置题目按显式映射绑定知识点（标题匹配 is_builtin=1 的题；幂等） */
-  mapBuiltinProblems(map: Record<string, string[]>): number {
+  /** 内置题目按显式映射绑定知识点（标题匹配 is_builtin=1 的题；幂等；pathSlug 参数化） */
+  mapBuiltinProblems(map: Record<string, string[]>, pathSlug: string): number {
     const nameToId = new Map<string, string>()
     for (const row of this.db
       .prepare(
         `SELECT k.id, k.name FROM knowledge_points k
          JOIN learning_stages s ON s.id = k.stage_id
          JOIN learning_paths p ON p.id = s.path_id
-         WHERE p.slug = 'c-basics'`
+         WHERE p.slug = ?`
       )
-      .all() as { id: string; name: string }[]) {
+      .all(pathSlug) as { id: string; name: string }[]) {
       nameToId.set(row.name, row.id)
     }
     const findProblem = this.db.prepare(

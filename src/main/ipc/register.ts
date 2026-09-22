@@ -1,5 +1,5 @@
 import { app, dialog } from 'electron'
-import { existsSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { z } from 'zod'
 import {
   problemQuerySchema,
@@ -17,6 +17,10 @@ import { BackupService, type BackupSummary } from '../services/backup-service'
 import type { ToolchainService } from '../services/toolchain-service'
 import type { JudgeService } from '../services/judge-service'
 import { logger } from '../lib/logger'
+import { sha256FileSync } from '../lib/file-hash'
+import { atomicWriteFileSync } from '../lib/atomic-write'
+import { LearningRepository } from '../db/repositories/learning-repository'
+import { resolveLearningSeedFile, loadLearningPathSeed, ensureLearningSeed } from '../learning/learning-seed'
 
 /**
  * IPC 通道注册总入口：按模块拆分，全部走 zod 校验 + 统一错误信封。
@@ -49,6 +53,9 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     svc().problems.update(id, input)
   )
   handle('problems.delete', z.string(), (id) => {
+    // v1.2.1 P0-D：服务层防线——删除题目先清理其多态复习项
+    // （DB 触发器为第二道防线，见 migration v3 trg_problems_delete_review_cleanup）
+    svc().reviewSvc.deleteByProblem(id)
     svc().problems.remove(id)
     return undefined
   })
@@ -151,7 +158,8 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   })
 
   // —— 掌握度（v1.2）——
-  handle('mastery.list', noArgs, () => svc().mastery.listAll())
+  // P1-B：读路径走 effective 状态（45 天无活动 mastered → familiar，读时计算不写库）
+  handle('mastery.list', noArgs, () => svc().masterySvc.list(Date.now()))
   handle('mastery.recalc', noArgs, () => {
     svc().masterySvc.recalcAll(Date.now())
     return undefined
@@ -181,7 +189,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   // pendingImport 缓存在主进程内存，confirmRestore 时二次校验文件 mtime 防调包。
   const backup = (): BackupService => new BackupService(svc().db)
 
-  let pendingImport: { path: string; mtimeMs: number; summary: BackupSummary } | null = null
+  let pendingImport: { path: string; sha256: string; summary: BackupSummary } | null = null
 
   handle('backup.export', noArgs, () => {
     const { json, counts } = backup().exportJson(app.getVersion())
@@ -196,7 +204,8 @@ export function registerIpcHandlers(deps: IpcDeps): void {
       })
       .then((ret) => {
         if (ret.canceled || ret.filePath === undefined) return { canceled: true as const }
-        writeFileSync(ret.filePath, json, 'utf-8')
+        // P1-C：原子导出（临时文件 + fsync + rename）——失败/中途被杀不留半文件
+        atomicWriteFileSync(ret.filePath, json)
         return { canceled: false as const, path: ret.filePath, counts }
       })
   })
@@ -211,11 +220,11 @@ export function registerIpcHandlers(deps: IpcDeps): void {
       .then((ret) => {
         if (ret.canceled || ret.filePaths.length === 0) return { canceled: true as const }
         const path = ret.filePaths[0] ?? ''
-        const stat = statSync(path)
         const text = readFileSync(path, 'utf-8')
         const parsed = backupJsonTextSchema.parse(text)
         const { summary } = backup().validate(parsed)
-        pendingImport = { path, mtimeMs: stat.mtimeMs, summary }
+        // 预览时计算全文 SHA-256（分块流式，内存恒定），确认时复验防调包（P1-C）
+        pendingImport = { path, sha256: sha256FileSync(path), summary }
         return {
           canceled: false as const,
           fileName: path.replace(/\\/g, '/').split('/').pop() ?? path,
@@ -244,13 +253,13 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     if (pending === null) {
       throw new AppError('validation', '没有待恢复的备份：请重新选择备份文件')
     }
-    // 二次校验：文件仍在且未被替换（预览 → 确认之间防调包）
+    // 二次校验：文件仍在且未被替换（预览 → 确认之间防调包，SHA-256 全文校验）
     if (!existsSync(pending.path)) {
       pendingImport = null
       throw new AppError('validation', '备份文件已不存在，请重新选择')
     }
-    const mtime = statSync(pending.path).mtimeMs
-    if (Math.abs(mtime - pending.mtimeMs) > 1) {
+    const digest = sha256FileSync(pending.path)
+    if (digest !== pending.sha256) {
       pendingImport = null
       throw new AppError('validation', '备份文件在确认前被修改，已取消恢复；请重新导入')
     }
@@ -258,6 +267,18 @@ export function registerIpcHandlers(deps: IpcDeps): void {
       backupJsonTextSchema.parse(readFileSync(pending.path, 'utf-8'))
     )
     const res = backup().restore(envelope)
+    // v1.2 备份携带位置型知识点 id：恢复后强制重跑 seed 步骤（绕过 marker——
+    // 本地 marker 可能因 LOCAL_MARKER_KEYS 保留而跳过，但库内 id 已被备份替换）；
+    // 备份本身已是 v1.2.1 语义 id 时迁移幂等零改动
+    try {
+      const seed = loadLearningPathSeed(
+        resolveLearningSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
+      )
+      if (seed !== null) ensureLearningSeed(new LearningRepository(svc().db), seed)
+      else logger.warn('恢复后跳过内置内容 id 迁移：种子文件缺失', '')
+    } catch (err) {
+      logger.error('恢复后的内置内容 id 迁移失败（下次启动重试）', err instanceof Error ? err.stack : String(err))
+    }
     pendingImport = null
     logger.info('备份恢复完成', `problems=${summary.counts.problems} submissions=${summary.counts.submissions}`)
     return res

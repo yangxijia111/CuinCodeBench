@@ -9,8 +9,16 @@ const SETTINGS_KEY = 'app'
 const SEEDED_KEY = 'seeded'
 /** v1.2：内置学习路线与旧题知识点映射的一次性标记 */
 export const LEARNING_V2_MAPPED_KEY = 'learning_v2_mapped'
+/** v1.2.1：稳定语义 ID 种子（v1.2 升级用户的 id 重写 + 内容 upsert 在此标记下执行） */
+export const LEARNING_SEED_V2_KEY = 'learning_seed_v2'
 /** v1.2：v1.1 老用户补灌新增种子题的一次性标记 */
 export const SEEDED_V2_KEY = 'seeded_v2'
+
+/**
+ * 恢复备份时「备份缺失则保留本地现值」的标记键集合（backup-service 消费）。
+ * 维护约定：新增一次性 marker 必须同步加入此处，否则旧备份恢复后会意外重触发。
+ */
+export const LOCAL_MARKER_KEYS = [SEEDED_KEY, LEARNING_V2_MAPPED_KEY, LEARNING_SEED_V2_KEY, SEEDED_V2_KEY] as const
 
 export class SettingsRepository {
   constructor(private readonly db: Database.Database) {}

@@ -7,6 +7,8 @@ import type { BackupData } from '@shared/schemas'
  *
  * id 与时间戳原样保留（恢复后统计/趋势/连续天数不漂移）。
  * 清空顺序：子表 → 父表（不切换 foreign_keys，事务内无效）；写回顺序相反。
+ * v1.2.1（P1-C）：全部嵌套聚合改为单次分组索引（Map），读取 O(N)——
+ * 旧实现的 filter-inside-map 在 10000 提交 × 50000 明细时是 O(N²)。
  */
 
 interface Counts {
@@ -23,6 +25,7 @@ interface Counts {
   mastery: number
   reviewItems: number
   reviewHistory: number
+  reviewSessionResults: number
   practiceSessions: number
   practiceSessionItems: number
   settings: number
@@ -42,6 +45,7 @@ const EMPTY_COUNTS: Counts = {
   mastery: 0,
   reviewItems: 0,
   reviewHistory: 0,
+  reviewSessionResults: 0,
   practiceSessions: 0,
   practiceSessionItems: 0,
   settings: 0
@@ -90,6 +94,19 @@ export class BackupRepository {
       sort_order: number
       tags: string
     }[]
+    // O(N) 分组索引：stage/kp 行各按父 id 建一次索引（P1-C，替代 filter-inside-map）
+    const stagesByPath = new Map<string, typeof stageRows>()
+    for (const s of stageRows) {
+      const list = stagesByPath.get(s.path_id)
+      if (list !== undefined) list.push(s)
+      else stagesByPath.set(s.path_id, [s])
+    }
+    const kpsByStage = new Map<string, typeof kpRows>()
+    for (const k of kpRows) {
+      const list = kpsByStage.get(k.stage_id)
+      if (list !== undefined) list.push(k)
+      else kpsByStage.set(k.stage_id, [k])
+    }
     const learningPaths = pathRows.map((p) => ({
       id: p.id,
       slug: p.slug,
@@ -97,25 +114,21 @@ export class BackupRepository {
       description: p.description,
       isBuiltin: p.is_builtin === 1,
       sortOrder: p.sort_order,
-      stages: stageRows
-        .filter((s) => s.path_id === p.id)
-        .map((s) => ({
-          id: s.id,
-          pathId: s.path_id,
-          title: s.title,
-          description: s.description,
-          sortOrder: s.sort_order,
-          knowledgePoints: kpRows
-            .filter((k) => k.stage_id === s.id)
-            .map((k) => ({
-              id: k.id,
-              stageId: k.stage_id,
-              name: k.name,
-              description: k.description,
-              sortOrder: k.sort_order,
-              tags: JSON.parse(k.tags) as string[]
-            }))
+      stages: (stagesByPath.get(p.id) ?? []).map((s) => ({
+        id: s.id,
+        pathId: s.path_id,
+        title: s.title,
+        description: s.description,
+        sortOrder: s.sort_order,
+        knowledgePoints: (kpsByStage.get(s.id) ?? []).map((k) => ({
+          id: k.id,
+          stageId: k.stage_id,
+          name: k.name,
+          description: k.description,
+          sortOrder: k.sort_order,
+          tags: JSON.parse(k.tags) as string[]
         }))
+      }))
     }))
 
     // 题目（含用例 id）
@@ -143,6 +156,12 @@ export class BackupRepository {
       timeout_ms: number
       order: number
     }[]
+    const casesByProblem = new Map<string, typeof caseRows>()
+    for (const c of caseRows) {
+      const list = casesByProblem.get(c.problem_id)
+      if (list !== undefined) list.push(c)
+      else casesByProblem.set(c.problem_id, [c])
+    }
     const problems = problemRows.map((p) => ({
       id: p.id,
       title: p.title,
@@ -156,14 +175,12 @@ export class BackupRepository {
       isBuiltin: p.is_builtin === 1,
       createdAt: p.created_at,
       updatedAt: p.updated_at,
-      testCases: caseRows
-        .filter((c) => c.problem_id === p.id)
-        .map((c) => ({
-          id: c.id,
-          stdin: c.stdin,
-          expectedStdout: c.expected_stdout,
-          timeoutMs: c.timeout_ms
-        }))
+      testCases: (casesByProblem.get(p.id) ?? []).map((c) => ({
+        id: c.id,
+        stdin: c.stdin,
+        expectedStdout: c.expected_stdout,
+        timeoutMs: c.timeout_ms
+      }))
     }))
 
     // 提交（含用例结果）
@@ -194,6 +211,12 @@ export class BackupRepository {
       exit_code: number | null
       duration_ms: number
     }[]
+    const resultsBySubmission = new Map<string, typeof resultRows>()
+    for (const r of resultRows) {
+      const list = resultsBySubmission.get(r.submission_id)
+      if (list !== undefined) list.push(r)
+      else resultsBySubmission.set(r.submission_id, [r])
+    }
     const submissions = subRows.map((s) => ({
       id: s.id,
       problemId: s.problem_id,
@@ -204,19 +227,17 @@ export class BackupRepository {
       totalCount: s.total_count,
       durationMs: s.duration_ms,
       createdAt: s.created_at,
-      results: resultRows
-        .filter((r) => r.submission_id === s.id)
-        .map((r) => ({
-          testCaseId: r.test_case_id,
-          order: r.order,
-          stdin: r.stdin,
-          expected: r.expected,
-          actual: r.actual,
-          stderr: r.stderr,
-          status: r.status,
-          exitCode: r.exit_code,
-          durationMs: r.duration_ms
-        }))
+      results: (resultsBySubmission.get(s.id) ?? []).map((r) => ({
+        testCaseId: r.test_case_id,
+        order: r.order,
+        stdin: r.stdin,
+        expected: r.expected,
+        actual: r.actual,
+        stderr: r.stderr,
+        status: r.status,
+        exitCode: r.exit_code,
+        durationMs: r.duration_ms
+      }))
     }))
 
     const errorRecords = (
@@ -357,6 +378,12 @@ export class BackupRepository {
       first_accepted_submission_id: string | null
       first_result_at: number | null
     }[]
+    const itemsBySession = new Map<string, typeof sessionItemRows>()
+    for (const i of sessionItemRows) {
+      const list = itemsBySession.get(i.session_id)
+      if (list !== undefined) list.push(i)
+      else itemsBySession.set(i.session_id, [i])
+    }
     const practiceSessions = sessionRows.map((s) => ({
       id: s.id,
       kind: s.kind as 'random' | 'knowledge_point' | 'review' | 'mistake',
@@ -366,17 +393,33 @@ export class BackupRepository {
       total: s.total,
       createdAt: s.created_at,
       finishedAt: s.finished_at,
-      items: sessionItemRows
-        .filter((i) => i.session_id === s.id)
-        .map((i) => ({
-          id: i.id,
-          problemId: i.problem_id,
-          sortOrder: i.sort_order,
-          status: i.status as 'pending' | 'accepted' | 'failed' | 'skipped',
-          attempts: i.attempts,
-          firstAcceptedSubmissionId: i.first_accepted_submission_id,
-          firstResultAt: i.first_result_at
-        }))
+      items: (itemsBySession.get(s.id) ?? []).map((i) => ({
+        id: i.id,
+        problemId: i.problem_id,
+        sortOrder: i.sort_order,
+        status: i.status as 'pending' | 'accepted' | 'failed' | 'skipped',
+        attempts: i.attempts,
+        firstAcceptedSubmissionId: i.first_accepted_submission_id,
+        firstResultAt: i.first_result_at
+      }))
+    }))
+
+    const reviewSessionResults = (
+      this.db
+        .prepare('SELECT * FROM review_session_results ORDER BY graded_at, rowid')
+        .all() as {
+        session_id: string
+        review_item_id: string
+        grade: string
+        submission_id: string | null
+        graded_at: number
+      }[]
+    ).map((r) => ({
+      sessionId: r.session_id,
+      reviewItemId: r.review_item_id,
+      grade: r.grade as 'again' | 'hard' | 'good' | 'easy',
+      submissionId: r.submission_id,
+      gradedAt: r.graded_at
     }))
 
     return {
@@ -391,6 +434,7 @@ export class BackupRepository {
       mastery,
       reviewItems,
       reviewHistory,
+      reviewSessionResults,
       practiceSessions
     }
   }
@@ -398,6 +442,7 @@ export class BackupRepository {
   /** 依赖序清空全部业务表（settings 一并清空，由写回阶段决定保留哪些键） */
   clearAll(): void {
     this.db.exec(`
+      DELETE FROM review_session_results;
       DELETE FROM practice_session_items;
       DELETE FROM practice_sessions;
       DELETE FROM review_history;
@@ -580,7 +625,7 @@ export class BackupRepository {
     }
 
     const insRh = this.db.prepare(
-      'INSERT INTO review_history (id, review_item_id, result, reviewed_at, submission_id) VALUES (?, ?, ?, ?, ?)'
+      `INSERT INTO review_history (id, review_item_id, result, reviewed_at, submission_id) VALUES (?, ?, ?, ?, ?)`
     )
     for (const h of data.reviewHistory) {
       insRh.run(h.id, h.reviewItemId, h.result, h.reviewedAt, h.submissionId)
@@ -618,6 +663,15 @@ export class BackupRepository {
         )
       }
     }
+
+    // v1.2.1 会话评分记录（v1 备份缺失 → 空数组；须在 practice_sessions 之后——FK 依赖）
+    const insRsr = this.db.prepare(
+      `INSERT OR IGNORE INTO review_session_results (session_id, review_item_id, grade, submission_id, graded_at)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    for (const r of data.reviewSessionResults ?? []) {
+      insRsr.run(r.sessionId, r.reviewItemId, r.grade, r.submissionId, r.gradedAt)
+    }
   }
 
   /** 逐表计数（verify 用，与备份载荷长度对比） */
@@ -638,6 +692,7 @@ export class BackupRepository {
       mastery: count('SELECT COUNT(*) AS c FROM mastery'),
       reviewItems: count('SELECT COUNT(*) AS c FROM review_items'),
       reviewHistory: count('SELECT COUNT(*) AS c FROM review_history'),
+      reviewSessionResults: count('SELECT COUNT(*) AS c FROM review_session_results'),
       practiceSessions: count('SELECT COUNT(*) AS c FROM practice_sessions'),
       practiceSessionItems: count('SELECT COUNT(*) AS c FROM practice_session_items'),
       settings: count('SELECT COUNT(*) AS c FROM settings')
@@ -681,6 +736,7 @@ export class BackupRepository {
       mastery: data.mastery.length,
       reviewItems: data.reviewItems.length,
       reviewHistory: data.reviewHistory.length,
+      reviewSessionResults: data.reviewSessionResults?.length ?? 0,
       practiceSessions: data.practiceSessions.length,
       practiceSessionItems: data.practiceSessions.reduce((n, s) => n + s.items.length, 0),
       settings: Object.keys(data.settings).length

@@ -1,5 +1,5 @@
-import { spawn, type ChildProcess } from 'child_process'
-import { existsSync, mkdirSync, rmSync } from 'fs'
+import { spawn, spawnSync, type ChildProcess } from 'child_process'
+import { existsSync, mkdirSync, readdirSync, rmSync } from 'fs'
 import { join, resolve } from 'path'
 
 /**
@@ -40,6 +40,65 @@ export interface AppSession {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
+}
+
+/**
+ * 等待子进程退出（P1-D）。Windows Electron 是多进程树（browser/gpu/utility/renderer），
+ * 主进程退出后子进程通常随即退出，但句柄/日志线程可能延迟——带超时等待。
+ */
+function waitForExit(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+  return new Promise((resolveOnce) => {
+    if (child.exitCode !== null || child.signalCode !== null) return resolveOnce(true)
+    const t = setTimeout(() => resolveOnce(false), timeoutMs)
+    child.on('exit', () => {
+      clearTimeout(t)
+      resolveOnce(true)
+    })
+  })
+}
+
+/** Windows：杀整棵进程树（taskkill /T /F）；非 Windows：主进程 SIGKILL */
+function killProcessTree(pid: number, signal: NodeJS.Signals = 'SIGKILL'): void {
+  if (!Number.isInteger(pid) || pid <= 0) return
+  if (process.platform === 'win32') {
+    try {
+      spawnSync('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore', timeout: 10_000 })
+    } catch {
+      // taskkill 不可用：尽力而为
+    }
+  } else {
+    try {
+      process.kill(pid, signal)
+    } catch {
+      // 已退出
+    }
+  }
+}
+
+/**
+ * 检查本项目是否遗留 Electron 测试进程（P1-D 全局断言用）。
+   * 匹配命令行中包含本项目路径的 electron.exe（排除 vitest 进程自身）。
+ */
+export function findOrphanElectronProcesses(): { pid: number; cmdline: string }[] {
+  if (process.platform !== 'win32') return []
+  const out = spawnSync(
+    'powershell',
+    ['-NoProfile', '-Command', 'Get-CimInstance Win32_Process -Filter "Name=\'electron.exe\'" | Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress'],
+    { encoding: 'utf8', timeout: 15_000 }
+  )
+  if (out.status !== 0 || typeof out.stdout !== 'string' || out.stdout.trim() === '') return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(out.stdout)
+  } catch {
+    return []
+  }
+  const list = Array.isArray(parsed) ? parsed : [parsed]
+  const root = projectRoot.replace(/\\/g, '/')
+  return list
+    .map((p) => p as { ProcessId?: number; CommandLine?: string })
+    .filter((p) => typeof p.CommandLine === 'string' && p.CommandLine.replace(/\\/g, '/').includes(root))
+    .map((p) => ({ pid: p.ProcessId ?? 0, cmdline: String(p.CommandLine) }))
 }
 
 /** 单例 WS evaluate 客户端：串行发送（id 自增），保持连接直至 close */
@@ -268,9 +327,33 @@ export async function launchApp(dataDir: string, extraEnv: Record<string, string
     insertText,
     clickExpr,
     close: async () => {
+      // P1-D：优雅退出 → 等待 → 杀树兜底 → 确认退出。
+      // Windows Electron 为多进程（browser/gpu/utility/renderer），child.kill() 只杀主进程，
+      // 旧实现（client.close + kill + sleep 500）会遗留子进程并锁住数据目录。
+      // 注：不删除数据目录——部分用例在 close 后仍需读取库文件，清理由 rmDirForce 负责。
+      const pid = child.pid ?? 0
+      // 1) graceful：CDP Browser.close → 应用走正常退出流程（window-all-closed → 清理子进程 → 关库）
+      try {
+        await client.send('Browser.close')
+      } catch {
+        // 连接已断/应用已退出：继续兜底路径
+      }
       client.close()
-      child.kill()
-      await sleep(500)
+      // 2) 等待主进程退出（宽限 5s）
+      const exited = await waitForExit(child, 5_000)
+      // 3) 超时兜底：杀整棵进程树并再等
+      if (!exited) {
+        killProcessTree(pid)
+        const exitedAfterKill = await waitForExit(child, 5_000)
+        if (!exitedAfterKill) {
+          throw new Error(
+            `E2E 清理失败：Electron 进程树在 taskkill 后仍未退出（pid=${pid}）；` +
+              `遗留进程：${JSON.stringify(findOrphanElectronProcesses())}`
+          )
+        }
+      }
+      // 4) 退出后短等文件句柄释放（Windows WAL/日志句柄异步释放）
+      await sleep(200)
     }
   }
 }
@@ -284,12 +367,41 @@ export async function waitForApp(
   return app.waitFor(expression, timeoutMs)
 }
 
-/** 强制删除目录（E2E 清理；Windows 句柄延迟释放时忽略失败） */
-export function rmDirForce(dir: string): void {
+/**
+ * 强制删除目录（E2E 清理）。
+ * P1-D：不再静默吞掉失败——Windows 句柄延迟释放时先重试（约 3s），
+ * 仍失败则抛错并输出 PID / 路径 / 遗留进程诊断（locked file 必须可见，不可掩盖）。
+ */
+export async function rmDirForce(dir: string): Promise<void> {
+  if (!existsSync(dir)) return
+  for (let i = 0; i < 10; i++) {
+    try {
+      rmSync(dir, { recursive: true, force: true })
+      return
+    } catch {
+      await sleep(300)
+    }
+  }
+  // 最后一次尝试：失败即抛出诊断信息
+  try {
+    rmSync(dir, { recursive: true, force: true })
+  } catch (err) {
+    const orphans = findOrphanElectronProcesses()
+    throw new Error(
+      `E2E 清理失败：目录删除被锁定（path=${dir}；error=${err instanceof Error ? err.message : String(err)}）。` +
+        `可能持锁的本项目 Electron 进程：${JSON.stringify(orphans)}。` +
+        `目录现存条目：${readdirSync(dir).slice(0, 10).join(', ')}`,
+      { cause: err }
+    )
+  }
+}
+
+/** 同步版本（兼容旧调用点）：尽力删除，失败静默（用于「目录可能不存在」的预清理） */
+export function rmDirBestEffort(dir: string): void {
   try {
     rmSync(dir, { recursive: true, force: true })
   } catch {
-    // 清理失败不影响测试结果
+    // 预清理语义：不存在或被占用都允许跳过
   }
 }
 

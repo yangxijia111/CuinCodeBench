@@ -91,14 +91,16 @@ describe('ReviewService（集成，注入时钟）', () => {
     history = new HistoryRepository(db)
     learning = new LearningRepository(db)
     learning.ensureBuiltinPath({
+      seedVersion: 2,
       path: { slug: 'c-basics', title: 'C', description: '' },
       stages: [
         {
+          slug: 's0',
           title: 's',
           description: '',
           knowledgePoints: [
-            { name: 'kpA', description: '', tags: [] },
-            { name: 'kpB', description: '', tags: [] }
+            { slug: 'kp-a', name: 'kpA', description: '', tags: [] },
+            { slug: 'kp-b', name: 'kpB', description: '', tags: [] }
           ]
         }
       ],
@@ -137,15 +139,15 @@ describe('ReviewService（集成，注入时钟）', () => {
 
   it('知识点首次提交建项且次日到期；重复提交不重复建', () => {
     const p = problems.create(makeProblem('A'))
-    learning.bindProblem(p.id, 'kp:c-basics:0:0')
+    learning.bindProblem(p.id, 'kp:c-basics:kp-a')
     svc.onSubmission(p.id, true, 'sid', NOW)
 
-    const item = svc.reviews.getByTarget('knowledge_point', 'kp:c-basics:0:0')
+    const item = svc.reviews.getByTarget('knowledge_point', 'kp:c-basics:kp-a')
     expect(item).not.toBeNull()
     expect(item!.nextReviewAt).toBe(NOW + DAY)
 
     svc.onSubmission(p.id, true, 'sid2', NOW + 1000)
-    const again = svc.reviews.getByTarget('knowledge_point', 'kp:c-basics:0:0')
+    const again = svc.reviews.getByTarget('knowledge_point', 'kp:c-basics:kp-a')
     expect(again!.id).toBe(item!.id)
   })
 
@@ -156,11 +158,10 @@ describe('ReviewService（集成，注入时钟）', () => {
     makeMistake(m1.id, NOW)
     makeMistake(m2.id, NOW)
 
-    for (const [ki, name] of [
-      [0, 'a'],
-      [1, 'b']
+    for (const [kpId, name] of [
+      ['kp:c-basics:kp-a', 'a'],
+      ['kp:c-basics:kp-b', 'b']
     ] as const) {
-      const kpId = `kp:c-basics:0:${ki}`
       for (let j = 0; j < 2; j++) {
         const p = problems.create(makeProblem(`KP${name}-${j}`))
         learning.bindProblem(p.id, kpId)
@@ -171,8 +172,8 @@ describe('ReviewService（集成，注入时钟）', () => {
     const { session, created } = svc.startSession(3, NOW + DAY)
     expect(created).toBe(true)
     expect(session).not.toBeNull()
-    expect(session!.items.length).toBe(3)
-    const ids = session!.items.map((i) => i.problemId)
+    expect(session.items.length).toBe(3)
+    const ids = session.items.map((i) => i.problemId)
     expect(new Set(ids).size).toBe(ids.length)
     // 错题最优先：两个错题都入选
     expect(ids).toContain(m1.id)
@@ -185,7 +186,7 @@ describe('ReviewService（集成，注入时钟）', () => {
 
     const { session } = svc.startSession(5, NOW + 1000)
     expect(session).not.toBeNull()
-    const sid = session!.id
+    const sid = session.id
 
     // 模拟判题 hook：该题 AC（单题会话 → hook 自动收尾并按默认映射评分推进）
     const accepted = history.insertSubmission(
@@ -229,6 +230,6 @@ describe('ReviewService（集成，注入时钟）', () => {
     const first = svc.startSession(5, NOW + 1000)
     const second = svc.startSession(5, NOW + 2000)
     expect(second.created).toBe(false)
-    expect(second.session!.id).toBe(first.session!.id)
+    expect(second.session.id).toBe(first.session.id)
   })
 })

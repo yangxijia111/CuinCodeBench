@@ -5,6 +5,28 @@ import type { MasteryInfo, MasteryStatus, ReviewGrade } from '@shared/types'
  * 掌握度仓储：物化缓存读写 + 计算所需的聚合查询。
  * 计算规则见 docs/V1_2_MASTERY_SPEC.md（mastery-service）。
  */
+/**
+ * 全部知识点的最后活动时刻（单条聚合查询；独立函数供其他仓储复用，避免构造实例）。
+ * 读侧 effective 状态计算用（P1-B）：与 computeMastery 的 lastActivityAt 同源。
+ */
+export function kpLastActivityMap(db: Database.Database): Map<string, number | null> {
+  const rows = db
+    .prepare(
+      `SELECT k.id AS kp,
+         (SELECT MAX(ts) FROM (
+            SELECT MAX(s.created_at) AS ts FROM submissions s
+             WHERE s.problem_id IN (SELECT problem_id FROM problem_knowledge_points WHERE knowledge_point_id = k.id)
+            UNION ALL
+            SELECT MAX(rh.reviewed_at) FROM review_history rh
+             JOIN review_items ri ON ri.id = rh.review_item_id
+             WHERE ri.target_type = 'knowledge_point' AND ri.target_id = k.id
+          )) AS last
+       FROM knowledge_points k`
+    )
+    .all() as { kp: string; last: number | null }[]
+  return new Map(rows.map((r) => [r.kp, r.last]))
+}
+
 export class MasteryRepository {
   constructor(private readonly db: Database.Database) {}
 
@@ -33,6 +55,14 @@ export class MasteryRepository {
       status: row.status as MasteryStatus,
       updatedAt: row.updated_at
     }))
+  }
+
+  /**
+   * 全部知识点的最后活动时刻（最后一次提交或复习，单条聚合查询）。
+   * 读侧 effective 状态计算用（P1-B）：与 computeMastery 的 lastActivityAt 同源。
+   */
+  lastActivityMap(): Map<string, number | null> {
+    return kpLastActivityMap(this.db)
   }
 
   upsert(info: MasteryInfo): void {

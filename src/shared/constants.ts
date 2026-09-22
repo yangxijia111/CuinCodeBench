@@ -39,6 +39,9 @@ export const MAX_TEST_CASES_PER_PROBLEM = 50
 /** 错题进入错题本的失败次数阈值（FR-M2） */
 export const MISTAKE_THRESHOLD = 2
 
+/** mastered 掌握度惰性衰减阈值（天）：超过该天数无活动降为 familiar（读侧同样生效，P1-B） */
+export const MASTERY_STALE_DAYS = 45
+
 /** 编辑器字号允许范围（px） */
 export const FONT_SIZE_MIN = 12
 export const FONT_SIZE_MAX = 28

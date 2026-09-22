@@ -1,13 +1,13 @@
 import type Database from 'better-sqlite3'
-import type { KnowledgePointProgress, PathProgress, StageProgress } from '@shared/types'
+import type { KnowledgePointProgress, MasteryInfo, PathProgress, StageProgress } from '@shared/types'
 import { LearningRepository } from '../db/repositories/learning-repository'
 import { AppError } from '../lib/app-error'
-import type { MasteryRepository } from '../db/repositories/mastery-repository'
 
 /**
  * 学习路线服务（docs/V1_2_LEARNING_MODEL.md）：
  * 路径/阶段/知识点聚合进度展示；题目↔知识点绑定（变更后由判题流重算掌握度）。
- * 掌握度展示依赖注入的 mastery-repo（P3 接入；未注入时为 null）。
+ * 掌握度展示依赖注入的读取器（v1.2.1 P1-B 起为 effective 视图——45 天无活动
+ * mastered 读作 familiar；结构化类型，仓储与 effective 视图均可注入）。
  */
 
 interface KpProgressRow {
@@ -16,11 +16,15 @@ interface KpProgressRow {
   accepted: number
 }
 
+export interface MasteryReader {
+  get(knowledgePointId: string): MasteryInfo | null
+}
+
 export class LearningService {
   private readonly repo: LearningRepository
-  private readonly mastery: MasteryRepository | null
+  private readonly mastery: MasteryReader | null
 
-  constructor(db: Database.Database, deps: { mastery?: MasteryRepository } = {}) {
+  constructor(db: Database.Database, deps: { mastery?: MasteryReader } = {}) {
     this.repo = new LearningRepository(db)
     this.mastery = deps.mastery ?? null
   }

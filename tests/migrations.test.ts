@@ -56,20 +56,23 @@ function openV1Db(): Database.Database {
 }
 
 const seed: LearningPathSeed = {
+  seedVersion: 2,
   path: { slug: 'c-basics', title: 'C 基础', description: '测试路线' },
   stages: [
     {
+      slug: 'getting-started',
       title: '起步',
       description: '',
       knowledgePoints: [
-        { name: '输入输出', description: '', tags: ['输入输出', '入门'] },
-        { name: '变量与类型', description: '', tags: ['变量', '入门'] }
+        { slug: 'io', name: '输入输出', description: '', tags: ['输入输出', '入门'] },
+        { slug: 'variables-types', name: '变量与类型', description: '', tags: ['变量', '入门'] }
       ]
     },
     {
+      slug: 'loops',
       title: '循环',
       description: '',
-      knowledgePoints: [{ name: 'for 循环', description: '', tags: ['for', '循环'] }]
+      knowledgePoints: [{ slug: 'for-loop', name: 'for 循环', description: '', tags: ['for', '循环'] }]
     }
   ],
   builtinProblemMap: { 'A+B 问题': ['输入输出'] }
@@ -107,7 +110,21 @@ describe('migration v2（learning-v1.2）', () => {
 
     migrate(db)
 
-    expect(currentVersion(db)).toBe(2)
+    // v1.2.1：迁移链 v1 → v2 → v3 全部应用（v3 = review exactly-once + 引用完整性）
+    expect(currentVersion(db)).toBe(3)
+    // v3 产物：exactly-once 表 + 清理触发器存在
+    expect(
+      db
+        .prepare(`SELECT COUNT(*) AS c FROM sqlite_master WHERE type='table' AND name='review_session_results'`)
+        .get()
+    ).toEqual({ c: 1 })
+    expect(
+      db
+        .prepare(
+          `SELECT COUNT(*) AS c FROM sqlite_master WHERE type='trigger' AND name IN ('trg_problems_delete_review_cleanup','trg_kp_delete_review_cleanup')`
+        )
+        .get()
+    ).toEqual({ c: 2 })
     // 旧数据原样
     const old = db.prepare('SELECT title, is_builtin FROM problems WHERE id = ?').get('p1') as {
       title: string
@@ -151,7 +168,7 @@ describe('migration v2（learning-v1.2）', () => {
     ).toThrow()
     const repo = new LearningRepository(db)
     repo.ensureBuiltinPath(seed)
-    const kpId = 'kp:c-basics:0:0'
+    const kpId = 'kp:c-basics:io'
     db.prepare(`INSERT INTO review_items (id, target_type, target_id, next_review_at, created_at) VALUES ('r1', 'knowledge_point', ?, 0, 0)`).run(kpId)
     expect(() =>
       db
@@ -179,8 +196,8 @@ describe('内置学习路线灌入与旧题映射', () => {
     const path = repo.getPathBySlug('c-basics')
     expect(path?.id).toBe('lp:c-basics')
     const stageList = repo.listStages('lp:c-basics')
-    expect(stageList.map((s) => s.id)).toEqual(['ls:c-basics:0', 'ls:c-basics:1'])
-    const kp = repo.getKnowledgePoint('kp:c-basics:1:0')
+    expect(stageList.map((s) => s.id)).toEqual(['ls:c-basics:getting-started', 'ls:c-basics:loops'])
+    const kp = repo.getKnowledgePoint('kp:c-basics:for-loop')
     expect(kp?.name).toBe('for 循环')
   })
 
@@ -192,9 +209,9 @@ describe('内置学习路线灌入与旧题映射', () => {
     problems.create(makeProblem('A+B 问题', ['入门', '数学']), true)
     problems.create(makeProblem('用户题', ['输入输出']), false)
 
-    const bound1 = repo.mapBuiltinProblems(seed.builtinProblemMap)
+    const bound1 = repo.mapBuiltinProblems(seed.builtinProblemMap, seed.path.slug)
     expect(bound1).toBe(1)
-    const bound2 = repo.mapBuiltinProblems(seed.builtinProblemMap)
+    const bound2 = repo.mapBuiltinProblems(seed.builtinProblemMap, seed.path.slug)
     expect(bound2).toBe(0)
 
     const rows = db.prepare('SELECT problem_id, knowledge_point_id FROM problem_knowledge_points').all() as {
@@ -202,7 +219,7 @@ describe('内置学习路线灌入与旧题映射', () => {
       knowledge_point_id: string
     }[]
     expect(rows).toHaveLength(1)
-    expect(rows[0]?.knowledge_point_id).toBe('kp:c-basics:0:0')
+    expect(rows[0]?.knowledge_point_id).toBe('kp:c-basics:io')
 
     const userKps = repo.knowledgePointIdsForProblem(
       (problems.list({ keyword: '用户题', difficulty: 'all', tag: 'all' })[0] as { id: string }).id
@@ -225,7 +242,7 @@ describe('内置学习路线灌入与旧题映射', () => {
       repo.knowledgePointIdsForProblem(
         (problems.list({ keyword: title, difficulty: 'all', tag: 'all' })[0] as { id: string }).id
       )
-    expect(kpFor('循环练习')).toContain('kp:c-basics:1:0')
+    expect(kpFor('循环练习')).toContain('kp:c-basics:for-loop')
   })
 
   it('绑定/解绑幂等：重复绑定不产生重复行', () => {
@@ -234,10 +251,10 @@ describe('内置学习路线灌入与旧题映射', () => {
     const problems = new ProblemRepository(db)
     repo.ensureBuiltinPath(seed)
     const p = problems.create(makeProblem('A+B 问题', []), true)
-    repo.bindProblem(p.id, 'kp:c-basics:0:0')
-    repo.bindProblem(p.id, 'kp:c-basics:0:0')
+    repo.bindProblem(p.id, 'kp:c-basics:io')
+    repo.bindProblem(p.id, 'kp:c-basics:io')
     expect(repo.knowledgePointIdsForProblem(p.id)).toHaveLength(1)
-    repo.unbindProblem(p.id, 'kp:c-basics:0:0')
+    repo.unbindProblem(p.id, 'kp:c-basics:io')
     expect(repo.knowledgePointIdsForProblem(p.id)).toHaveLength(0)
   })
 })

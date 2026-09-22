@@ -13,20 +13,23 @@ import type { ProblemInput } from '../src/shared/types'
  */
 
 const SEED = {
+  seedVersion: 2 as const,
   path: { slug: 'c-basics', title: 'C 基础', description: '' },
   stages: [
     {
+      slug: 'getting-started',
       title: '起步',
       description: '',
       knowledgePoints: [
-        { name: '输入输出', description: '', tags: ['io'] },
-        { name: '变量与类型', description: '', tags: ['变量'] }
+        { slug: 'io', name: '输入输出', description: '', tags: ['io'] },
+        { slug: 'variables-types', name: '变量与类型', description: '', tags: ['变量'] }
       ]
     },
     {
+      slug: 'loops',
       title: '循环',
       description: '',
-      knowledgePoints: [{ name: 'for 循环', description: '', tags: ['for'] }]
+      knowledgePoints: [{ slug: 'for-loop', name: 'for 循环', description: '', tags: ['for'] }]
     }
   ],
   builtinProblemMap: {}
@@ -70,9 +73,9 @@ describe('学习路线（LearningService）', () => {
   it('绑定题目后进度聚合正确；AC 后完成度提升', () => {
     const p1 = problems.create(makeProblem('题目一'), true)
     const p2 = problems.create(makeProblem('题目二'), true)
-    repo.bindProblem(p1.id, 'kp:c-basics:0:0')
-    repo.bindProblem(p2.id, 'kp:c-basics:0:0')
-    repo.bindProblem(p1.id, 'kp:c-basics:1:0')
+    repo.bindProblem(p1.id, 'kp:c-basics:io')
+    repo.bindProblem(p2.id, 'kp:c-basics:io')
+    repo.bindProblem(p1.id, 'kp:c-basics:for-loop')
 
     let progress = service.getPathProgress('lp:c-basics')
     expect(progress.totalProblems).toBe(3)
@@ -88,14 +91,14 @@ describe('学习路线（LearningService）', () => {
 
   it('listKpProblems 返回通过状态与尝试次数；未绑定知识点报错', () => {
     const p1 = problems.create(makeProblem('题目一'), true)
-    repo.bindProblem(p1.id, 'kp:c-basics:0:0')
+    repo.bindProblem(p1.id, 'kp:c-basics:io')
     history.insertSubmission(
       { problemId: p1.id, language: 'c', code: 'x', status: 'wrong_answer', passedCount: 0, totalCount: 1, durationMs: 1 },
       []
     )
     submitAccepted(p1.id)
 
-    const list = service.listKpProblems('kp:c-basics:0:0')
+    const list = service.listKpProblems('kp:c-basics:io')
     expect(list).toHaveLength(1)
     expect(list[0]?.accepted).toBe(true)
     expect(list[0]?.attempts).toBe(2)
@@ -106,22 +109,22 @@ describe('学习路线（LearningService）', () => {
   it('bindProblem 校验知识点存在性并幂等', () => {
     const p1 = problems.create(makeProblem('题目一'), true)
     expect(() => service.bindProblem(p1.id, ['kp:missing'])).toThrow(/不存在/)
-    service.bindProblem(p1.id, ['kp:c-basics:0:0'])
-    service.bindProblem(p1.id, ['kp:c-basics:0:0'])
+    service.bindProblem(p1.id, ['kp:c-basics:io'])
+    service.bindProblem(p1.id, ['kp:c-basics:io'])
     expect(repo.knowledgePointIdsForProblem(p1.id)).toHaveLength(1)
   })
 
   it('解绑后进度回落', () => {
     const p1 = problems.create(makeProblem('题目一'), true)
-    repo.bindProblem(p1.id, 'kp:c-basics:0:0')
-    service.unbindProblem(p1.id, 'kp:c-basics:0:0')
+    repo.bindProblem(p1.id, 'kp:c-basics:io')
+    service.unbindProblem(p1.id, 'kp:c-basics:io')
     const progress = service.getPathProgress('lp:c-basics')
     expect(progress.totalProblems).toBe(0)
   })
 
   it('listPaths 汇总全部路线', () => {
     const p1 = problems.create(makeProblem('题目一'), true)
-    repo.bindProblem(p1.id, 'kp:c-basics:0:0')
+    repo.bindProblem(p1.id, 'kp:c-basics:io')
     const paths = service.listPaths()
     expect(paths).toHaveLength(1)
     expect(paths[0]?.slug).toBe('c-basics')
@@ -143,7 +146,7 @@ describe('P8 搜索增强（problem-repository.list）', () => {
 
   it('关键词覆盖标签与知识点名称；knowledgePointId 与难度组合', () => {
     const a = problems.create({ ...makeProblem('求和'), tags: ['前缀和'] }, true)
-    repo.bindProblem(a.id, 'kp:c-basics:0:0')
+    repo.bindProblem(a.id, 'kp:c-basics:io')
 
     // 知识点名称「输入输出」可搜到绑定题
     const byKpName = problems.list({ keyword: '输入输出', difficulty: 'all', tag: 'all' })
@@ -152,7 +155,7 @@ describe('P8 搜索增强（problem-repository.list）', () => {
     const byTagKw = problems.list({ keyword: '前缀和', difficulty: 'all', tag: 'all' })
     expect(byTagKw.map((p) => p.id)).toEqual([a.id])
     // knowledgePointId 筛选（组合知识点 + 难度）
-    const combo = problems.list({ keyword: '', difficulty: 'all', tag: 'all', knowledgePointId: 'kp:c-basics:0:0' })
+    const combo = problems.list({ keyword: '', difficulty: 'all', tag: 'all', knowledgePointId: 'kp:c-basics:io' })
     expect(combo.map((p) => p.id)).toEqual([a.id])
     // 未绑定该知识点的题不出现在结果中（b 未绑定任何知识点）
     const other = problems.list({ keyword: '', difficulty: 'all', tag: 'all', knowledgePointId: 'kp:c-basics:0:1' })

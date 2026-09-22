@@ -23,12 +23,14 @@ function buildFullData(db: Database.Database): void {
   const learning = new LearningRepository(db)
 
   learning.ensureBuiltinPath({
+    seedVersion: 2,
     path: { slug: 'c-basics', title: 'C 基础', description: '' },
     stages: [
       {
+        slug: 'getting-started',
         title: '起步',
         description: '',
-        knowledgePoints: [{ name: '输入输出', description: '', tags: ['io'] }]
+        knowledgePoints: [{ slug: 'io', name: '输入输出', description: '', tags: ['io'] }]
       }
     ],
     builtinProblemMap: {}
@@ -36,7 +38,7 @@ function buildFullData(db: Database.Database): void {
 
   const p1 = problems.create(makeProblemInput(), true)
   const p2 = problems.create(makeProblemInput({ title: '第二题', tags: ['数组'] }), true)
-  learning.bindProblem(p1.id, 'kp:c-basics:0:0')
+  learning.bindProblem(p1.id, 'kp:c-basics:io')
 
   // p1：失败两次（进错题本）+ AC 一次；p2：AC 一次
   for (const status of ['wrong_answer', 'compile_error'] as const) {
@@ -101,16 +103,21 @@ function buildFullData(db: Database.Database): void {
      VALUES ('er-cat', (SELECT id FROM submissions LIMIT 1), ?, 'c', 'compile_error', 'm', 700, 'syntax', 'auto')`
   ).run(p1.id)
   db.prepare(
-    `INSERT INTO mastery (knowledge_point_id, score, status, updated_at) VALUES ('kp:c-basics:0:0', 72, 'familiar', 600)`
+    `INSERT INTO mastery (knowledge_point_id, score, status, updated_at) VALUES ('kp:c-basics:io', 72, 'familiar', 600)`
   ).run()
   db.prepare(
     `INSERT INTO practice_sessions (id, kind, knowledge_point_id, config, status, total, created_at, finished_at)
-     VALUES ('ps1', 'knowledge_point', 'kp:c-basics:0:0', '{"size":10}', 'finished', 1, 400, 450)`
+     VALUES ('ps1', 'knowledge_point', 'kp:c-basics:io', '{"size":10}', 'finished', 1, 400, 450)`
   ).run()
   db.prepare(
     `INSERT INTO practice_session_items (id, session_id, problem_id, sort_order, status, attempts, first_accepted_submission_id, first_result_at)
      VALUES ('psi1', 'ps1', ?, 0, 'accepted', 1, NULL, 440)`
   ).run(p1.id)
+  // v1.2.1：会话评分 exactly-once 记录（备份往返）
+  db.prepare(
+    `INSERT INTO review_session_results (session_id, review_item_id, grade, submission_id, graded_at)
+     VALUES ('ps1', 'ri1', 'good', NULL, 460)`
+  ).run()
 }
 
 describe('备份与恢复（BackupService）', () => {
@@ -154,6 +161,24 @@ describe('备份与恢复（BackupService）', () => {
     expect(dB.acceptedProblems).toBe(dA.acceptedProblems)
     expect(dB.totalProblemsInBank).toBe(dA.totalProblemsInBank)
     expect(dB.languageCounts).toEqual(dA.languageCounts)
+  })
+
+  it('v1 备份兼容：缺失 reviewSessionResults 字段可导入恢复（optional schema）', () => {
+    buildFullData(source)
+    const svcA = new BackupService(source)
+    const { json } = svcA.exportJson('1.2.0-test')
+    // 构造 v1 备份：删除 v1.2.1 新增字段
+    const envelope = JSON.parse(json) as { data: Record<string, unknown> }
+    delete envelope.data['reviewSessionResults']
+    const stripped = JSON.stringify(envelope)
+
+    const svcB = new BackupService(target)
+    const { envelope: parsed } = svcB.validate(stripped)
+    svcB.restore(parsed)
+    expect(new BackupRepository(target).counts().reviewSessionResults).toBe(0)
+    // 其余数据完整
+    expect(new BackupRepository(target).counts().reviewItems).toBe(1)
+    expect(new BackupRepository(target).counts().practiceSessions).toBe(1)
   })
 
   it('空数据库：备份 → 恢复到另一空库 → 一致（计数全零）', () => {

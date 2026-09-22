@@ -210,5 +210,76 @@ DELETE FROM review_items WHERE target_type='knowledge_point' AND target_id NOT I
 DELETE FROM practice_session_items WHERE problem_id NOT IN (SELECT id FROM problems);
 DELETE FROM mastery WHERE knowledge_point_id NOT IN (SELECT id FROM knowledge_points);
 `
+  },
+  {
+    // v1.2.1 深度审计修复（docs/V1_2_1_DEEP_AUDIT.md P0-C/P0-D）：
+    // 1) review_session_results：会话评分 exactly-once 记录（同一会话同一复习项至多一次有效评分）；
+    // 2) 触发器：problems / knowledge_points 删除时清理多态引用的 review_items（DB 层防线）；
+    // 3) review_history.submission_id / practice_session_items.first_accepted_submission_id
+    //    重建为 ON DELETE SET NULL（SQLite 不支持 ALTER COLUMN，复制法重建；悬挂引用先置 NULL）；
+    // 4) 历史孤儿兜底清理（幂等）。
+    // 注：内置内容稳定语义 ID 重写（P1）不在静态 SQL 中——它依赖 seed 文件内容，
+    //    由 learning-seed 的 migrateBuiltinContentIds 在启动步骤内以单事务执行。
+    version: 3,
+    name: 'review-exactly-once-and-integrity-v1.2.1',
+    sql: `
+CREATE TABLE review_session_results (
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  review_item_id TEXT NOT NULL REFERENCES review_items(id) ON DELETE CASCADE,
+  grade TEXT NOT NULL CHECK (grade IN ('again','hard','good','easy')),
+  submission_id TEXT,
+  graded_at INTEGER NOT NULL,
+  PRIMARY KEY (session_id, review_item_id)
+);
+
+CREATE TRIGGER IF NOT EXISTS trg_problems_delete_review_cleanup
+AFTER DELETE ON problems BEGIN
+  DELETE FROM review_items WHERE target_type = 'problem' AND target_id = OLD.id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_kp_delete_review_cleanup
+AFTER DELETE ON knowledge_points BEGIN
+  DELETE FROM review_items WHERE target_type = 'knowledge_point' AND target_id = OLD.id;
+END;
+
+CREATE TABLE review_history_v3 (
+  id TEXT PRIMARY KEY,
+  review_item_id TEXT NOT NULL REFERENCES review_items(id) ON DELETE CASCADE,
+  result TEXT NOT NULL CHECK (result IN ('again','hard','good','easy')),
+  reviewed_at INTEGER NOT NULL,
+  submission_id TEXT REFERENCES submissions(id) ON DELETE SET NULL
+);
+INSERT INTO review_history_v3 (id, review_item_id, result, reviewed_at, submission_id)
+  SELECT h.id, h.review_item_id, h.result, h.reviewed_at,
+         CASE WHEN s.id IS NULL THEN NULL ELSE h.submission_id END
+  FROM review_history h LEFT JOIN submissions s ON s.id = h.submission_id;
+DROP TABLE review_history;
+ALTER TABLE review_history_v3 RENAME TO review_history;
+CREATE INDEX idx_rh_item ON review_history(review_item_id, reviewed_at DESC);
+
+CREATE TABLE practice_session_items_v3 (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  problem_id TEXT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','accepted','failed','skipped')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  first_accepted_submission_id TEXT REFERENCES submissions(id) ON DELETE SET NULL,
+  first_result_at INTEGER
+);
+INSERT INTO practice_session_items_v3
+  (id, session_id, problem_id, sort_order, status, attempts, first_accepted_submission_id, first_result_at)
+  SELECT i.id, i.session_id, i.problem_id, i.sort_order, i.status, i.attempts,
+         CASE WHEN s.id IS NULL THEN NULL ELSE i.first_accepted_submission_id END,
+         i.first_result_at
+  FROM practice_session_items i LEFT JOIN submissions s ON s.id = i.first_accepted_submission_id;
+DROP TABLE practice_session_items;
+ALTER TABLE practice_session_items_v3 RENAME TO practice_session_items;
+CREATE INDEX idx_psi_session ON practice_session_items(session_id, sort_order);
+
+DELETE FROM review_items WHERE target_type='problem' AND target_id NOT IN (SELECT id FROM problems);
+DELETE FROM review_items WHERE target_type='knowledge_point' AND target_id NOT IN (SELECT id FROM knowledge_points);
+`
   }
 ]

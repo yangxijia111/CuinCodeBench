@@ -199,7 +199,10 @@ export function initServices(db: Database.Database): ServiceContext {
     history: new HistoryRepository(db),
     mistakes: new MistakeRepository(db),
     stats: new StatsRepository(db),
-    learning: new LearningService(db, { mastery: masteryRepo }),
+    // P1-B：路线页读掌握度走 effective 视图（45 天无活动 mastered → familiar）
+    learning: new LearningService(db, {
+      mastery: { get: (kpId: string) => masterySvc.getEffective(kpId) }
+    }),
     learningRepo: new LearningRepository(db),
     mastery: masteryRepo,
     masterySvc,

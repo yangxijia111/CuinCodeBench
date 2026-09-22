@@ -36,8 +36,11 @@ describe('PracticeSessionService（随机练习 + 专项训练）', () => {
     learning = new LearningRepository(db)
     svc = new PracticeSessionService(db)
     learning.ensureBuiltinPath({
+      seedVersion: 2,
       path: { slug: 'c-basics', title: 'C', description: '' },
-      stages: [{ title: 's', description: '', knowledgePoints: [{ name: '数组', description: '', tags: [] }] }],
+      stages: [
+        { slug: 's0', title: 's', description: '', knowledgePoints: [{ slug: 'array', name: '数组', description: '', tags: [] }] }
+      ],
       builtinProblemMap: {}
     })
   })
@@ -83,7 +86,7 @@ describe('PracticeSessionService（随机练习 + 专项训练）', () => {
 
     // weak：知识点 score=0（未算）→ 绑定的题
     const weakProblem = problems.create(makeProblem('weak-p'), true)
-    learning.bindProblem(weakProblem.id, 'kp:c-basics:0:0')
+    learning.bindProblem(weakProblem.id, 'kp:c-basics:array')
     const weakSession = svc.createRandomSession({ scope: 'weak', size: 50 }, NOW)
     expect(weakSession.items.map((i) => i.problemId)).toContain(weakProblem.id)
 
@@ -112,11 +115,11 @@ describe('PracticeSessionService（随机练习 + 专项训练）', () => {
   it('专项训练：知识点内组题；知识点不存在报错', () => {
     for (let i = 0; i < 3; i++) {
       const p = problems.create(makeProblem(`kp-p-${i}`), true)
-      learning.bindProblem(p.id, 'kp:c-basics:0:0')
+      learning.bindProblem(p.id, 'kp:c-basics:array')
     }
-    const s = svc.createKpSession('kp:c-basics:0:0', 2, NOW)
+    const s = svc.createKpSession('kp:c-basics:array', 2, NOW)
     expect(s.kind).toBe('knowledge_point')
-    expect(s.knowledgePointId).toBe('kp:c-basics:0:0')
+    expect(s.knowledgePointId).toBe('kp:c-basics:array')
     expect(s.items.length).toBe(2)
 
     expect(() => svc.createKpSession('kp:missing', 5, NOW)).toThrow(/不存在/)

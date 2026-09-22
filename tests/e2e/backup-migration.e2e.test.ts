@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { existsSync, rmSync, mkdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import Database from 'better-sqlite3'
-import { launchApp, e2eDataRoot, rmDirForce, hasPython } from './cdp-harness'
+import { afterAll } from 'vitest'
+import { launchApp, e2eDataRoot, rmDirForce, hasPython, findOrphanElectronProcesses } from './cdp-harness'
+
+// P1-D 全局断言：本文件全部用例结束后不允许遗留本项目 Electron 测试进程
+afterAll(() => {
+  const orphans = findOrphanElectronProcesses()
+  if (orphans.length > 0) {
+    throw new Error(`E2E 结束后存在遗留 Electron 进程: ${JSON.stringify(orphans)}`)
+  }
+})
 
 /**
  * 备份恢复闭环 E2E + Migration E2E（docs/V1_2_E2E_PLAN.md §4.2–4.3）。
@@ -14,7 +23,7 @@ const skip = process.env['CCB_SKIP_E2E'] === '1' || !existsSync(join(process.cwd
 describe.skipIf(skip)('E2E 备份恢复闭环', () => {
   it('导出 → 制造脏数据 → 导入恢复 → 全量替换', async () => {
     const dir = join(e2eDataRoot, `backup-${Date.now()}`)
-    rmDirForce(dir)
+    await rmDirForce(dir)
     mkdirSync(dir, { recursive: true })
     const backupPath = join(dir, 'backup.json')
     rmSync(backupPath, { force: true })
@@ -80,7 +89,7 @@ describe.skipIf(skip)('E2E 备份恢复闭环', () => {
       expect(countText).toBe(baseline)
     } finally {
       await s2.close()
-      rmDirForce(dir)
+      await rmDirForce(dir)
     }
   }, 240_000)
 })
@@ -88,7 +97,7 @@ describe.skipIf(skip)('E2E 备份恢复闭环', () => {
 describe.skipIf(skip)('E2E Migration（v1.1 → v1.2）', () => {
   it('v1 库自动升级：旧数据完整 + 学习路线灌入 + 旧题映射', async () => {
     const dir = join(e2eDataRoot, `migration-${Date.now()}`)
-    rmDirForce(dir)
+    await rmDirForce(dir)
     mkdirSync(dir, { recursive: true })
 
     // 手工构造 v1.1 schema 库
@@ -161,7 +170,7 @@ describe.skipIf(skip)('E2E Migration（v1.1 → v1.2）', () => {
       )
     } finally {
       await app.close()
-      rmDirForce(dir)
+      await rmDirForce(dir)
     }
   }, 180_000)
 })

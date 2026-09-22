@@ -2,6 +2,34 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格；版本号遵循语义化版本。
 
+## [1.2.1] — 2026-09-22
+
+深度正确性 / 架构 / 可靠性审计修复（完整报告见 V1_2_1_DEEP_AUDIT_REPORT.md，审计过程见 docs/V1_2_1_DEEP_AUDIT.md）。
+
+### Fixed（P0）
+- **连续学习天数恒为 1**：`computeStreak` 相邻日判断方向反了（DESC 序中 prev 恒新于 curr，`prev === prevDayNumber(curr)` 永假）——修正为日序号差判定；新增全套日历矩阵测试（今天/昨天/连续 3/7 天/断一天/跨月/跨年/闰年/DST 切换周）
+- **趋势图 DST 漂移**：`buildTrend` 用 `now - n*86400000` 毫秒算术冒充本地日历日（DST 周会跳日/重复、`since` 截断最旧日头部）——新建统一 `LocalCalendarDay` 工具（src/shared），streak/trend/今日统计全部走本地日历算术；「今天」口径改为注入时钟（不再依赖 SQL `DATE('now')`）
+- **学习路线 seed 失败后 marker 仍被标记**：`finally` 无条件 `markMarker` 使「下次启动重试」失效——重构为 `runLearningSeedStep`（成功才标记；文件缺失/损坏均真实重试），四种终态（seeded/missing/failed/marker 已存在）全覆盖测试
+- **Review Session 双计（exactly-once）**：同一会话重复 finish / 自动收尾后 UI 再完成 / 同知识点两题，都会把 interval 连推两级——migration v3 新增 `review_session_results`（(session_id, review_item_id) 主键），评分推进与登记同事务 `INSERT OR IGNORE`，重复调用幂等；同 KP 多题按 **again > hard > good > easy** 聚合为单一等级（规则入档）；取消会话为终态不再评分；review 会话收尾权威唯一化（reportResult 不再对 review 自动置 finished）
+- **复习项孤儿导致组题崩溃**：删除题目遗留多态引用的 review_items（无 FK 可用），`review.startSession` 会把已删题目塞进练习队列触发 FK 约束崩溃——DB 触发器（migration v3）+ 服务层清理双防线；`review_history.submission_id` / `practice_session_items.first_accepted_submission_id` 重建为 `ON DELETE SET NULL`；组题与今日概览过滤幽灵项
+
+### Changed（P1）
+- **内置内容稳定语义 ID**：stage/knowledgePoint 由位置型 id（`kp:c-basics:0:0`）迁移为语义 id（`kp:c-basics:io`）——seed v2（slug + seedVersion）；启动步骤单事务重写全部引用（mastery/review/mapping/practice_sessions）并带名称安全网（顺序错位即中止零副作用）；`ensureBuiltinPath` 改 upsert（改名/描述/tags/排序可迭代不破坏用户数据）；v1.2 备份导入后自动执行同一迁移
+- **掌握度时间衰减闭环**：45 天 mastered→familiar 此前只在重算时发生（时间流逝不改变物化缓存）——读路径统一 effective on read（`mastery.list`/Dashboard/学习路线），规则单源（`effectiveMasteryStatus` 纯函数，时钟可注入），不写库、不全库重算
+- **备份规模化**：readAll 五处 filter-inside-map 的 O(N²) 聚合全部改单次分组索引 O(N)（10000 提交/50000 明细全链路 < 2s，性能门禁入测）；导出改原子落盘（临时文件 + fsync + rename，失败/中途被杀不留半文件）；导入防调包校验由 mtime 升级为流式 SHA-256
+- **E2E 进程生命周期**：harness close 改为 CDP `Browser.close`（优雅退出）→ 等待 exit → `taskkill /T /F` 杀树兜底 → 诊断；临时目录删除失败不再静默（输出 PID/路径/持锁进程）；新增全局「无遗留本项目 Electron 进程」断言
+
+### Added
+- migration v3（review_session_results + 引用完整性触发器/重建；不改 v1/v2）
+- docs/V1_2_1_DEEP_AUDIT.md（逐项：现象/根因/复现/严重度/覆盖/修复设计/数据兼容）
+- docs/V1_2_1_JOB_OBJECT_STUDY.md（Windows 资源围栏可行性研究：竞态分析、Native Launcher 设计、测试矩阵、v1.3 立项条件；本版不实装）
+- 新增测试文件 6 个 / 用例 60+：日历工具与 streak 矩阵、seed marker 四态、review exactly-once（重复 finish×10/同 KP 两题/事务回滚重试/并发/取消终态/等级聚合）、引用完整性（触发器/SET NULL/孤儿过滤）、内置身份迁移（真实 v1.2 库全数据绑定断言/幂等/安全网/内容迭代）、mastery effective read、备份性能门禁与原子写/哈希
+
+### Known Limitations
+- 备份导入的 JSON.parse/Zod 校验仍在主进程同步执行（512MB 上限内可用，超大库的 UI 冻结风险记录在案；Backup v2 streaming 设计列入 v1.3）
+- v1.2 时期因 seed 损坏被误标 marker 的库不会自动重试（修复文件后可恢复备份触发，或重置数据目录）
+- Windows Runner 无内存/进程数上限（Job Object 见研究文档，v1.3 决策）
+
 ## [1.2.0] — 2026-09-22
 
 进行中：v1.2 学习体验升级（设计文档见 docs/V1_2_*.md）。

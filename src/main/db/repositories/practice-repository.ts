@@ -131,7 +131,12 @@ export class PracticeRepository {
     return rows.map((r) => this.toSession(r))
   }
 
-  /** 报告某题结果：更新会话内题目状态；会话内全部有结果时自动收尾 */
+  /**
+   * 报告某题结果：更新会话内题目状态；会话内全部有结果时自动收尾。
+   * v1.2.1（P0-C）：review 会话不在此自动收尾——收尾权威唯一化为
+   * ReviewService.finishSession（评分与 finished 标记同事务，exactly-once）；
+   * 其余 kind（random/knowledge_point/mistake）保持自动收尾。
+   */
   reportResult(
     sessionId: string,
     problemId: string,
@@ -158,7 +163,10 @@ export class PracticeRepository {
         .get(sessionId) as { c: number }
       if (pending.c === 0) {
         this.db
-          .prepare(`UPDATE practice_sessions SET status = 'finished', finished_at = ? WHERE id = ?`)
+          .prepare(
+            `UPDATE practice_sessions SET status = 'finished', finished_at = ?
+             WHERE id = ? AND kind != 'review'`
+          )
           .run(now, sessionId)
       }
     })

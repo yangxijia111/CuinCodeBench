@@ -8,6 +8,7 @@ import {
 } from '@shared/schemas'
 import { AppError } from '../lib/app-error'
 import { BackupRepository } from '../db/repositories/backup-repository'
+import { LOCAL_MARKER_KEYS } from '../db/repositories/settings-repository'
 
 /**
  * 备份服务（docs/V1_2_BACKUP_SPEC.md）：
@@ -148,6 +149,11 @@ export class BackupService {
     for (const h of data.reviewHistory) {
       add(!reviewItemIds.has(h.reviewItemId), `复习历史指向不存在的复习项 ${h.reviewItemId}`)
     }
+    const sessionIds = new Set(data.practiceSessions.map((s) => s.id))
+    for (const r of data.reviewSessionResults ?? []) {
+      add(!reviewItemIds.has(r.reviewItemId), `会话评分记录指向不存在的复习项 ${r.reviewItemId}`)
+      add(!sessionIds.has(r.sessionId), `会话评分记录指向不存在的会话 ${r.sessionId}`)
+    }
     for (const n of data.mistakeNotes) {
       add(!problemIds.has(n.problemId), `错题笔记指向不存在的题目 ${n.problemId}`)
     }
@@ -179,8 +185,9 @@ export class BackupService {
    */
   restore(envelope: BackupEnvelope): { counts: ReturnType<BackupRepository['counts']> } {
     const data = envelope.data
-    // 恢复前的本地标记键（seeded / learning_v2_mapped / seeded_v2 等），备份缺失时回写
-    const localMarkerKeys = ['seeded', 'learning_v2_mapped', 'seeded_v2']
+    // 恢复前的本地标记键（seeded / learning markers 等），备份缺失时回写
+    // （键清单集中于 SettingsRepository.LOCAL_MARKER_KEYS，新增 marker 须同步维护）
+    const localMarkerKeys: readonly string[] = LOCAL_MARKER_KEYS
     const localSettings: Record<string, string> = {}
     for (const r of this.repo.countsTable()) {
       localSettings[r.key] = r.value
