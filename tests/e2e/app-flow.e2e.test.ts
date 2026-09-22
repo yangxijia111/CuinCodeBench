@@ -188,9 +188,12 @@ describe('E2E 主流程', () => {
         // 复习作答通过（单题会话：此 AC 报告后自动收尾）
         await judge('a, b = map(int, input().split())\nprint(a + b)')
 
-        // 会话自动 finished → 复习页回到概览；错题复习项调度推进（good 首次 = 1 天后），今日归零
+        // 会话自动 finished → 复习页显示完成统计（或概览计数归零）；错题项调度推进（good 首次 = 1 天后）
         await ev(`location.hash = '#/review'`)
-        await wt(`document.querySelector('.review-count-num')?.textContent === '0'`, 20_000)
+        await app.waitFor(
+          `document.querySelector('.review-summary-stats') !== null || document.querySelector('.review-count-num')?.textContent === '0'`,
+          20_000
+        )
 
         // 数据层验证：会话 finished、复习历史 good、调度推进 1 天
         const db = new Database(join(app.dataDir, 'cuincodebench.db'), { readonly: true })
