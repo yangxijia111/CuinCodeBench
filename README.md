@@ -1,9 +1,9 @@
 # CuinCodeBench
 
-**面向编程学习者的本地代码练习、运行、自动判题与错题分析工具。** 单机版轻量 OJ + 错题本 + 练习统计，全部数据保存在本机。
+**面向编程学习者的本地代码练习、自动判题与个人编程学习系统。** 单机版轻量 OJ + 学习路线 + 知识点掌握度 + 间隔复习 + 错题复盘 + 完整备份，全部数据保存在本机。
 
 ![CI](https://github.com/yangxijia111/CuinCodeBench/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-1.1.0-2f81f7)
+![Version](https://img.shields.io/badge/version-1.2.0-2f81f7)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue)
 ![Tech](https://img.shields.io/badge/Electron%20%2B%20React%20%2B%20TypeScript-strict-3fb950)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -24,8 +24,14 @@
 - **自动判题**：逐用例对比 stdin → stdout，状态含 通过 / 答案错误 / 编译错误 / 运行时错误 / 超出时限 / 输出超限；输出归一化（CRLF、行尾空白、末尾换行）
 - **题库管理**：内置 10 道种子题目；新建 / 编辑 / 删除 / 搜索 / 标签与难度筛选 / JSON 导入导出（事务原子导入）
 - **学习记录**：完整提交历史（代码、语言、逐用例明细）、尝试次数、首次通过时间
-- **错题本**：失败 ≥ 2 次自动收录，错误类型分布、重新练习、标记已掌握
-- **统计面板**：正确率、连续练习天数、语言分布、常见错误类型、最近练习
+- **学习路线**：内置「C 基础」路线（6 阶段 15 知识点），题目与知识点多对多关联，阶段进度条与完成度一览
+- **知识点掌握度**：可解释规则模型（表现/覆盖/复习/连击四因子），五态状态，防刷分设计，不用 AI
+- **间隔复习**：错题与知识点自动进入复习循环，确定性阶梯调度（1→3→7→14→30→60 天），复习会话一键组题
+- **错题复盘**：错误历史时间线、首次/最近错误代码对比、错因笔记、学习错误分类（自动规则 + 手动归类）
+- **练习队列**：随机练习（难度/知识点/未做/错题/低掌握过滤）与专项训练（知识点一键组题），完成统计
+- **Dashboard 2.0**：今日练习/今日复习/连续天数、7 与 30 天趋势图（自研 SVG）、知识点掌握热力图
+- **完整备份**：一键导出/导入全部数据（题库、提交、错题、笔记、学习记录、设置），事务恢复，失败整体回滚
+- **题库管理**：内置 45 道种子题目（参考解经真实工具链验证）；新建/编辑/删除/搜索/标签与知识点筛选/JSON 导入导出（事务原子导入）
 
 ## 支持语言与工具链
 
@@ -89,7 +95,8 @@ docs/          # 开发文档（产品/需求/架构/数据/安全/测试/路线
 - 杀毒软件（如 Defender）可能拦截新编译的无签名 exe：应用会退避重试并给出明确报错，但无法绕过本机安全策略
 - 仅在 Windows 10/11 上开发与验证；其它平台未测试、不承诺
 - 构建未做代码签名（Release 说明中亦有声明）
-- 完整数据备份/恢复、Windows Job Object 资源限制规划于 v1.2（见 V1_1_HARDENING_PLAN.md「明确推迟」）
+- 判题为串行队列，无内存/CPU 限制（Windows Job Object 资源限制规划于 v1.3）
+- 备份文件包含全部代码与学习记录，请妥善保管，勿上传网络
 
 ## 文档
 
@@ -103,6 +110,13 @@ docs/          # 开发文档（产品/需求/架构/数据/安全/测试/路线
 | [TEST_PLAN.md](docs/TEST_PLAN.md) | 测试分层与覆盖要求 |
 | [ROADMAP.md](docs/ROADMAP.md) | P0–P7 阶段执行记录 |
 | [V1_1_HARDENING_PLAN.md](docs/V1_1_HARDENING_PLAN.md) | v1.1 加固计划与推迟项 |
+| [V1_2_PRODUCT.md](docs/V1_2_PRODUCT.md) | v1.2 产品定义与成功标准 |
+| [V1_2_LEARNING_MODEL.md](docs/V1_2_LEARNING_MODEL.md) | 学习体验领域模型与数据库设计 |
+| [V1_2_MASTERY_SPEC.md](docs/V1_2_MASTERY_SPEC.md) | 知识点掌握度规范（可解释规则） |
+| [V1_2_REVIEW_SPEC.md](docs/V1_2_REVIEW_SPEC.md) | 间隔复习调度算法规范 |
+| [V1_2_BACKUP_SPEC.md](docs/V1_2_BACKUP_SPEC.md) | 完整备份与恢复规范 |
+| [V1_2_E2E_PLAN.md](docs/V1_2_E2E_PLAN.md) | 端到端测试方案 |
+| [V1_2_ROADMAP.md](docs/V1_2_ROADMAP.md) | v1.2 阶段执行记录 |
 | [CHANGELOG.md](docs/CHANGELOG.md) | 变更日志 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 |
 

@@ -2,7 +2,7 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格；版本号遵循语义化版本。
 
-## [Unreleased] — v1.2.0 Learning Experience
+## [1.2.0] — 2026-09-22
 
 进行中：v1.2 学习体验升级（设计文档见 docs/V1_2_*.md）。
 
