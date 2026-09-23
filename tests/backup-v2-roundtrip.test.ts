@@ -7,8 +7,7 @@ import { exportBackupV2 } from '../src/main/backup/backup-v2-export'
 import { validateBackupV2 } from '../src/main/backup/backup-v2-import'
 import {
   BACKUP_V2_VERSION,
-  detectBackupFormat,
-  type V2RecordType
+  detectBackupFormat
 } from '../src/main/backup/backup-v2-format'
 import { makeProblemInput } from './helpers'
 import { ProblemRepository } from '../src/main/db/repositories/problem-repository'
@@ -109,7 +108,7 @@ describe('Backup v2 格式回环', () => {
     expect(checked.summary.counts.problem).toBe(5)
   })
 
-  it('原子落盘：无临时文件残留', async () => {
+  it('原子落盘：无临时文件残留', () => {
     const dir = tempDir()
     const dbFile = join(dir, 'cuincodebench.db')
     buildSampleDb(dbFile)
@@ -122,8 +121,7 @@ describe('Backup v2 格式回环', () => {
     expect(statSync(outPath).size).toBeGreaterThan(500)
   })
 
-  it('格式检测：v2 meta / v1 单 JSON / 无关文件显式区分', async () => {
-    const dir = tempDir()
+  it('格式检测：v2 meta / v1 单 JSON / 无关文件显式区分', () => {
     // v2：读首行足够
     expect(detectBackupFormat(Buffer.from('{"type":"meta","format":"cuincodebench.backup","version":2}\n'))).toEqual({ kind: 'v2' })
     // v1：单 JSON 信封

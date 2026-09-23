@@ -14,6 +14,7 @@ import { LEARNING_V2_MAPPED_KEY, LEARNING_SEED_V2_KEY } from './db/repositories/
 import { cleanLegacyTempDirs } from './runner/temp-dir'
 import { killAllActiveProcesses } from './runner/dispatch'
 import { configureLauncherContext } from './runner/resolve-launcher'
+import { recoverRestoreJournal } from './backup/restore-coordinator'
 import { isAllowedExternalUrl } from './lib/external-url'
 import { registerTrustedSender } from './ipc/validate-sender'
 
@@ -123,6 +124,9 @@ if (!gotLock) {
     })
 
     // 数据库与服务（数据目录：userData，或 CCB_DATA_DIR 覆盖）
+    // v1.3：恢复 journal 自愈必须先于 openDatabase（上次恢复中途崩溃的现场修复）
+    const recovered = recoverRestoreJournal(getDataDir())
+    if (recovered !== null) logger.warn('启动时完成恢复自愈', `phase=${recovered}`)
     const db = openDatabase({ dataDir: getDataDir() })
     const services = initServices(db)
 

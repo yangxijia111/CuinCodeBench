@@ -1,5 +1,5 @@
-import { app, dialog } from 'electron'
-import { existsSync, readFileSync } from 'fs'
+import { app, dialog, BrowserWindow } from 'electron'
+import { join } from 'path'
 import { z } from 'zod'
 import {
   problemQuerySchema,
@@ -7,18 +7,22 @@ import {
   judgeSubmitSchema,
   submissionQuerySchema,
   appSettingsPatchSchema,
-  backupJsonTextSchema,
   randomSessionConfigSchema
 } from '@shared/schemas'
 import type { AppSettings, ErrorCategory } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
 import { getServices } from '../services'
-import { BackupService, type BackupSummary } from '../services/backup-service'
 import type { ToolchainService } from '../services/toolchain-service'
 import type { JudgeService } from '../services/judge-service'
 import { logger } from '../lib/logger'
-import { sha256FileSync } from '../lib/file-hash'
-import { atomicWriteFileSync } from '../lib/atomic-write'
+import {
+  previewRestore,
+  confirmRestore,
+  cancelPendingRestore,
+  getRestoreStatus,
+  type RestoreDeps
+} from '../backup/restore-coordinator'
+import { startJob } from '../backup/backup-worker-client'
 import { LearningRepository } from '../db/repositories/learning-repository'
 import { resolveLearningSeedFile, loadLearningPathSeed, ensureLearningSeed } from '../learning/learning-seed'
 
@@ -184,29 +188,86 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     return undefined
   })
 
-  // —— 备份与恢复（docs/V1_2_BACKUP_SPEC.md §6）——
+  // —— 备份与恢复 v1.3（docs/V1_3_BACKUP_V2_SPEC.md §6）——
   // 路径只来自主进程 dialog，renderer 永远不传文件路径（纵深防御）；
-  // pendingImport 缓存在主进程内存，confirmRestore 时二次校验文件 mtime 防调包。
-  const backup = (): BackupService => new BackupService(svc().db)
+  // 导出 = v2 NDJSON 流式（worker，内存 O(batch)）；恢复 = staging 原子切换（v1/v2 双兼容）。
+  // pending 状态与 swap 编排集中在 RestoreCoordinator；进度经 backup.getRestoreStatus 轮询。
 
-  let pendingImport: { path: string; sha256: string; summary: BackupSummary } | null = null
+  const backupDeps = (): RestoreDeps => ({
+    dataDir: getDataDir(),
+    appVersion: app.getVersion(),
+    dbPath: join(getDataDir(), 'cuincodebench.db'),
+    onRestored: () => {
+      // 恢复后 renderer 全量重载（重新拉取所有业务数据）
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.reload()
+    },
+    postRestoreMigrate: () => {
+      // v1 备份可能携带位置型知识点 id：恢复后强制重跑 seed 迁移（幂等，见 v1.2.1 P1）
+      const seed = loadLearningPathSeed(
+        resolveLearningSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
+      )
+      if (seed !== null) ensureLearningSeed(new LearningRepository(getServices().db), seed)
+      else logger.warn('恢复后跳过内置内容 id 迁移：种子文件缺失', '')
+    }
+  })
+
+  /** v2 记录计数 → UI 展示键（与 v1 摘要同形，SettingsView 无需分叉） */
+  const displayCounts = (recordCounts: Record<string, number>): Record<string, number> => ({
+    problems: recordCounts['problem'] ?? 0,
+    submissions: recordCounts['submission'] ?? 0,
+    errorRecords: recordCounts['error_record'] ?? 0,
+    mistakeBook: recordCounts['mistake_book'] ?? 0,
+    mistakeNotes: recordCounts['mistake_note'] ?? 0,
+    mastery: recordCounts['mastery'] ?? 0,
+    reviewItems: recordCounts['review_item'] ?? 0,
+    reviewHistory: recordCounts['review_history'] ?? 0,
+    practiceSessions: recordCounts['practice_session'] ?? 0
+  })
+
+  let exporting = false
 
   handle('backup.export', noArgs, () => {
-    const { json, counts } = backup().exportJson(app.getVersion())
     const now = new Date()
     const pad = (n: number): string => String(n).padStart(2, '0')
     const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
     return dialog
       .showSaveDialog({
         title: '导出完整备份',
-        defaultPath: `CuinCodeBench-Backup-${stamp}.json`,
-        filters: [{ name: 'CuinCodeBench 备份', extensions: ['json'] }]
+        defaultPath: `CuinCodeBench-Backup-${stamp}.ccbbackup`,
+        filters: [
+          { name: 'CuinCodeBench 备份', extensions: ['ccbbackup'] },
+          { name: '全部文件', extensions: ['*'] }
+        ]
       })
-      .then((ret) => {
+      .then(async (ret) => {
         if (ret.canceled || ret.filePath === undefined) return { canceled: true as const }
-        // P1-C：原子导出（临时文件 + fsync + rename）——失败/中途被杀不留半文件
-        atomicWriteFileSync(ret.filePath, json)
-        return { canceled: false as const, path: ret.filePath, counts }
+        if (exporting) throw new AppError('busy', '已有导出正在进行，请稍候')
+        exporting = true
+        const job = startJob(
+          {
+            kind: 'export',
+            dbPath: join(getDataDir(), 'cuincodebench.db'),
+            outPath: ret.filePath,
+            appVersion: app.getVersion()
+          },
+          { onProgress: () => {} } // 进度经 backup.getRestoreStatus 轮询
+        )
+        return job.promise
+          .then((result) => {
+            if (result.export === undefined) throw new AppError('internal', '导出失败：未知结果')
+            const counts: Record<string, number> = {
+              ...displayCounts(result.export.counts),
+              total: Object.values(result.export.counts).reduce((n, v) => n + (v ?? 0), 0)
+            }
+            return {
+              canceled: false as const,
+              path: ret.filePath ?? '',
+              counts
+            }
+          })
+          .finally(() => {
+            exporting = false
+          })
       })
   })
 
@@ -214,78 +275,37 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     dialog
       .showOpenDialog({
         title: '导入完整备份',
-        filters: [{ name: 'CuinCodeBench 备份', extensions: ['json'] }, { name: '全部文件', extensions: ['*'] }],
+        filters: [
+          { name: 'CuinCodeBench 备份', extensions: ['ccbbackup', 'json'] },
+          { name: '全部文件', extensions: ['*'] }
+        ],
         properties: ['openFile']
       })
-      .then((ret) => {
+      .then(async (ret) => {
         if (ret.canceled || ret.filePaths.length === 0) return { canceled: true as const }
         const path = ret.filePaths[0] ?? ''
-        const text = readFileSync(path, 'utf-8')
-        const parsed = backupJsonTextSchema.parse(text)
-        const { summary } = backup().validate(parsed)
-        // 预览时计算全文 SHA-256（分块流式，内存恒定），确认时复验防调包（P1-C）
-        pendingImport = { path, sha256: sha256FileSync(path), summary }
+        const p = await previewRestore(path)
         return {
           canceled: false as const,
           fileName: path.replace(/\\/g, '/').split('/').pop() ?? path,
-          summary
+          summary: p.summary
         }
       })
       .catch((err: unknown) => {
-        pendingImport = null
-        // zod 校验失败（ZodError 带 issues 数组，与 ipc/index.ts 同一识别方式）
-        if (
-          err !== null &&
-          typeof err === 'object' &&
-          'issues' in err &&
-          Array.isArray(err.issues)
-        ) {
-          const issues = err.issues as { path: (string | number)[]; message: string }[]
-          const detail = issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')
-          throw new AppError('validation', `备份内容校验失败：${detail.slice(0, 500)}`)
-        }
+        cancelPendingRestore()
         throw err
       })
   )
 
-  handle('backup.confirmRestore', noArgs, () => {
-    const pending = pendingImport
-    if (pending === null) {
-      throw new AppError('validation', '没有待恢复的备份：请重新选择备份文件')
-    }
-    // 二次校验：文件仍在且未被替换（预览 → 确认之间防调包，SHA-256 全文校验）
-    if (!existsSync(pending.path)) {
-      pendingImport = null
-      throw new AppError('validation', '备份文件已不存在，请重新选择')
-    }
-    const digest = sha256FileSync(pending.path)
-    if (digest !== pending.sha256) {
-      pendingImport = null
-      throw new AppError('validation', '备份文件在确认前被修改，已取消恢复；请重新导入')
-    }
-    const { envelope, summary } = backup().validate(
-      backupJsonTextSchema.parse(readFileSync(pending.path, 'utf-8'))
-    )
-    const res = backup().restore(envelope)
-    // v1.2 备份携带位置型知识点 id：恢复后强制重跑 seed 步骤（绕过 marker——
-    // 本地 marker 可能因 LOCAL_MARKER_KEYS 保留而跳过，但库内 id 已被备份替换）；
-    // 备份本身已是 v1.2.1 语义 id 时迁移幂等零改动
-    try {
-      const seed = loadLearningPathSeed(
-        resolveLearningSeedFile(app.isPackaged, app.getAppPath(), process.resourcesPath)
-      )
-      if (seed !== null) ensureLearningSeed(new LearningRepository(svc().db), seed)
-      else logger.warn('恢复后跳过内置内容 id 迁移：种子文件缺失', '')
-    } catch (err) {
-      logger.error('恢复后的内置内容 id 迁移失败（下次启动重试）', err instanceof Error ? err.stack : String(err))
-    }
-    pendingImport = null
-    logger.info('备份恢复完成', `problems=${summary.counts.problems} submissions=${summary.counts.submissions}`)
-    return res
-  })
+  handle('backup.confirmRestore', noArgs, () => confirmRestore(backupDeps()))
 
   handle('backup.cancelImport', noArgs, () => {
-    pendingImport = null
+    cancelPendingRestore()
     return undefined
   })
+
+  handle('backup.getRestoreStatus', noArgs, () => ({
+    ...getRestoreStatus(),
+    exporting
+  }))
 }

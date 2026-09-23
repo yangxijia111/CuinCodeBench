@@ -3,6 +3,7 @@ import type { ZodTypeAny, z } from 'zod'
 import { logger } from '../lib/logger'
 import { AppError } from '../lib/app-error'
 import { validateIpcSender } from './validate-sender'
+import { checkMaintenanceAllowed } from '../backup/restore-coordinator'
 
 /**
  * IPC 层：薄封装——sender 校验 + zod 校验入参 → 调用 service → 统一错误信封。
@@ -26,6 +27,8 @@ export function handle<S extends ZodTypeAny, R>(
       return { ok: false, code: 'forbidden', message: '拒绝来自不可信来源的请求' } as const
     }
     try {
+      // v1.3：恢复（staging swap）期间拒绝业务 IPC，防止换库窗口期写入（docs/V1_3_BACKUP_V2_SPEC §5）
+      checkMaintenanceAllowed(channel)
       const parsed = schema.parse(rawArgs.length === 1 ? rawArgs[0] : rawArgs)
       const data = await fn(parsed)
       return { ok: true, data } as const

@@ -14,6 +14,22 @@ export function SettingsView(): React.JSX.Element {
   const [detecting, setDetecting] = useState(false)
   const [toolchains, setToolchains] = useState<Toolchain[] | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
+  const [backupPhase, setBackupPhase] = useState<string>('')
+
+  /** 导出/恢复进行中轮询主进程状态（100ms 节流由主进程保证），展示阶段文案 */
+  useEffect(() => {
+    if (!backupBusy) return
+    const timer = setInterval(() => {
+      void unwrap(window.api.getBackupStatus()).then((st) => {
+        if (st.restoring) {
+          setBackupPhase(st.phase === 'staging' ? '正在写入临时数据库…' : st.phase === 'swap' ? '正在切换数据库…' : st.phase === 'reopen' ? '正在重新加载数据…' : '处理中…')
+        } else if (st.exporting) {
+          setBackupPhase('正在导出…')
+        }
+      }).catch(() => {})
+    }, 200)
+    return () => clearInterval(timer)
+  }, [backupBusy])
 
   function fmtTime(ts: number): string {
     return new Date(ts).toLocaleString()
@@ -253,6 +269,7 @@ export function SettingsView(): React.JSX.Element {
             {backupBusy ? '处理中…' : '导入备份（恢复）'}
           </button>
         </div>
+        {backupBusy && backupPhase !== '' && <p className="backup-phase">{backupPhase}</p>}
         <p className="settings-note privacy-note">
           🔒 备份包含你的全部代码与学习记录，属于<b>本地私人数据</b>，请妥善保管，不要上传到网络或发送给他人。
           CuinCodeBench 不会联网上传、同步或发送任何数据。

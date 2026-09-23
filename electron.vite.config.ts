@@ -12,7 +12,12 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        input: { index: resolve(__dirname, 'src/main/index.ts') }
+        // backup-worker：worker_threads 独立入口（备份导出/导入/staging 在 worker 执行，
+        // 主进程零大对象；docs/V1_3_BACKUP_V2_SPEC.md §4）
+        input: {
+          index: resolve(__dirname, 'src/main/index.ts'),
+          'backup-worker': resolve(__dirname, 'src/main/backup/backup-worker.ts')
+        }
       }
     }
   },

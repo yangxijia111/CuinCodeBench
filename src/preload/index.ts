@@ -75,7 +75,8 @@ const api: AppApi = {
   exportBackup: () => invoke('backup.export'),
   importBackupPreview: () => invoke('backup.importPreview'),
   confirmBackupRestore: () => invoke('backup.confirmRestore'),
-  cancelBackupImport: () => invoke('backup.cancelImport')
+  cancelBackupImport: () => invoke('backup.cancelImport'),
+  getBackupStatus: () => invoke('backup.getRestoreStatus')
 }
 
 contextBridge.exposeInMainWorld('api', api)

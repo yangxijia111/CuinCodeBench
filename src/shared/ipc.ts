@@ -200,6 +200,16 @@ export interface AppApi {
   >
   confirmBackupRestore(): Promise<IpcResult<{ counts: Record<string, number> }>>
   cancelBackupImport(): Promise<IpcResult<void>>
+  /** v1.3：导出/恢复进度轮询（恢复期间业务 IPC 被 gate，此通道放行） */
+  getBackupStatus(): Promise<
+    IpcResult<{
+      exporting: boolean
+      restoring: boolean
+      phase: string
+      processed: number
+      total: number
+    }>
+  >
 }
 
 /** 用于 UI 分组的难度元数据 */

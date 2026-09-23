@@ -74,8 +74,11 @@ describe.skipIf(skip)('E2E 备份恢复闭环', () => {
       await page.evaluate(`window.confirm = () => true; window.alert = () => undefined`)
       await page.evaluate(`document.querySelector('a[href="#/settings"]')?.click()`)
       await page.waitFor(`[...document.querySelectorAll('button')].some(b => b.textContent.includes('导入备份'))`)
+      // v1.3：恢复为 worker staging + 原子 swap，完成后 reload——用 window 标记作为
+      // reload 完成的确定性信号（标记随页面卸载消失），消除与断言的竞态
+      await page.evaluate(`window.__ccbPreRestore = '1'`)
       await page.evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('导入备份')).click()`)
-      // 恢复完成后 UI reload；等题库重新渲染
+      await page.waitFor(`window.__ccbPreRestore === undefined`, 90_000)
       // 恢复完成 reload 后 hash 保留在设置页，先导航回题库再断言
       await page.evaluate(`location.hash = '#/problems'`)
       await page.waitFor(`document.querySelector('.problem-item') !== null`, 30_000)
