@@ -42,3 +42,6 @@ desktop.ini
 
 # E2E 运行时数据目录
 .e2e-data/
+
+# v1.3 native launcher（源码入库 native/ccb-launcher/，产物不入库）
+native/bin/
