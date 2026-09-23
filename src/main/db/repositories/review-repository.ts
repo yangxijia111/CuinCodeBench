@@ -81,7 +81,16 @@ export class ReviewRepository {
   }
 
   /** 评分落库：更新调度状态 + 追加历史（同一事务） */
-  applyGrade(itemId: string, grade: ReviewGrade, next: { intervalDays: number; successStreak: number; nextReviewAt: number }, now: number, submissionId: string | null): void {
+  /** v1.3：lastReviewedAt 可与 now 分离——复习调度走单调学习时间线（时钟回拨防护，
+   *  effectiveNow），review_history 保持墙钟记录语义（docs/V1_3_CLOCK_ROLLBACK_SPEC §5） */
+  applyGrade(
+    itemId: string,
+    grade: ReviewGrade,
+    next: { intervalDays: number; successStreak: number; nextReviewAt: number },
+    now: number,
+    submissionId: string | null,
+    lastReviewedAt: number = now
+  ): void {
     const tx = this.db.transaction(() => {
       const isAgain = grade === 'again'
       this.db
@@ -90,7 +99,7 @@ export class ReviewRepository {
              success_streak = ?, failure_count = failure_count + ?, interval_days = ?
            WHERE id = ?`
         )
-        .run(now, next.nextReviewAt, next.successStreak, isAgain ? 1 : 0, next.intervalDays, itemId)
+        .run(lastReviewedAt, next.nextReviewAt, next.successStreak, isAgain ? 1 : 0, next.intervalDays, itemId)
       this.db
         .prepare(
           `INSERT INTO review_history (id, review_item_id, result, reviewed_at, submission_id) VALUES (?, ?, ?, ?, ?)`

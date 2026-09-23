@@ -15,13 +15,18 @@ export const MASTERY_STALE_MS = MASTERY_STALE_DAYS * 86_400_000
 /**
  * mastered 且超过 STALE 天无活动 → familiar（score 不变，仅状态降级）。
  * lastActivityAt 为 null（无活动记录）时不降级——与 computeMastery 的 stale 判定一致。
+ *
+ * v1.3 时钟回拨防护（docs/V1_3_CLOCK_ROLLBACK_SPEC.md §3）：
+ * elapsed 以 max(0, now - lastActivityAt) 钳制——系统时间回拨使 now < lastActivityAt 时
+ * 视为 0（学习时间线上活动依旧「新鲜」），回拨不得凭空制造衰减。
  */
 export function effectiveMasteryStatus(
   status: MasteryStatus,
   lastActivityAt: number | null,
   now: number
 ): MasteryStatus {
-  if (status === 'mastered' && lastActivityAt !== null && now - lastActivityAt > MASTERY_STALE_MS) {
+  const elapsed = Math.max(0, now - (lastActivityAt ?? now))
+  if (status === 'mastered' && lastActivityAt !== null && elapsed > MASTERY_STALE_MS) {
     return 'familiar'
   }
   return status

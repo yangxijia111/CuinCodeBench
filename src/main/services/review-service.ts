@@ -4,7 +4,7 @@ import { ReviewRepository } from '../db/repositories/review-repository'
 import { PracticeRepository } from '../db/repositories/practice-repository'
 import { MasteryRepository } from '../db/repositories/mastery-repository'
 import { LearningRepository } from '../db/repositories/learning-repository'
-import { nextSchedule } from '../review/review-scheduler'
+import { nextSchedule, effectiveNowForScheduling } from '../review/review-scheduler'
 import { MISTAKE_THRESHOLD } from '@shared/constants'
 
 /**
@@ -283,8 +283,11 @@ export class ReviewService {
         const submissionId =
           session.items.find((i) => i.problemId === problemId)?.firstAcceptedSubmissionId ?? null
         if (!this.reviews.recordSessionResult(sessionId, problemItem.id, grade, submissionId, now)) continue
-        const next = nextSchedule(problemItem, grade, now)
-        this.reviews.applyGrade(problemItem.id, grade, next, now, submissionId)
+        // v1.3：调度用 effectiveNow（时钟回拨防护，docs/V1_3_CLOCK_ROLLBACK_SPEC §2）；
+        // 评分记录/历史的 gradedAt 仍记真实 now（墙钟事件语义）
+        const scheduleNow = effectiveNowForScheduling(now, problemItem.lastReviewedAt ?? problemItem.createdAt)
+        const next = nextSchedule(problemItem, grade, scheduleNow)
+        this.reviews.applyGrade(problemItem.id, grade, next, now, submissionId, scheduleNow)
         nextReviewAt[problemId] = next.nextReviewAt
         graded++
       }
@@ -292,8 +295,9 @@ export class ReviewService {
         const kpItem = this.reviews.getByTarget('knowledge_point', kpId)
         if (kpItem === null) continue
         if (!this.reviews.recordSessionResult(sessionId, kpItem.id, grade, null, now)) continue
-        const next = nextSchedule(kpItem, grade, now)
-        this.reviews.applyGrade(kpItem.id, grade, next, now, null)
+        const scheduleNow = effectiveNowForScheduling(now, kpItem.lastReviewedAt ?? kpItem.createdAt)
+        const next = nextSchedule(kpItem, grade, scheduleNow)
+        this.reviews.applyGrade(kpItem.id, grade, next, now, null, scheduleNow)
         nextReviewAt[kpId] = next.nextReviewAt
         graded++
       }

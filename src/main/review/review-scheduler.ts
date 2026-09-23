@@ -50,3 +50,16 @@ export function nextSchedule(current: ScheduleState, grade: ReviewGrade, now: nu
     }
   }
 }
+
+/**
+ * 时钟回拨防护（v1.3 P8，docs/V1_3_CLOCK_ROLLBACK_SPEC.md §2）：
+ * 调度推进用 effectiveNow = max(now, 上次活动时间)。学习时间线单调——
+ * 系统时间回拨不得使 nextReviewAt 早于 lastReviewedAt（不变量 I1），
+ * 也不得制造负 interval（I2）或重置计数（I3，计数与时间无关）。
+ * 墙钟展示（streak/日历/今日到期）不受此函数影响，仍用真实 now。
+ */
+export function effectiveNowForScheduling(now: number, lastActivityAt: number | null | undefined): number {
+  return lastActivityAt !== null && lastActivityAt !== undefined && lastActivityAt > now
+    ? lastActivityAt
+    : now
+}
