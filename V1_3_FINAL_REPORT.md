@@ -206,11 +206,16 @@ journal swap-start/swapped 自愈、非 SQLite 库、残留清理边界、恢复
 
 ## 20. Release
 
-- commit：见 §24；tag：v1.3.0
-- 资产：CuinCodeBench-Setup-1.3.0.exe / CuinCodeBench-1.3.0-win-x64.zip
-  （两者均含 `resources/bin/ccb-launcher.exe`，release workflow smoke 断言 +
-  本地 dist:dir 实测）
+- tag：v1.3.0（指向 77c9f5e，与 main HEAD 一致）
+- 资产（Release workflow 实际上传）：
+  - `CuinCodeBench-Setup-1.3.0.exe`（123,366,666 B）
+  - `CuinCodeBench-1.3.0-win-x64.zip`（169,305,942 B）
+- **实际下载/解包验证**：zip 下载解包得 `resources/bin/ccb-launcher.exe`
+  （235,008 B，CI/MSVC 构建）；Setup exe 下载后 7za 列表同条目存在——两个包均含 launcher ✅
 - Release URL：https://github.com/yangxijia111/CuinCodeBench/releases/tag/v1.3.0
+- Release 过程记录：第一/二次 run 失败于打包 smoke（runner 预装 GUI 7-Zip 对
+  NSIS 容器列表行为与本地 7za 不一致）；修正为 workflow 内安装 7zip-bin 的
+  确定 7za 版本后第三次 run 全绿（35821260312）。
 
 ## 21. 敏感信息扫描（P22）
 
@@ -219,6 +224,9 @@ API key/token/private key；无个人绝对路径入库；`native/bin/`（构建
 
 ## 22. Known Limitations
 
+0. **CI 环境时区敏感类**：本轮发现并修复 v1.2 遗留的「SQL localtime vs 进程 TZ」
+   日键分裂（Dashboard）与两处测试的跨午夜假设—— CI 在纽约 20:00–24:00 /
+   00:00–01:00 运行时曾暴露；现已单源 LocalCalendarDay + 锚定日界，无时钟假设。
 1. **launcher 未签名**：SmartScreen/杀软可能对 ccb-launcher.exe 提示或实时扫描
    （首次执行开销 ~100ms 级）；签名链路待有证书后统一处理（随主程序）。
 2. **无 CPU 限频**：JOB_OBJECT_RATE_CONTROL 未启用（v1.4 候选）；内存/进程数/超时已覆盖。
@@ -239,7 +247,7 @@ API key/token/private key；无个人绝对路径入库；`native/bin/`（构建
 
 ## 24. Git / CI 证据
 
-- 基线：08412a2（v1.2.1）→ 交付 HEAD：本报告附 commit hash
+- 基线：08412a2（v1.2.1）→ 交付 HEAD / tag：77c9f5e（v1.3.0）
 - 提交链（9 commits）：
   - 7985c29 fix(settings): 设置页不再被工具链探测阻塞（基线修复）
   - c13be65 docs(v1.3): 全套设计文档
@@ -250,6 +258,10 @@ API key/token/private key；无个人绝对路径入库；`native/bin/`（构建
   - ec4e0c6 feat(P9): 性能门槛/取消/失败注入 + launcher 延迟修复
   - cca36c7 chore(P10): 版本 1.3.0 + 文档
   - 04773cc fix(P19): stale ServiceContext 闭包
+  - c776e91 fix(P19): Dashboard 趋势/streak 日键统一收敛 LocalCalendarDay
+    （SQL 'localtime' 与进程 TZ 分裂的 v1.2 遗留缺陷，CI 纽约 23:37 触发暴露）
+  - 15ca66c / 6560401 fix: 对拍与 dashboard 测试的时区/跨午夜环境假设修正
+  - 77c9f5e fix: Release smoke 改用 7zip-bin 7za（NSIS 列表行为确定性）
 - 本地门禁（v1.3.0 HEAD）：npm ci ✓ / lint ✓ / typecheck ✓ / test 423+4 ✓ /
   build ✓ / E2E 8/8 ✓ / dist:dir + launcher ✓ / 打包态判题 smoke ✓
 
