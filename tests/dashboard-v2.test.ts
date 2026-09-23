@@ -5,6 +5,7 @@ import { ProblemRepository } from '../src/main/db/repositories/problem-repositor
 import { HistoryRepository } from '../src/main/db/repositories/history-repository'
 import { StatsRepository } from '../src/main/db/repositories/stats-repository'
 import { LearningRepository } from '../src/main/db/repositories/learning-repository'
+import { localDayStartMs, toLocalDayKey } from '../src/shared/local-calendar-day'
 import { makeProblemInput } from './helpers'
 
 /**
@@ -78,6 +79,9 @@ describe('Dashboard 2.0（stats.getDashboardV2）', () => {
 
   it('复习评分与到期计数正确', () => {
     const now = Date.now()
+    // 两条评分都锚定「今天本地 00:00:01」之后：now-1h 在午夜后运行会落到昨天
+    // （CI 曾在纽约 00:01 触发跨日假失败）
+    const todayEarly = localDayStartMs(toLocalDayKey(now)) + 1000
     db
       .prepare(
         `INSERT INTO review_items (id, target_type, target_id, next_review_at, created_at)
@@ -90,7 +94,7 @@ describe('Dashboard 2.0（stats.getDashboardV2）', () => {
          VALUES ('ri-future', 'knowledge_point', 'kp1', ?, ?)`
       )
       .run(now + DAY, now)
-    // 今日复习评分 ×2（一次今天时间戳）
+    // 今日复习评分 ×2（均在今天本地日界内）
     db
       .prepare(
         `INSERT INTO review_history (id, review_item_id, result, reviewed_at, submission_id)
@@ -102,7 +106,7 @@ describe('Dashboard 2.0（stats.getDashboardV2）', () => {
         `INSERT INTO review_history (id, review_item_id, result, reviewed_at, submission_id)
          VALUES ('rh2', 'ri-due', 'again', ?, NULL)`
       )
-      .run(now - 3600_000)
+      .run(todayEarly)
 
     const d = stats.getDashboardV2(now)
     expect(d.dueReviewCount).toBe(1)
