@@ -134,15 +134,18 @@ export class StatsRepository {
    * now 注入（UTC ms）；相邻判断用本地日序号差 = 1（Date.UTC 编码，跨月/跨年/闰年正确，与 DST 无关）。
    */
   computeStreak(now: number = Date.now()): number {
+    // 日键单源 LocalCalendarDay（JS 计算）：SQLite 的 'localtime' 取 OS 时区，
+    // 与进程 TZ（如 CI 注入 TZ=America/New_York）可能不一致——纽约 20:00–24:00
+    // 两者日期分裂曾致 CI 假失败（v1.3 P19 审计修复）
     const rows = this.db
-      .prepare(
-        `SELECT DISTINCT DATE(created_at / 1000, 'unixepoch', 'localtime') AS day
-         FROM submissions ORDER BY day DESC`
-      )
-      .all() as { day: string }[]
+      .prepare('SELECT DISTINCT created_at FROM submissions')
+      .all() as { created_at: number }[]
     if (rows.length === 0) return 0
 
-    const serials = rows.map((r) => localDaySerial(r.day))
+    const dayKeys = new Set(rows.map((r) => toLocalDayKey(r.created_at)))
+    const serials = [...dayKeys]
+      .map((day) => localDaySerial(day))
+      .sort((a, b) => b - a)
     // DESC 序：serials[0] 最新。最新提交须是今天或昨天，否则连续已中断记 0
     const todaySerial = localDaySerial(toLocalDayKey(now))
     if (serials[0] !== todaySerial && serials[0] !== todaySerial - 1) return 0
@@ -221,22 +224,36 @@ export class StatsRepository {
     // since 取最旧一天的本地 00:00（日历边界，非 ms 减法——DST 周本地日长可为 23/25h）
     const since = localDayStartMs(keys[0] ?? toLocalDayKey(now))
 
+    // 区间上界：最新一天的下一天本地 00:00（SQL 只做区间过滤，日键在 JS 侧用
+    // LocalCalendarDay 生成——单源口径，见 computeStreak 注释）
+    const until = nextLocalDayStartMs(keys[keys.length - 1] ?? toLocalDayKey(now))
     const subRows = this.db
       .prepare(
-        `SELECT DATE(created_at / 1000, 'unixepoch', 'localtime') AS day, COUNT(*) AS c,
-                SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) AS acc
-         FROM submissions WHERE created_at >= ? GROUP BY day`
+        `SELECT created_at, CASE WHEN status = 'accepted' THEN 1 ELSE 0 END AS acc
+         FROM submissions WHERE created_at >= ? AND created_at < ?`
       )
-      .all(since) as { day: string; c: number; acc: number | null }[]
+      .all(since, until) as { created_at: number; acc: number }[]
     const reviewRows = this.db
-      .prepare(
-        `SELECT DATE(reviewed_at / 1000, 'unixepoch', 'localtime') AS day, COUNT(*) AS c
-         FROM review_history WHERE reviewed_at >= ? GROUP BY day`
-      )
-      .all(since) as { day: string; c: number }[]
+      .prepare('SELECT reviewed_at FROM review_history WHERE reviewed_at >= ? AND reviewed_at < ?')
+      .all(since, until) as { reviewed_at: number }[]
 
-    const subMap = new Map(subRows.map((r) => [r.day, r]))
-    const reviewMap = new Map(reviewRows.map((r) => [r.day, r.c]))
+    interface SubAgg {
+      c: number
+      acc: number
+    }
+    const subMap = new Map<string, SubAgg>()
+    for (const r of subRows) {
+      const key = toLocalDayKey(r.created_at)
+      const agg = subMap.get(key) ?? { c: 0, acc: 0 }
+      agg.c += 1
+      agg.acc += r.acc
+      subMap.set(key, agg)
+    }
+    const reviewMap = new Map<string, number>()
+    for (const r of reviewRows) {
+      const key = toLocalDayKey(r.reviewed_at)
+      reviewMap.set(key, (reviewMap.get(key) ?? 0) + 1)
+    }
 
     return keys.map((key) => {
       const sub = subMap.get(key)
