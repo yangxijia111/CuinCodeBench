@@ -82,19 +82,26 @@ export function SettingsView(): React.JSX.Element {
 
   useEffect(() => {
     let alive = true
+    // 快速数据（设置 + 数据目录）：纯 IPC 读，决定整页是否可渲染
     void (async () => {
       try {
-        const [s, info, tc] = await Promise.all([
-          unwrap(window.api.getSettings()),
-          unwrap(window.api.getAppInfo()),
-          unwrap(window.api.detectToolchains(false))
-        ])
+        const [s, info] = await Promise.all([unwrap(window.api.getSettings()), unwrap(window.api.getAppInfo())])
         if (!alive) return
         setSettings(s)
         setDataDir(info.dataDir)
-        setToolchains(tc)
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : String(e))
+      }
+    })()
+    // 慢速数据（工具链探测）：MSVC vcvars 解析可能长达数十秒，独立加载，
+    // 不阻塞页面渲染（期间工具链区域显示「检测中…」）
+    void (async () => {
+      try {
+        const tc = await unwrap(window.api.detectToolchains(false))
+        if (alive) setToolchains(tc)
+      } catch {
+        // 探测失败按「未检测到」呈现，用户可手动重新检测
+        if (alive) setToolchains([])
       }
     })()
     return () => {
@@ -189,7 +196,9 @@ export function SettingsView(): React.JSX.Element {
       <section className="settings-section">
         <h3>工具链</h3>
         <div className="toolchain-list">
-          {toolchains !== null && toolchains.length > 0 ? (
+          {toolchains === null ? (
+            <div className="empty-hint small">正在检测可用工具链…（首次检测可能需要较长时间）</div>
+          ) : toolchains.length > 0 ? (
             toolchains.map((t) => (
               <div key={t.id} className="toolchain-item">
                 <span className="lang-chip">{t.kind}</span>
