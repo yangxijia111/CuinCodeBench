@@ -146,7 +146,9 @@ if (!gotLock) {
     }
 
     // 工具链与判题服务
-    const toolchains = new ToolchainService(() => services.settings.get().manualToolchains)
+    // 经 getServices() 取设置：Backup 恢复会整体换库重开服务（reopenServices），
+    // 闭包捕获初始 ctx 会读到已关闭的旧库连接（stale DB connection 审计项）
+    const toolchains = new ToolchainService(() => getServices().settings.get().manualToolchains)
     const judge = new JudgeService(toolchains, () => getServices())
 
     // v1.2：内置学习路线 + 旧题知识点映射（一次性幂等；失败不阻塞启动）
