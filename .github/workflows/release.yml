@@ -49,16 +49,19 @@ jobs:
       - name: Package smoke：安装器与便携包必须携带 launcher
         shell: pwsh
         run: |
+          # 用 7zip-bin 的 7za（版本确定；runner 预装 GUI 7-Zip 对 NSIS 容器的
+          # 列表支持不一致，曾致 smoke 假失败）
+          npm i --no-save 7zip-bin
+          $sevenza = Join-Path (Get-Location) 'node_modules/7zip-bin/win/x64/7za.exe'
+          if (-not (Test-Path $sevenza)) { throw "7za 不存在: $sevenza" }
           $found = @()
           $zip = Get-ChildItem dist/CuinCodeBench-*-win-x64.zip | Select-Object -First 1
-          Add-Type -AssemblyName System.IO.Compression.FileSystem
-          $entries = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName).Entries |
-            Where-Object { $_.FullName -like '*ccb-launcher.exe' }
-          if ($entries.Count -eq 0) { throw "便携 zip 缺少 ccb-launcher.exe: $($zip.FullName)" }
-          $found += "zip: $($entries.FullName)"
+          $zipListing = & $sevenza l $zip.FullName | Select-String 'ccb-launcher\.exe'
+          if ($null -eq $zipListing) { throw "便携 zip 缺少 ccb-launcher.exe: $($zip.FullName)" }
+          $found += "zip: $($zipListing[0].ToString().Trim())"
           # NSIS：安装器本体即 7z 容器，直接列内容断言 launcher（本地实测通过）
           $exe = Get-ChildItem dist/CuinCodeBench-Setup-*.exe | Select-Object -First 1
-          $listing = & "C:\Program Files\7-Zip\7z.exe" l $exe.FullName | Select-String 'ccb-launcher\.exe'
+          $listing = & $sevenza l $exe.FullName | Select-String 'ccb-launcher\.exe'
           if ($null -eq $listing) { throw "NSIS 安装包缺少 ccb-launcher.exe: $($exe.FullName)" }
           $found += "nsis: $($listing[0].ToString().Trim())"
           Write-Host "launcher 打包验证通过: $found"
