@@ -37,16 +37,20 @@ export function isWorkerAvailable(): boolean {
 export function startJob(job: BackupJob, opts: RunJobOptions = {}): RunningJob {
   const script = workerScriptPath()
   if (script === null) {
-    // inline 降级：同一 runJob 在当前线程执行（测试/异常环境）
+    // inline 降级：同一 runJob 在当前线程执行（测试/异常环境）。
+    // 先 yield 一拍再执行：与 worker 的异步启动语义一致，否则同步执行会
+    // 在调用方拿到 RunningJob 之前跑完，cancel() 永远迟到
     let cancelled = false
-    const promise = runJob(job, (msg) => opts.onProgress?.(msg), () => cancelled).catch(
-      (err: unknown) => {
-        if (cancelled) {
-          throw new AppError('cancelled', '操作已取消')
-        }
-        throw err instanceof Error ? err : new Error(String(err))
+    const promise = new Promise<BackupJobResult>((resolveJob, rejectJob) => {
+      setImmediate(() => {
+        runJob(job, (msg) => opts.onProgress?.(msg), () => cancelled).then(resolveJob, rejectJob)
+      })
+    }).catch((err: unknown) => {
+      if (cancelled) {
+        throw new AppError('cancelled', '操作已取消')
       }
-    )
+      throw err instanceof Error ? err : new Error(String(err))
+    })
     return { promise, cancel: () => { cancelled = true } }
   }
 

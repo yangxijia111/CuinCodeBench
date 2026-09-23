@@ -25,8 +25,8 @@ export function configureLauncherContext(ctx: LauncherContext): void {
   context = ctx
 }
 
-/** 测试注入专用：强制 launcher 路径或禁用（null） */
-export function overrideLauncherPath(path: string | null): void {
+/** 测试注入专用：强制 launcher 路径 / 禁用（null）/ 恢复常规解析（undefined） */
+export function overrideLauncherPath(path: string | null | undefined): void {
   override = path
 }
 

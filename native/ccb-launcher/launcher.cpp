@@ -708,9 +708,11 @@ static void StreamThread(HANDLE readEnd, uint8_t frameType, RunState& st) {
 }
 
 static void PollThread(RunState& st) {
+  // 20ms 粒度：进程数峰值证据足够；间隔过长会在收尾 join 时引入同量级延迟
+  // （pollDone 置位后仍需等完当前 Sleep——实测 200ms 粒度即 200ms 级退出延迟）
   while (!st.pollDone.load()) {
     NoteProcessCount(st);
-    Sleep(200);
+    Sleep(20);
   }
   NoteProcessCount(st);
 }
@@ -718,7 +720,16 @@ static void PollThread(RunState& st) {
 // ============================================================
 // main
 // ============================================================
+static int dbg(const char* tag, ULONGLONG t0) {
+  if (GetEnvironmentVariableA("CCB_DEBUG_TIMING", nullptr, 0) == 0) return 0;
+  char buf[128];
+  sprintf_s(buf, "[launcher-timing] %s: %llu ms\n", tag, (unsigned long long)(GetTickCount64() - t0));
+  fprintf(stderr, "%s", buf);
+  return 0;
+}
+
 int wmain() {
+  const ULONGLONG T0 = GetTickCount64();
   g_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
   // 1) 首帧 REQ（严格一帧，≤16KB）
@@ -748,7 +759,9 @@ int wmain() {
 
   // 3) CREATE_SUSPENDED 创建（白名单句柄）
   ULONGLONG startedAt = GetTickCount64();
+  dbg("req-parsed", T0);
   CreateChildSuspended(req, c);
+  dbg("child-created", T0);
 
   // 4) Resume 前入 Job（无竞态核心：子进程首条指令前已在 Job 内）→ Resume
   if (!AssignProcessToJobObject(c.job, c.process)) {
@@ -766,6 +779,7 @@ int wmain() {
     FatalError("resume_thread_failed", "ResumeThread failed", err, EXIT_FATAL);
   }
   CloseHandle(c.thread);
+  dbg("resumed", T0);
 
   // 5) INFO：childPid（Node 看门狗/兜底清理依赖）
   {
@@ -804,6 +818,7 @@ int wmain() {
     TerminateJobObject(c.job, 1);
     WaitForSingleObject(c.process, 5000);
   }
+  dbg("child-exit-noticed", T0);
 
   // 8) 主子进程已退出但孙进程仍持管道 → EOF 最多等 2s，超时终止 Job（判题语义：
   //    主程序退出即用例结束；孤儿孙进程不改变结果，必须收干净）
@@ -829,9 +844,11 @@ int wmain() {
 
   // IO 线程在 Job 终止后管道断开自然退出；等待收尾
   stdinThread.join();
+  dbg("stdin-joined", T0);
   stdoutThread.join();
   stderrThread.join();
   pollThread.join();
+  dbg("io-joined", T0);
   NoteProcessCount(st);
 
   ULONGLONG durationMs = GetTickCount64() - startedAt;
@@ -883,8 +900,10 @@ int wmain() {
   }
   result += "}";
 
+  dbg("result-built", T0);
   CloseHandle(c.process);
   CloseHandle(c.job);  // 正常收尾：树已退出
+  dbg("handles-closed", T0);
   if (!WriteFrameJson(FRAME_RESULT, result)) {
     // Node 已断开：数据无法送达，静默退出（KILL_ON_JOB_CLOSE 已清场）
     return EXIT_OK;

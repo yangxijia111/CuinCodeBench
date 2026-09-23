@@ -10,7 +10,6 @@ import { openDatabase } from '../src/main/db/connection'
 import { ReviewService } from '../src/main/services/review-service'
 import { ProblemRepository } from '../src/main/db/repositories/problem-repository'
 import { LearningRepository } from '../src/main/db/repositories/learning-repository'
-import { MasteryService } from '../src/main/services/mastery-service'
 import { makeProblemInput } from './helpers'
 import { randomUUID } from 'crypto'
 

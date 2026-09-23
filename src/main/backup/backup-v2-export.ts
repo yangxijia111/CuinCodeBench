@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { closeSync, existsSync, fsyncSync, openSync, renameSync, unlinkSync, writeSync } from 'fs'
 import { dirname } from 'path'
 import { mkdirSync } from 'fs'
+import { AppError } from '../lib/app-error'
 import {
   BACKUP_V2_FORMAT_NAME,
   BACKUP_V2_VERSION,
@@ -213,7 +214,7 @@ export function exportBackupV2(
     const settingTotal = (db.prepare('SELECT COUNT(*) AS c FROM settings').get() as { c: number }).c
     if (!emitTable('setting', settingTotal, settingRows, (r: SettingRow) => ({ key: r.key, value: r.value }))) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0, ...(cancelled ? {} : {}) }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // 2. learning_paths（嵌套 path→stages→kps；表规模小，一次载入分组索引）
@@ -320,7 +321,7 @@ export function exportBackupV2(
     opts.onProgress?.({ phase: 'problem', processed: problemProcessed, total: problemTotal })
     if (cancelled) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // 4. problem_knowledge
@@ -335,7 +336,7 @@ export function exportBackupV2(
       }))
     ) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // 5. submissions + results（JOIN 流分组，内存 O(单提交明细 ≤50)）
@@ -403,7 +404,7 @@ export function exportBackupV2(
     opts.onProgress?.({ phase: 'submission', processed: subProcessed, total: subTotal })
     if (cancelled) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // 6-12. 单行表（error_record → mistake_book → mistake_note → mastery →
@@ -412,42 +413,42 @@ export function exportBackupV2(
     const errTotal = (db.prepare('SELECT COUNT(*) AS c FROM error_records').get() as { c: number }).c
     if (!emitTable('error_record', errTotal, errRows, mapErrorRecord)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     const mbRows = db.prepare('SELECT * FROM mistake_book ORDER BY rowid').iterate() as IterableIterator<Record<string, unknown>>
     const mbTotal = (db.prepare('SELECT COUNT(*) AS c FROM mistake_book').get() as { c: number }).c
     if (!emitTable('mistake_book', mbTotal, mbRows, mapMistakeBook)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     const mnRows = db.prepare('SELECT * FROM mistake_notes ORDER BY updated_at, rowid').iterate() as IterableIterator<Record<string, unknown>>
     const mnTotal = (db.prepare('SELECT COUNT(*) AS c FROM mistake_notes').get() as { c: number }).c
     if (!emitTable('mistake_note', mnTotal, mnRows, mapMistakeNote)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     const maRows = db.prepare('SELECT * FROM mastery ORDER BY updated_at, rowid').iterate() as IterableIterator<Record<string, unknown>>
     const maTotal = (db.prepare('SELECT COUNT(*) AS c FROM mastery').get() as { c: number }).c
     if (!emitTable('mastery', maTotal, maRows, mapMastery)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     const riRows = db.prepare('SELECT * FROM review_items ORDER BY created_at, rowid').iterate() as IterableIterator<Record<string, unknown>>
     const riTotal = (db.prepare('SELECT COUNT(*) AS c FROM review_items').get() as { c: number }).c
     if (!emitTable('review_item', riTotal, riRows, mapReviewItem)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     const rhRows = db.prepare('SELECT * FROM review_history ORDER BY reviewed_at, rowid').iterate() as IterableIterator<Record<string, unknown>>
     const rhTotal = (db.prepare('SELECT COUNT(*) AS c FROM review_history').get() as { c: number }).c
     if (!emitTable('review_history', rhTotal, rhRows, mapReviewHistory)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // practice_sessions + items（JOIN 流分组）
@@ -508,7 +509,7 @@ export function exportBackupV2(
     const rsrTotal = (db.prepare('SELECT COUNT(*) AS c FROM review_session_results').get() as { c: number }).c
     if (!emitTable('review_session_result', rsrTotal, rsrRows, mapSessionResult)) {
       writer.abort()
-      return { counts, bodySha256: '', bodyBytes: 0 }
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
     // trailer（hash 域之外）
