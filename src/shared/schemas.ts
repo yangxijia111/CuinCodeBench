@@ -130,7 +130,9 @@ export const backupCaseResultSchema = z.object({
   stderr: z.string().max(1_000_000),
   status: z.string().max(40),
   exitCode: z.number().int().nullable(),
-  durationMs: z.number().int().min(0)
+  durationMs: z.number().int().min(0),
+  /** v1.3 native launcher 终止原因；v1 备份缺失该字段 → null 语义（可选） */
+  terminationReason: z.string().max(40).nullable().optional()
 })
 
 export const backupSubmissionSchema = z.object({

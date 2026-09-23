@@ -39,6 +39,7 @@ interface TestCaseResultRow {
   status: string
   exit_code: number | null
   duration_ms: number
+  termination_reason?: string | null
 }
 
 function toSubmission(row: SubmissionRow): Submission & { problemTitle?: string } {
@@ -76,6 +77,8 @@ export interface NewTestCaseResult {
   status: JudgeStatus
   exitCode: number | null
   durationMs: number
+  /** v1.3：native launcher 终止原因（migration v4 可空列） */
+  terminationReason?: string | null
 }
 
 export class HistoryRepository {
@@ -103,11 +106,11 @@ export class HistoryRepository {
           now
         )
       const stmt = this.db.prepare(
-        `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms, termination_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       for (const r of results) {
-        stmt.run(`${id}:${r.testCaseId}`, id, r.testCaseId, r.order, r.stdin, r.expected, r.actual, r.stderr, r.status, r.exitCode, r.durationMs)
+        stmt.run(`${id}:${r.testCaseId}`, id, r.testCaseId, r.order, r.stdin, r.expected, r.actual, r.stderr, r.status, r.exitCode, r.durationMs, r.terminationReason ?? null)
       }
       // 判题失败时写错误记录（FR-M1；message 由 service 提供，此处按状态生成摘要占位由 service 决定）
     })
@@ -187,7 +190,8 @@ export class HistoryRepository {
       stderr: r.stderr,
       status: r.status as JudgeStatus,
       exitCode: r.exit_code,
-      durationMs: r.duration_ms
+      durationMs: r.duration_ms,
+      ...(r.termination_reason != null ? { terminationReason: r.termination_reason } : {})
     }))
     const sub = toSubmission(row)
     return { submission: { ...sub, problemTitle: row.problem_title ?? '' }, results }

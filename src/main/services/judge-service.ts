@@ -11,7 +11,7 @@ import { AppError } from '../lib/app-error'
 import { buildRunPlan } from '../runner/languages'
 import { withTempDir } from '../runner/temp-dir'
 import { compileSource, writeSourceFile } from '../runner/compile'
-import { execute } from '../runner/execute'
+import { runProcess } from '../runner/dispatch'
 import { decideCaseStatus } from '../judge/normalize'
 import type { ToolchainService } from './toolchain-service'
 import type { ServiceContext } from './index'
@@ -73,7 +73,7 @@ export class JudgeService {
         if (!report.ok) return { compile, execution: null }
       }
 
-      const result = await execute({
+      const result = await runProcess({
         program: plan.run.program,
         args: plan.run.args ?? [],
         cwd: dir,
@@ -141,7 +141,7 @@ export class JudgeService {
       const results: TestCaseResult[] = []
       let totalDuration = 0
       for (const tc of problem.testCases) {
-        const execution = await execute({
+        const execution = await runProcess({
           program: plan.run.program,
           args: plan.run.args ?? [],
           cwd: dir,
@@ -196,7 +196,8 @@ export class JudgeService {
         stderr: r.stderr,
         status: r.status,
         exitCode: r.exitCode,
-        durationMs: r.durationMs
+        durationMs: r.durationMs,
+        terminationReason: r.terminationReason ?? null
       }))
     )
 
@@ -232,7 +233,7 @@ export class JudgeService {
   }
 }
 
-/** 单用例执行结果 → 判定（ARCHITECTURE §5.4） */
+/** 单用例执行结果 → 判定（ARCHITECTURE §5.4）；terminationReason 透传（v1.3，不吞原因） */
 function toCaseResult(tc: TestCase, execution: ExecutionResult): TestCaseResult {
   const status = decideCaseStatus(execution, tc.expectedStdout)
   return {
@@ -244,7 +245,8 @@ function toCaseResult(tc: TestCase, execution: ExecutionResult): TestCaseResult 
     stderr: execution.stderr,
     status,
     exitCode: execution.exitCode,
-    durationMs: execution.durationMs
+    durationMs: execution.durationMs,
+    ...(execution.terminationReason != null ? { terminationReason: execution.terminationReason } : {})
   }
 }
 

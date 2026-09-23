@@ -12,7 +12,8 @@ import { runLearningSeedStep, resolveLearningSeedFile } from './learning/learnin
 import { LearningRepository } from './db/repositories/learning-repository'
 import { LEARNING_V2_MAPPED_KEY, LEARNING_SEED_V2_KEY } from './db/repositories/settings-repository'
 import { cleanLegacyTempDirs } from './runner/temp-dir'
-import { killAllActiveChildren } from './runner/execute'
+import { killAllActiveProcesses } from './runner/dispatch'
+import { configureLauncherContext } from './runner/resolve-launcher'
 import { isAllowedExternalUrl } from './lib/external-url'
 import { registerTrustedSender } from './ipc/validate-sender'
 
@@ -114,6 +115,13 @@ if (!gotLock) {
   })
 
   void app.whenReady().then(() => {
+    // v1.3：launcher 路径解析上下文（打包=resources/bin；开发=repo/native/bin）
+    configureLauncherContext({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath()
+    })
+
     // 数据库与服务（数据目录：userData，或 CCB_DATA_DIR 覆盖）
     const db = openDatabase({ dataDir: getDataDir() })
     const services = initServices(db)
@@ -172,15 +180,16 @@ if (!gotLock) {
   })
 
   app.on('window-all-closed', () => {
-    // 退出顺序：终止全部执行中的程序（防孤儿进程）→ 关闭数据库（WAL 检查点落地）→ 退出
-    killAllActiveChildren()
+    // 退出顺序：终止全部执行中的程序（native launcher + fallback 两条登记表，防孤儿进程）→
+    // 关闭数据库（WAL 检查点落地）→ 退出
+    killAllActiveProcesses()
     closeServices()
     app.quit()
   })
 
   // 兜底：app.quit() 由其它路径触发（如 about 面板、自动更新）时同样清理子进程
   app.on('before-quit', () => {
-    killAllActiveChildren()
+    killAllActiveProcesses()
   })
 
   // 兜底：不静默吞掉未捕获异常（NFR-7）

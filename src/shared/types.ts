@@ -103,6 +103,8 @@ export interface TestCaseResult {
   status: JudgeStatus
   exitCode: number | null
   durationMs: number
+  /** v1.3：native launcher 终止原因（如 memory_limit；migration v4 可空列，旧数据无此值） */
+  terminationReason?: string | null
 }
 
 /** 判题整体结果（一次提交） */
@@ -137,6 +139,12 @@ export interface ExecutionResult {
   stderrTruncated: boolean
   durationMs: number
   timedOut: boolean
+  /**
+   * v1.3 终止原因（native launcher 提供的证据链；fallback 路径缺省 undefined）：
+   * memory_limit / process_limit / timeout / output_limit / launcher_died / protocol_error。
+   * 判题状态不因此新增枚举（映射 runtime_error 等），但原因绝不静默丢失（ADR D3）。
+   */
+  terminationReason?: string | null
 }
 
 export interface ProblemStats {

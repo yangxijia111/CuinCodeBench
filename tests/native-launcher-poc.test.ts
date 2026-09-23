@@ -3,10 +3,7 @@ import { spawn, spawnSync, type ChildProcess } from 'child_process'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+import { assertTreeGone, nativeExeExists, nativeExePath, pythonExe, sleep } from './native-helpers'
 
 /**
  * ccb-launcher PoC 验证（v1.3 P1，docs/V1_3_TEST_PLAN §2）。
@@ -14,18 +11,8 @@ function sleep(ms: number): Promise<void> {
  * 六项验证通过后才允许进入 P2 正式实现（docs/V1_3_ROADMAP.md P1 完成标准）。
  */
 
-const EXE = join(process.cwd(), 'native', 'bin', 'ccb-launcher-poc.exe')
-const enabled = process.platform === 'win32' && existsSync(EXE)
-
-function pythonExe(): string {
-  const res = spawnSync('where.exe', ['python.exe'], { encoding: 'utf8', timeout: 10_000 })
-  const hit = res.stdout
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .find((l) => l.toLowerCase().endsWith('python.exe'))
-  if (!hit) throw new Error('测试需要 python（与判题 E2E 同门槛）')
-  return hit
-}
+const EXE = nativeExePath('ccb-launcher-poc.exe')
+const enabled = nativeExeExists('ccb-launcher-poc.exe')
 
 const PY = enabled ? pythonExe() : ''
 
@@ -75,35 +62,6 @@ function runPoc(args: string[], opts: { timeoutMs?: number } = {}): Promise<PocR
       }
     })
   })
-}
-
-/** 进程命令行扫描（无孤儿断言用；等价 E2E findOrphan 思路） */
-async function listCmdLines(): Promise<string[]> {
-  const res = spawnSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      `Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Select-Object -ExpandProperty CommandLine`
-    ],
-    { encoding: 'utf8', timeout: 30_000, windowsHide: true }
-  )
-  return (res.stdout ?? '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l !== '')
-}
-
-/** 断言带 marker 的测试子进程全部消失（预算内轮询） */
-async function assertTreeGone(marker: string, budgetMs = 10_000): Promise<string[]> {
-  const deadline = Date.now() + budgetMs
-  let remaining: string[] = []
-  for (;;) {
-    remaining = (await listCmdLines()).filter((l) => l.includes(marker))
-    if (remaining.length === 0) return []
-    if (Date.now() > deadline) return remaining
-    await sleep(300)
-  }
 }
 
 /** 杀进程（taskkill /F，强杀） */

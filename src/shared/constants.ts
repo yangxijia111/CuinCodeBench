@@ -55,3 +55,16 @@ export const HISTORY_PAGE_SIZE = 20
 
 /** 临时目录根名（位于系统临时目录下） */
 export const TEMP_ROOT_NAME = 'cuincodebench'
+
+// ============================================================
+// v1.3 Native Launcher（docs/V1_3_JOB_OBJECT_DESIGN.md）
+// ============================================================
+
+/** 判题子进程树内存上限（字节）：Job PROCESS/JOB_MEMORY，默认 512MB */
+export const LAUNCHER_MEMORY_LIMIT_BYTES = 512 * 1024 * 1024
+
+/** 判题子进程树进程数上限：Job ACTIVE_PROCESS_LIMIT，默认 32 */
+export const LAUNCHER_PROCESS_LIMIT = 32
+
+/** Node 看门狗宽限（毫秒）：launcher 超时后额外等待 RESULT 的余量，超时杀 launcher 兜底 */
+export const LAUNCHER_WATCHDOG_GRACE_MS = 5_000

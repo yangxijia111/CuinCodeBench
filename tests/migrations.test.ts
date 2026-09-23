@@ -111,7 +111,7 @@ describe('migration v2（learning-v1.2）', () => {
     migrate(db)
 
     // v1.2.1：迁移链 v1 → v2 → v3 全部应用（v3 = review exactly-once + 引用完整性）
-    expect(currentVersion(db)).toBe(3)
+    expect(currentVersion(db)).toBe(4)
     // v3 产物：exactly-once 表 + 清理触发器存在
     expect(
       db

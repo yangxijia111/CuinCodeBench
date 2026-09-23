@@ -13,6 +13,11 @@ extraResources:
     filter:
       - seed-problems.json
       - seed-learning-path.json
+  # v1.3：native launcher（源码 native/ccb-launcher/，产物由构建脚本/CI 生成，gitignore）
+  - from: native/bin
+    to: bin
+    filter:
+      - ccb-launcher.exe
 win:
   target:
     - target: nsis

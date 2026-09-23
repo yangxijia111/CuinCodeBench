@@ -26,7 +26,8 @@ export interface ExecuteOptions {
   enforceOutputLimit?: boolean
 }
 
-class StreamCollector {
+/** 输出累计器（native-launcher 复用）：保留上限内内容并标记截断 */
+export class StreamCollector {
   private chunks: Buffer[] = []
   private total = 0
   truncated = false

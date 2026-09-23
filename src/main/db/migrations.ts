@@ -281,5 +281,14 @@ CREATE INDEX idx_psi_session ON practice_session_items(session_id, sort_order);
 DELETE FROM review_items WHERE target_type='problem' AND target_id NOT IN (SELECT id FROM problems);
 DELETE FROM review_items WHERE target_type='knowledge_point' AND target_id NOT IN (SELECT id FROM knowledge_points);
 `
+  },
+  {
+    // v1.3：native launcher 终止原因（memory_limit/process_limit 等）。
+    // 可空列新增，v1.2.1 库无损升级（ADR D3：不新增 JudgeStatus，保留证据链）。
+    version: 4,
+    name: 'case-termination-reason-v1.3',
+    sql: `
+ALTER TABLE test_case_results ADD COLUMN termination_reason TEXT;
+`
   }
 ]

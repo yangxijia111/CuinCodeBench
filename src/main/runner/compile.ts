@@ -1,6 +1,6 @@
 import { COMPILE_TIMEOUT_MS, COMPILE_OUTPUT_LIMIT_BYTES } from '@shared/constants'
 import type { Toolchain } from '@shared/types'
-import { execute } from './execute'
+import { runProcess } from './dispatch'
 import { buildRunPlan } from './languages'
 import { writeFile } from 'fs/promises'
 import { join } from 'path'
@@ -27,7 +27,7 @@ export async function compileSource(toolchain: Toolchain, dir: string): Promise<
     // 解释型语言无编译步
     return { ok: true, stderr: '', stdout: '', exitCode: 0, timedOut: false, durationMs: 0 }
   }
-  const result = await execute({
+  const result = await runProcess({
     program: plan.compile.program,
     args: plan.compile.args,
     cwd: dir,

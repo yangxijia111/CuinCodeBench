@@ -25,6 +25,9 @@ jobs:
       - name: 安装 Electron 二进制（npm 安全机制会跳过 postinstall）
         run: node node_modules/electron/install.js
 
+      - name: 构建 native launcher（E2E 判题流经 native 路径验证）
+        run: npm run build:launcher
+
       - name: 构建产物
         run: npm run build
 

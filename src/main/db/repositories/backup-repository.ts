@@ -210,6 +210,7 @@ export class BackupRepository {
       status: string
       exit_code: number | null
       duration_ms: number
+      termination_reason?: string | null
     }[]
     const resultsBySubmission = new Map<string, typeof resultRows>()
     for (const r of resultRows) {
@@ -236,7 +237,8 @@ export class BackupRepository {
         stderr: r.stderr,
         status: r.status,
         exitCode: r.exit_code,
-        durationMs: r.duration_ms
+        durationMs: r.duration_ms,
+        ...(r.termination_reason != null ? { terminationReason: r.termination_reason } : {})
       }))
     }))
 
@@ -523,8 +525,8 @@ export class BackupRepository {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insResult = this.db.prepare(
-      `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms, termination_reason)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const s of data.submissions) {
       insSub.run(
@@ -550,7 +552,8 @@ export class BackupRepository {
           r.stderr,
           r.status,
           r.exitCode,
-          r.durationMs
+          r.durationMs,
+          r.terminationReason ?? null
         )
       }
     }

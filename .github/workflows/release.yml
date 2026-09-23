@@ -36,12 +36,35 @@ jobs:
           npm run test
           npm run build
 
+      - name: Build native launcher（必须实际编译，禁止提交二进制）
+        run: npm run build:launcher
+
       - name: Package (NSIS + zip)
         # --publish never：禁用 electron-builder 的 tag 隐式发布（发布统一由 action-gh-release 负责）
         run: npm run dist -- --publish never
         env:
           # 未签名构建：跳过代码签名步骤
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Package smoke：安装器与便携包必须携带 launcher
+        shell: pwsh
+        run: |
+          $found = @()
+          $zip = Get-ChildItem dist/CuinCodeBench-*-win-x64.zip | Select-Object -First 1
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $entries = [System.IO.Compression.ZipFile]::OpenRead($zip.FullName).Entries |
+            Where-Object { $_.FullName -like '*ccb-launcher.exe' }
+          if ($entries.Count -eq 0) { throw "便携 zip 缺少 ccb-launcher.exe: $($zip.FullName)" }
+          $found += "zip: $($entries.FullName)"
+          # NSIS：解包 nsis 安装器（7z）检查 launcher
+          $exe = Get-ChildItem dist/CuinCodeBench-Setup-*.exe | Select-Object -First 1
+          $tmp = "$env:RUNNER_TEMP/nsis-unpack"
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" e "-o$tmp" $exe.FullName '*\ccb-launcher.exe' -y | Out-Null
+          $hit = Get-ChildItem $tmp -Recurse -Filter ccb-launcher.exe
+          if ($hit.Count -eq 0) { throw "NSIS 安装包缺少 ccb-launcher.exe: $($exe.FullName)" }
+          $found += "nsis: $($hit.FullName)"
+          Write-Host "launcher 打包验证通过: $found"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
