@@ -2,6 +2,22 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 风格；版本号遵循语义化版本。
 
+## [1.3.0] — 2026-09-23
+
+Native Runtime Containment & Backup v2（设计文档见 docs/V1_3_ARCHITECTURE.md，最终报告见 V1_3_FINAL_REPORT.md）。
+
+### Added
+- **Windows Job Object Native Launcher（ccb-launcher）**：`CreateProcessW(CREATE_SUSPENDED)` → `AssignProcessToJobObject` → `ResumeThread`（消除 spawn→assign 竞态，孙进程天然入 Job）；`KILL_ON_JOB_CLOSE` 保证 launcher 无论崩溃/被强杀整树由内核清理；内存上限 512MB / 进程数上限 32；超时由 launcher `TerminateJobObject` 权威执行（Node 看门狗兜底并验证清理）；stdio 帧协议（用户 IO 与控制流分帧）；`PROC_THREAD_ATTRIBUTE_HANDLE_LIST` 句柄白名单；Node 侧保留旧 Runner fallback（非 Windows / exe 缺失自动降级，行为对拍一致）
+- **新判题终止原因（terminationReason）**：memory_limit / process_limit 等以证据链形式随用例结果落库与展示（migration v4 可空列），判题状态枚举不变（映射 runtime_error 等，不吞原因）
+- **Backup v2（.ccbbackup）**：NDJSON 流式格式（meta + 记录 + trailer 规范 hash，边写边 hash、边读边校验），导出/导入在 worker_threads 执行（主进程零大对象，内存 O(batch)）；恢复 = staging 库导入 + 五重校验（FK/integrity/计数/多态引用/会话评分）+ 文件级原子 swap + restore journal 崩溃自愈 + 恢复期业务 IPC 维护门
+- **v1 备份兼容**：v1 JSON 备份可继续导入，且同样收敛到 staging + 原子 swap 路径（不再直写正式库）；导出默认 v2
+- **时钟回拨语义**：复习调度走单调学习时间线（effectiveNow = max(now, lastReviewedAt ?? createdAt)），掌握度衰减 elapsed 钳制，streak/日历按墙钟如实展示——回拨不产生负 interval、不重置计数、不凭空衰减
+- native launcher PoC 六项验证、20+ 集成测试矩阵（超时/输出/内存/进程上限、强杀清树、并发、无孤儿断言）、备份回环/原子恢复/journal 自愈/50 组位翻转测试、时钟回拨 16 项、性能门禁（10 万行级导出 2.5s / 预览 1.4s / 恢复 6s）
+
+### Changed
+- Windows CI 实际编译 launcher（禁止预编译二进制入库）；Release 安装包与便携包携带 ccb-launcher.exe（打包 smoke 断言）
+- E2E 备份闭环升级为 v2 格式；设置页被工具链探测阻塞的启动卡顿修复（基线缺陷）
+
 ## [1.2.1] — 2026-09-22
 
 深度正确性 / 架构 / 可靠性审计修复（完整报告见 V1_2_1_DEEP_AUDIT_REPORT.md，审计过程见 docs/V1_2_1_DEEP_AUDIT.md）。

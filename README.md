@@ -30,7 +30,7 @@
 - **错题复盘**：错误历史时间线、首次/最近错误代码对比、错因笔记、学习错误分类（自动规则 + 手动归类）
 - **练习队列**：随机练习（难度/知识点/未做/错题/低掌握过滤）与专项训练（知识点一键组题），完成统计
 - **Dashboard 2.0**：今日练习/今日复习/连续天数、7 与 30 天趋势图（自研 SVG）、知识点掌握热力图
-- **完整备份**：一键导出/导入全部数据（题库、提交、错题、笔记、学习记录、设置），事务恢复，失败整体回滚
+- **完整备份 v2**：一键导出/导入全部数据（题库、提交、错题、笔记、学习记录、设置），NDJSON 流式格式（后台线程执行，超大库不冻结界面），恢复走临时库校验 + 原子切换，任意失败/崩溃不破坏现有数据；兼容导入 v1 JSON 备份
 - **题库管理**：内置 45 道种子题目（参考解经真实工具链验证）；新建/编辑/删除/搜索/标签与知识点筛选/JSON 导入导出（事务原子导入）
 
 ## 支持语言与工具链
@@ -95,7 +95,7 @@ docs/          # 开发文档（产品/需求/架构/数据/安全/测试/路线
 - 杀毒软件（如 Defender）可能拦截新编译的无签名 exe：应用会退避重试并给出明确报错，但无法绕过本机安全策略
 - 仅在 Windows 10/11 上开发与验证；其它平台未测试、不承诺
 - 构建未做代码签名（Release 说明中亦有声明）
-- 判题为串行队列，无内存/CPU 限制（Windows Job Object 资源限制规划于 v1.3）
+- 判题为串行队列；Windows 上经 Job Object 提供内存（512MB）/进程数（32）上限与整树清理，但**这是资源围栏不是沙箱**（无 CPU 限频、无文件系统/网络隔离）
 - 备份文件包含全部代码与学习记录，请妥善保管，勿上传网络
 
 ## 文档
@@ -114,7 +114,11 @@ docs/          # 开发文档（产品/需求/架构/数据/安全/测试/路线
 | [V1_2_LEARNING_MODEL.md](docs/V1_2_LEARNING_MODEL.md) | 学习体验领域模型与数据库设计 |
 | [V1_2_MASTERY_SPEC.md](docs/V1_2_MASTERY_SPEC.md) | 知识点掌握度规范（可解释规则） |
 | [V1_2_REVIEW_SPEC.md](docs/V1_2_REVIEW_SPEC.md) | 间隔复习调度算法规范 |
-| [V1_2_BACKUP_SPEC.md](docs/V1_2_BACKUP_SPEC.md) | 完整备份与恢复规范 |
+| [V1_2_BACKUP_SPEC.md](docs/V1_2_BACKUP_SPEC.md) | 完整备份与恢复规范（v1 格式兼容导入） |
+| [V1_3_ARCHITECTURE.md](docs/V1_3_ARCHITECTURE.md) | v1.3 总体架构（Native Launcher / Backup v2 / 时钟回拨） |
+| [V1_3_JOB_OBJECT_DESIGN.md](docs/V1_3_JOB_OBJECT_DESIGN.md) | ccb-launcher 设计（帧协议/资源围栏/生命周期） |
+| [V1_3_BACKUP_V2_SPEC.md](docs/V1_3_BACKUP_V2_SPEC.md) | Backup v2 规格（流式 NDJSON/原子恢复/journal 自愈） |
+| [V1_3_CLOCK_ROLLBACK_SPEC.md](docs/V1_3_CLOCK_ROLLBACK_SPEC.md) | 时钟回拨语义 |
 | [V1_2_E2E_PLAN.md](docs/V1_2_E2E_PLAN.md) | 端到端测试方案 |
 | [V1_2_ROADMAP.md](docs/V1_2_ROADMAP.md) | v1.2 阶段执行记录 |
 | [CHANGELOG.md](docs/CHANGELOG.md) | 变更日志 |

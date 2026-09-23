@@ -90,7 +90,16 @@
 
 ## 4. 明确的"非防护"（Known Limitations）
 
-以下**不在**防护目标内：内存限制、CPU 时间限制（Windows Job Object 规划于 v1.2）、文件系统重定向、网络隔离、系统调用过滤、反调试、代码签名。如需真沙箱，应使用容器/虚拟机/Job Object + 受限令牌等机制。
+以下**不在**防护目标内：CPU 时间限制/限频、文件系统重定向、网络隔离、系统调用过滤、反调试、代码签名。如需真沙箱，应使用容器/虚拟机/Job Object + 受限令牌等机制。
+
+### Windows 资源围栏（v1.3 ccb-launcher）
+
+Windows 判题默认经 `ccb-launcher.exe`（源码 `native/ccb-launcher/`，Windows CI 实际编译）执行：
+
+- **进程树资源围栏**：`CreateProcessW(CREATE_SUSPENDED)` → `AssignProcessToJobObject` → `ResumeThread`（首条指令前入 Job，无 spawn→assign 竞态）；Job 限制 = `KILL_ON_JOB_CLOSE`（launcher 无论崩溃/被强杀，整树由内核清理）+ 内存上限 512MB + 进程数上限 32；超时由 launcher `TerminateJobObject` 一次调用杀整树。
+- **句柄卫生**：`PROC_THREAD_ATTRIBUTE_HANDLE_LIST` 白名单——用户程序仅继承三个 stdio 管道句柄，launcher/Electron 其余句柄不泄露。
+- **这仍是资源围栏而非沙箱**：Job Object 不提供文件系统重定向、网络隔离或凭证隔离，运行不可信恶意代码依旧不安全。
+- launcher 与主进程间为二进制帧协议（长度前缀分帧，用户 IO 与控制流分离）；错误回传只含错误码与 Win32 GetLastError，不回显路径/环境变量。
 
 ## 5. 漏洞反馈
 
