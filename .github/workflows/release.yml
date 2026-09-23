@@ -56,14 +56,11 @@ jobs:
             Where-Object { $_.FullName -like '*ccb-launcher.exe' }
           if ($entries.Count -eq 0) { throw "便携 zip 缺少 ccb-launcher.exe: $($zip.FullName)" }
           $found += "zip: $($entries.FullName)"
-          # NSIS：解包 nsis 安装器（7z）检查 launcher
+          # NSIS：安装器本体即 7z 容器，直接列内容断言 launcher（本地实测通过）
           $exe = Get-ChildItem dist/CuinCodeBench-Setup-*.exe | Select-Object -First 1
-          $tmp = "$env:RUNNER_TEMP/nsis-unpack"
-          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-          & "C:\Program Files\7-Zip\7z.exe" e "-o$tmp" $exe.FullName '*\ccb-launcher.exe' -y | Out-Null
-          $hit = Get-ChildItem $tmp -Recurse -Filter ccb-launcher.exe
-          if ($hit.Count -eq 0) { throw "NSIS 安装包缺少 ccb-launcher.exe: $($exe.FullName)" }
-          $found += "nsis: $($hit.FullName)"
+          $listing = & "C:\Program Files\7-Zip\7z.exe" l $exe.FullName | Select-String 'ccb-launcher\.exe'
+          if ($null -eq $listing) { throw "NSIS 安装包缺少 ccb-launcher.exe: $($exe.FullName)" }
+          $found += "nsis: $($listing[0].ToString().Trim())"
           Write-Host "launcher 打包验证通过: $found"
 
       - name: Publish GitHub Release
