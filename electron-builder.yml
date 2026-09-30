@@ -7,6 +7,10 @@ directories:
 files:
   - out/**
   - package.json
+asarUnpack:
+  # v1.4：内置 pyright 语言服务器（ELECTRON_RUN_AS_NODE 以真实文件路径 spawn，
+  # 其内部经 __dirname 定位资源——不留在 asar 虚拟 fs 内）
+  - node_modules/pyright/**
 extraResources:
   - from: resources
     to: .

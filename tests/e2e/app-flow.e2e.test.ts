@@ -241,4 +241,85 @@ describe('E2E 主流程', () => {
       }
     }, 240_000)
   })
+
+  // ============================================================
+  // v1.4：多文件项目 + 智能编辑（docs/V1_4_DESIGN.md §10）
+  // ============================================================
+  describe.skipIf(!hasPython())('多文件与智能编辑（需要 python + 内置 pyright）', () => {
+    it('多文件判题闭环：定义附加文件 → 工作区 Tab → UI 判题 AC → DB files 快照', async () => {
+      const dir = dataDir('multi-file')
+      const app = await launchApp(dir)
+      try {
+        // 经 api 创建带附加文件的题目（题目编辑 UI 已由单测覆盖；E2E 聚焦真实判题链路）
+        const pid = await app.evaluate<string>(
+          `(async () => {
+            const r = await window.api.createProblem({
+              title: 'E2E 多文件求和',
+              description: '输入两个整数，输出它们的和（附加文件实现 add）',
+              difficulty: 'easy', tags: [], inputDesc: '', outputDesc: '', samples: [],
+              initialCode: { c: '', cpp: '', python: 'from helper import add\\nimport sys\\na, b = map(int, sys.stdin.read().split())\\nprint(add(a, b))\\n' },
+              testCases: [
+                { stdin: '1 2', expectedStdout: '3', timeoutMs: 5000 },
+                { stdin: '10 -3', expectedStdout: '7', timeoutMs: 5000 }
+              ],
+              files: [{ language: 'python', path: 'helper.py', content: 'def add(a, b):\\n    return a + b\\n' }]
+            })
+            if (!r.ok) throw new Error(r.message)
+            return r.data.id
+          })()`
+        )
+        // 打开练习页：工作区补种 helper.py → 文件 Tab 出现（main.py + helper.py）
+        await app.evaluate(`location.hash = '#/practice/' + ${JSON.stringify(pid)}`)
+        await app.waitFor(`document.querySelectorAll('.file-tab').length === 2`, 20_000)
+        const tabNames = await app.evaluate<string>(
+          `[...document.querySelectorAll('.file-tab-btn')].map(b => b.textContent.trim()).join('|')`
+        )
+        expect(tabNames).toContain('helper.py')
+
+        // UI 判题按钮（extraFiles 自动来自工作区文件列表）→ AC
+        await app.clickExpr(
+          `[...document.querySelectorAll('button')].find(b => b.textContent.includes('判题'))`,
+          30_000
+        )
+        await app.waitFor(
+          `document.querySelector('.result-area')?.textContent.includes('通过') || document.querySelector('.result-area')?.textContent.includes('2/2')`,
+          60_000
+        )
+
+        // DB 断言：submissions.files 快照完整（复盘现场）
+        const db = new Database(join(app.dataDir, 'cuincodebench.db'), { readonly: true })
+        const row = db
+          .prepare('SELECT status, files FROM submissions ORDER BY created_at DESC LIMIT 1')
+          .get() as { status: string; files: string | null }
+        db.close()
+        expect(row.status).toBe('accepted')
+        const files = JSON.parse(row.files ?? '[]') as { path: string }[]
+        expect(files.map((f) => f.path)).toEqual(['helper.py'])
+      } finally {
+        await app.close()
+        await rmDirForce(dir)
+      }
+    }, 240_000)
+
+    it('pyright 诊断端到端：错误代码 → 编辑器 squiggle（内置语言服务器真实链路）', async () => {
+      const dir = dataDir('lsp-diag')
+      const app = await launchApp(dir)
+      try {
+        // 进入种子 python 题（列表第一个 python 题即可；诊断与题目内容无关）
+        await app.waitFor(`document.querySelector('.problem-item') !== null`)
+        await app.clickExpr(`document.querySelector('.problem-item')`)
+        await app.waitFor(`document.querySelector('.cm-content') !== null`, 20_000)
+        const pid = await app.evaluate<string>(`location.hash.split('/').pop()`)
+        // 工作区已打开（pyright 随首开启动）；同步含语法错误的代码 → didOpen → 诊断推送
+        await app.evaluate(
+          `window.api.workspaceSync(${JSON.stringify(pid)}, 'python', [{ path: 'main.py', content: 'def broken(:\\n    pass\\n' }], [])`
+        )
+        // squiggle 渲染（pyright 冷启动 + 分析；上限 30s）
+        await app.waitFor(`document.querySelector('.cm-lintRange-error') !== null`, 30_000)
+      } finally {
+        await app.close()
+        await rmDirForce(dir)
+      }
+    }, 120_000)
+  })
 })

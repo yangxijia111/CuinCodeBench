@@ -59,12 +59,19 @@ jobs:
           $zipListing = & $sevenza l $zip.FullName | Select-String 'ccb-launcher\.exe'
           if ($null -eq $zipListing) { throw "便携 zip 缺少 ccb-launcher.exe: $($zip.FullName)" }
           $found += "zip: $($zipListing[0].ToString().Trim())"
+          # v1.4：内置 pyright 语言服务器资产（asar.unpacked 真实文件）
+          $pyrZip = & $sevenza l $zip.FullName | Select-String 'pyright[\\/]langserver\.index\.js'
+          if ($null -eq $pyrZip) { throw "便携 zip 缺少 pyright langserver: $($zip.FullName)" }
+          $found += "zip-pyright: $($pyrZip[0].ToString().Trim())"
           # NSIS：安装器本体即 7z 容器，直接列内容断言 launcher（本地实测通过）
           $exe = Get-ChildItem dist/CuinCodeBench-Setup-*.exe | Select-Object -First 1
           $listing = & $sevenza l $exe.FullName | Select-String 'ccb-launcher\.exe'
           if ($null -eq $listing) { throw "NSIS 安装包缺少 ccb-launcher.exe: $($exe.FullName)" }
           $found += "nsis: $($listing[0].ToString().Trim())"
-          Write-Host "launcher 打包验证通过: $found"
+          $pyrNsis = & $sevenza l $exe.FullName | Select-String 'pyright[\\/]langserver\.index\.js'
+          if ($null -eq $pyrNsis) { throw "NSIS 安装包缺少 pyright langserver: $($exe.FullName)" }
+          $found += "nsis-pyright: $($pyrNsis[0].ToString().Trim())"
+          Write-Host "launcher/pyright 打包验证通过: $found"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2

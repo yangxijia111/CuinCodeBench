@@ -93,7 +93,7 @@ describe.skipIf(!enabled)('ccb-launcher 正式集成（帧协议 + Job Object）
       {
         program: PY,
         // 与产品 RunPlan 一致：-I -X utf8（管道 stdout 编码才不是 locale GBK）
-        args: ['-I', '-X', 'utf8', file, '中文参数'],
+        args: ['-E', '-s', '-X', 'utf8', file, '中文参数'],
         cwd: dir,
         stdin: '中文输入\n第二行',
         timeoutMs: 10_000,
@@ -291,7 +291,7 @@ describe.skipIf(!enabled)('ccb-launcher 正式集成（帧协议 + Job Object）
       program: PY,
       // -I -X utf8 + PYTHONIOENCODING：与产品 RunPlan 一致（CI runner 管道 stdout
       // 编码为 locale cp1252，中文 print 会 UnicodeEncodeError → 双路径一致 exit 1）
-      args: ['-I', '-X', 'utf8', file],
+      args: ['-E', '-s', '-X', 'utf8', file],
       cwd: dir,
       stdin: '对拍输入 line1\nline2',
       timeoutMs: 10_000,

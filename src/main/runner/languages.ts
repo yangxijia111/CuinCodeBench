@@ -41,10 +41,12 @@ const MSVC_C_ARGS = ['/O2', '/std:c11', '/W3']
 const MSVC_CPP_ARGS = ['/O2', '/std:c++17', '/EHsc', '/W3']
 
 /**
- * Python 运行参数：-I 隔离模式（忽略用户 site 与 PYTHONPATH 等环境干扰）。
- * UTF-8 必须用 -X utf8 而非 PYTHONUTF8 环境变量——-I 会忽略全部 PYTHON* 环境变量。
+ * Python 运行参数：-E -s 显式隔离（忽略全部 PYTHON* 环境变量与用户 site-packages）。
+ * v1.4：不再用 -I——它隐含 -P（Python 3.11+ 不把脚本目录加入 sys.path），
+ * 导致多文件题 `from helper import add` 失败（E2E 实测）；-E -s 保留同等环境
+ * 隔离语义，同时脚本目录（判题临时目录）可 import。UTF-8 用 -X utf8。
  */
-const PYTHON_ARGS = ['-I', '-X', 'utf8']
+const PYTHON_ARGS = ['-E', '-s', '-X', 'utf8']
 
 /**
  * 构造一次完整执行计划。

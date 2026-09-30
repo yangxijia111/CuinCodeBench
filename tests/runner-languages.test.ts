@@ -45,7 +45,7 @@ describe('buildRunPlan', () => {
   it('Python：-I 隔离 + UTF-8 环境', () => {
     const plan = buildRunPlan(tc('python', 'C:\\Python313\\python.exe'), 'D:\\t')
     expect(plan.compile).toBeNull()
-    expect(plan.run.args).toEqual(['-I', '-X', 'utf8', 'main.py'])
+    expect(plan.run.args).toEqual(['-E', '-s', '-X', 'utf8', 'main.py'])
     expect(plan.run.env?.['PYTHONUTF8']).toBe('1')
     expect(plan.run.env?.['PYTHONIOENCODING']).toBe('utf-8')
   })
@@ -115,7 +115,7 @@ describe('buildRunPlan 多源编译（v1.4）', () => {
     expect(planC.compile?.args).toEqual(['main.c', 'util.c', '-O2', '-std=c11', '-Wall', '-o', 'app.exe'])
     const py = buildRunPlan(tc('python'), 'D:/tmp/x', ['helper.py'])
     expect(py.compile).toBeNull()
-    expect(py.run.args).toEqual(['-I', '-X', 'utf8', 'main.py'])
+    expect(py.run.args).toEqual(['-E', '-s', '-X', 'utf8', 'main.py'])
   })
 
   it('msvc-cpp：附加源在 /Fe: 之前', () => {
