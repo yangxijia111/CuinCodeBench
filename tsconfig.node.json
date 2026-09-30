@@ -39,5 +39,9 @@
     "src/renderer/src/lib/display.ts",
     "src/renderer/src/lib/sanitize-markdown.ts",
     "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "tests/workspace-ui.test.tsx"
   ]
 }

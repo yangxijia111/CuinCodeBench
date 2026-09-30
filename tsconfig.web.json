@@ -29,6 +29,8 @@
   },
   "include": [
     "src/renderer/src/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "tests/workspace-ui.test.tsx",
+    "tests/helpers/renderer-api-mock.ts"
   ]
 }

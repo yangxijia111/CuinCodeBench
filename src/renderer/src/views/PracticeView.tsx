@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { LanguageId, ProblemDetail, JudgeResult } from '@shared/types'
+import type { LanguageId, ProblemDetail, JudgeResult, LspCompletionItem, LspHoverResult } from '@shared/types'
 import type { RunOnceResult } from '@shared/ipc'
 import { DEFAULT_SETTINGS } from '@shared/types'
 import { DIFFICULTY_META } from '@shared/ipc'
@@ -10,10 +10,12 @@ import { CodeEditor } from '../components/CodeEditor'
 import { JudgeResultPanel } from '../components/JudgeResultPanel'
 import { RunResultPanel } from '../components/RunResultPanel'
 import { HistoryPanel } from '../components/HistoryPanel'
+import { useWorkspace } from '../hooks/useWorkspace'
 
 /**
  * 练习页：左题面 / 右编辑器 + 结果（FR-E1–E6、FR-C1、FR-J3）。
- * 草稿按 (problemId, language) 存 localStorage（FR-E6）。
+ * v1.4：代码编辑态迁入每题工作区（useWorkspace，docs/V1_4_DESIGN.md §1），
+ * 附带文件 Tab、实时诊断（LSP/编译器回退）、补全与 hover。
  */
 
 const LANGUAGES: { id: LanguageId; label: string }[] = [
@@ -22,8 +24,11 @@ const LANGUAGES: { id: LanguageId; label: string }[] = [
   { id: 'python', label: 'Python' }
 ]
 
-function draftKey(problemId: string, lang: LanguageId): string {
-  return `ccbench.draft.${problemId}.${lang}`
+const LSP_BADGE: Record<string, { label: string; cls: string }> = {
+  pyright: { label: 'pyright', cls: 'lsp-badge ok' },
+  clangd: { label: 'clangd', cls: 'lsp-badge ok' },
+  fallback: { label: '语法回退', cls: 'lsp-badge mid' },
+  none: { label: '无诊断', cls: 'lsp-badge off' }
 }
 
 export function PracticeView(): React.JSX.Element {
@@ -37,12 +42,6 @@ export function PracticeView(): React.JSX.Element {
   const [kpNames, setKpNames] = useState<string[]>([])
 
   const [language, setLanguage] = useState<LanguageId>('python')
-  const [codeByLang, setCodeByLang] = useState<Record<LanguageId, string>>({
-    c: '',
-    cpp: '',
-    python: ''
-  })
-
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [judging, setJudging] = useState(false)
   const [running, setRunning] = useState(false)
@@ -52,7 +51,9 @@ export function PracticeView(): React.JSX.Element {
   const [actionError, setActionError] = useState<string | null>(null)
   const [showResultTab, setShowResultTab] = useState<'judge' | 'run' | 'history'>('judge')
 
-  // 加载题目 + 设置 + 恢复草稿
+  const ws = useWorkspace(problem?.id ?? '', language)
+
+  // 加载题目 + 设置
   useEffect(() => {
     let alive = true
     if (id === undefined) return
@@ -66,11 +67,6 @@ export function PracticeView(): React.JSX.Element {
         }
         setProblem(p)
         setSettings(s)
-        setCodeByLang({
-          c: loadDraft(p.id, 'c', p.initialCode.c),
-          cpp: loadDraft(p.id, 'cpp', p.initialCode.cpp),
-          python: loadDraft(p.id, 'python', p.initialCode.python)
-        })
         // v1.2：知识点徽章（静默加载，失败不阻塞）
         void window.api.getProblemKnowledgePoints(p.id).then((res) => {
           if (alive && res.ok) setKpNames(res.data.map((k) => k.name))
@@ -104,19 +100,29 @@ export function PracticeView(): React.JSX.Element {
     if (next !== undefined) void navigate(`/practice/${next}`)
   }
 
-  const currentCode = codeByLang[language]
+  const entryFile = ws.files.find((f) => f.isEntry) ?? null
+  const activeFile = ws.files.find((f) => f.path === ws.activePath) ?? entryFile
+  // 判题/运行始终以入口文件为准（多文件模型：入口 = main.c|cpp|py）
+  const entryCode = entryFile?.content ?? ''
 
-  const setCode = useMemo(
-    () => (value: string) => {
-      setCodeByLang((prev) => ({ ...prev, [language]: value }))
-      if (problem !== null) {
-        // 草稿保存（FR-E6）；与初始代码一致时清除草稿
-        const initial = problem.initialCode[language] ?? ''
-        if (value === initial) localStorage.removeItem(draftKey(problem.id, language))
-        else localStorage.setItem(draftKey(problem.id, language), value)
-      }
+  const completionProvider = useCallback(
+    (pos: { line: number; col: number; content: string }): Promise<LspCompletionItem[]> => {
+      if (problem === null || activeFile === null) return Promise.resolve([])
+      return unwrap(
+        window.api.lspComplete(problem.id, language, activeFile.path, pos.line, pos.col, pos.content)
+      ).catch(() => [])
     },
-    [language, problem]
+    [problem, language, activeFile]
+  )
+
+  const hoverProvider = useCallback(
+    (pos: { line: number; col: number; content: string }): Promise<LspHoverResult | null> => {
+      if (problem === null || activeFile === null) return Promise.resolve(null)
+      return unwrap(
+        window.api.lspHover(problem.id, language, activeFile.path, pos.line, pos.col, pos.content)
+      ).catch(() => null)
+    },
+    [problem, language, activeFile]
   )
 
   async function handleJudge(): Promise<void> {
@@ -126,7 +132,7 @@ export function PracticeView(): React.JSX.Element {
     setRunResult(null)
     setShowResultTab('judge')
     try {
-      const result = await unwrap(window.api.judgeSubmit(problem.id, language, currentCode))
+      const result = await unwrap(window.api.judgeSubmit(problem.id, language, entryCode))
       setJudgeResult(result)
     } catch (e) {
       setActionError(e instanceof ApiError ? e.message : String(e))
@@ -143,7 +149,7 @@ export function PracticeView(): React.JSX.Element {
     setShowResultTab('run')
     try {
       const result = await unwrap(
-        window.api.runOnce({ language, code: currentCode, stdin: customStdin, timeoutMs: settings.judgeTimeoutDefaultMs })
+        window.api.runOnce({ language, code: entryCode, stdin: customStdin, timeoutMs: settings.judgeTimeoutDefaultMs })
       )
       setRunResult(result)
     } catch (e) {
@@ -153,12 +159,25 @@ export function PracticeView(): React.JSX.Element {
     }
   }
 
-  function handleReset(): void {
+  async function handleReset(): Promise<void> {
     if (problem === null) return
-    if (!window.confirm('确定重置为初始代码？当前修改将丢失（判题历史不受影响）。')) return
-    localStorage.removeItem(draftKey(problem.id, language))
-    setCodeByLang((prev) => ({ ...prev, [language]: problem.initialCode[language] ?? '' }))
+    if (!window.confirm('确定重置为初始代码？当前修改与自建文件将丢失（判题历史不受影响）。')) return
+    await ws.resetWorkspace()
   }
+
+  function handleAddFile(): void {
+    const path = window.prompt('新文件路径（相对工作区，如 util.h / sub/helper.py）', 'util.h')
+    if (path === null || path.trim() === '') return
+    void ws.addFile(path.trim())
+  }
+
+  function handleRemoveFile(path: string): void {
+    if (!window.confirm(`删除文件 ${path}？`)) return
+    void ws.removeFile(path)
+  }
+
+  const lspBadge = LSP_BADGE[ws.lspStatus?.[language]?.server ?? 'none'] ?? LSP_BADGE['none']
+  const activeDiagnostics = activeFile !== null ? (ws.diagnostics[activeFile.path] ?? []) : []
 
   if (loadError !== null) {
     return (
@@ -236,9 +255,12 @@ export function PracticeView(): React.JSX.Element {
                 {l.label}
               </button>
             ))}
+            <span className={lspBadge.cls} title="当前智能编辑供给（设置页可配置 clangd）">
+              {lspBadge.label}
+            </span>
           </div>
           <div className="editor-actions">
-            <button onClick={handleReset}>重置代码</button>
+            <button onClick={() => void handleReset()}>重置代码</button>
             <button className="primary" disabled={running} onClick={() => void handleRun()}>
               {running ? '运行中…' : '运行'}
             </button>
@@ -248,15 +270,59 @@ export function PracticeView(): React.JSX.Element {
           </div>
         </div>
 
+        {/* v1.4：文件 Tab（单文件题目退化为无 Tab，保持 v1.3 观感） */}
+        {ws.files.length > 1 && (
+          <div className="file-tabs" role="tablist" aria-label="工作区文件">
+            {ws.files.map((f) => {
+              const count = (ws.diagnostics[f.path] ?? []).filter((d) => d.severity === 'error').length
+              return (
+                <div
+                  key={f.path}
+                  role="tab"
+                  aria-selected={f.path === ws.activePath}
+                  className={f.path === ws.activePath ? 'file-tab active' : 'file-tab'}
+                >
+                  <button className="file-tab-btn" onClick={() => ws.setActivePath(f.path)} title={f.path}>
+                    {f.path}
+                    {count > 0 && <span className="file-tab-error" title={`${count} 个错误`}>{count}</span>}
+                  </button>
+                  {!f.isEntry && (
+                    <button
+                      className="file-tab-close"
+                      aria-label={`删除 ${f.path}`}
+                      title={`删除 ${f.path}`}
+                      onClick={() => handleRemoveFile(f.path)}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+            <button className="file-tab-add" onClick={handleAddFile} title="新建附加文件（如头文件/辅助源文件）">
+              +
+            </button>
+          </div>
+        )}
+
         <div className="editor-area">
-          <CodeEditor
-            value={currentCode}
-            language={language}
-            fontSize={settings.fontSize}
-            tabSize={settings.tabSize}
-            wordWrap={settings.wordWrap}
-            onChange={setCode}
-          />
+          {ws.error !== null && <div className="alert error">{ws.error}</div>}
+          {activeFile !== null ? (
+            <CodeEditor
+              key={activeFile.path}
+              value={activeFile.content}
+              language={language}
+              fontSize={settings.fontSize}
+              tabSize={settings.tabSize}
+              wordWrap={settings.wordWrap}
+              onChange={(value) => ws.updateFile(activeFile.path, value)}
+              diagnostics={activeDiagnostics}
+              completionProvider={completionProvider}
+              hoverProvider={hoverProvider}
+            />
+          ) : (
+            <div className="empty-hint small">正在打开工作区…</div>
+          )}
         </div>
 
         <div className="result-area">
@@ -309,12 +375,4 @@ export function PracticeView(): React.JSX.Element {
       </section>
     </div>
   )
-}
-
-function loadDraft(problemId: string, lang: LanguageId, initial: string): string {
-  try {
-    return localStorage.getItem(draftKey(problemId, lang)) ?? initial
-  } catch {
-    return initial
-  }
 }

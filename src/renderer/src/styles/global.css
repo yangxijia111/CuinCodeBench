@@ -1835,3 +1835,113 @@ select:focus {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ============================================================
+   v1.4 Editor & Project Experience（文件 Tab / LSP 徽标）
+   ============================================================ */
+
+.lsp-badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: default;
+  user-select: none;
+}
+.lsp-badge.ok {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--color-success, #3fb950);
+}
+.lsp-badge.mid {
+  background: rgba(210, 153, 34, 0.15);
+  color: var(--color-warning, #d29922);
+}
+.lsp-badge.off {
+  background: rgba(139, 148, 158, 0.15);
+  color: var(--text-secondary);
+}
+
+.file-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 4px 8px 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color, #30363d);
+  overflow-x: auto;
+  flex: none;
+}
+.file-tab {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+}
+.file-tab.active {
+  background: var(--bg-secondary);
+  border-color: var(--border-color, #30363d);
+}
+.file-tab-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.file-tab.active .file-tab-btn {
+  color: var(--text-primary);
+}
+.file-tab-error {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+  border-radius: 8px;
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  padding: 0 4px;
+}
+.file-tab-close {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0 8px 0 2px;
+  font-size: 13px;
+}
+.file-tab-close:hover {
+  color: #f85149;
+}
+.file-tab-add {
+  border: 1px dashed var(--border-color, #30363d);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  width: 26px;
+  margin: 3px 0;
+  cursor: pointer;
+  font-size: 14px;
+  flex: none;
+}
+.file-tab-add:hover {
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+/* LSP hover 文档（CodeMirror tooltip 内容容器由组件内联类提供基础样式） */
+.cm-tooltip.cm-tooltip-hover {
+  border: 1px solid var(--border-color, #30363d);
+  background: var(--bg-primary);
+  border-radius: 6px;
+  padding: 2px;
+}
