@@ -261,10 +261,11 @@ describe.skipIf(!hasGcc)('PoC③ gcc -fsyntax-only 回退诊断格式', () => {
       const re = /^(.+?):(\d+):(\d+):\s*(fatal error|error|warning|note):\s*(.+)$/gm
       const matches = [...out.matchAll(re)]
       expect(matches.length).toBeGreaterThan(0)
-      const first = matches[0]!
-      expect(first[1]).toBe(filePath)
-      expect(Number(first[2])).toBe(2)
-      expect(first[4]).toBe('error')
+      const first = matches[0]
+      expect(first).toBeDefined()
+      expect(first?.[1]).toBe(filePath)
+      expect(Number(first?.[2])).toBe(2)
+      expect(first?.[4]).toBe('error')
       expect(first[5]).toMatch(/expected/)
     } finally {
       rmSync(dir, { recursive: true, force: true })

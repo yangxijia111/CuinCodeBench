@@ -308,5 +308,26 @@ export const randomSessionConfigSchema = z.object({
   size: z.number().int().min(1).max(50).optional()
 })
 
+// ============================================================
+// v1.4 LSP 诊断推送事件（唯一事件通道的 payload 契约；LSP 0 基行列）
+// ============================================================
+
+export const lspDiagnosticSchema = z.object({
+  line: z.number().int().min(0),
+  col: z.number().int().min(0),
+  endLine: z.number().int().min(0),
+  endCol: z.number().int().min(0),
+  severity: z.enum(['error', 'warning', 'info']),
+  message: z.string().max(10_000),
+  source: z.string().max(40).optional()
+})
+
+export const lspDiagnosticsEventSchema = z.object({
+  problemId: z.string().min(1).max(100),
+  language: languageIdSchema,
+  path: z.string().min(1).max(200),
+  diagnostics: z.array(lspDiagnosticSchema).max(200)
+})
+
 export type BackupEnvelope = z.output<typeof backupEnvelopeSchema>
 export type BackupData = z.output<typeof backupDataSchema>

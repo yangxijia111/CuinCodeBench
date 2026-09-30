@@ -14,9 +14,35 @@ import { logger } from '../lib/logger'
 
 const trustedSenders = new WeakSet<WebContents>()
 
+/**
+ * 可信推送目标（v1.4）：main→renderer 事件通道只发给本应用窗口。
+ * WeakSet 无法枚举，故并行维护强引用 Set，destroyed 时移除防泄漏。
+ */
+const pushTargets = new Set<WebContents>()
+
 /** 窗口创建时注册其 WebContents 为可信 IPC 来源 */
 export function registerTrustedSender(wc: WebContents): void {
   trustedSenders.add(wc)
+  pushTargets.add(wc)
+  wc.once('destroyed', () => {
+    pushTargets.delete(wc)
+  })
+}
+
+/**
+ * v1.4 唯一事件出口：向全部可信窗口推送事件。
+ * 接收方（preload onLspDiagnostics）为受控订阅；payload 由 main 构造（无不可信输入）。
+ * 发送前再查 isDestroyed（destroyed 事件与发送之间的竞态兜底）。
+ */
+export function pushToTrustedWindows(channel: string, payload: unknown): void {
+  for (const wc of pushTargets) {
+    try {
+      if (!wc.isDestroyed()) wc.send(channel, payload)
+    } catch (err) {
+      // 单窗口失败不阻断其余窗口（崩溃窗口的 send 可能抛错）
+      logger.warn('事件推送失败', err instanceof Error ? err.message : String(err))
+    }
+  }
 }
 
 /**

@@ -12,7 +12,7 @@ import { hoverTooltip } from '@codemirror/view'
  * 生产集成在 P5（CodeEditor 升级）；此处验证库 API 与 DOM 交互无环境障碍。
  */
 
-function mountView(extensions: Parameters<typeof EditorState.create>[0]['extensions']): {
+function mountView(extensions: NonNullable<Parameters<typeof EditorState.create>[0]>['extensions']): {
   view: EditorView
   host: HTMLElement
 } {
@@ -59,7 +59,7 @@ describe('PoC③ CM6 扩展可行性', () => {
 
   it('hoverTooltip 扩展可构造（悬停内容由回调提供）', () => {
     const hover = hoverTooltip((view, pos) => {
-      const word = view.state.doc.sliceString(Math.max(0, pos - 4), pos)
+      void view
       return { pos, create: () => ({ dom: document.createElement('div') }), above: true }
     })
     expect(hover).toBeTruthy()

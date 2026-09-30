@@ -14,6 +14,7 @@ import type {
   JudgeStatus,
   KnowledgePoint,
   LanguageId,
+  LspDiagnosticsEvent,
   MasteryInfo,
   MistakeBookEntry,
   MistakeHistoryEntry,
@@ -34,6 +35,12 @@ import type {
 
 /** IPC 统一返回信封 */
 export type IpcResult<T> = { ok: true; data: T } | { ok: false; code: string; message: string }
+
+/**
+ * v1.4 唯一的 main→renderer 事件通道（诊断推送）。
+ * preload 暴露受控订阅（onLspDiagnostics），不提供通用 on。
+ */
+export const LSP_DIAGNOSTICS_CHANNEL = 'lsp.diagnostics'
 
 export interface RunOnceInput {
   language: LanguageId
@@ -210,6 +217,9 @@ export interface AppApi {
       total: number
     }>
   >
+
+  // 诊断推送订阅（v1.4；唯一事件通道，返回退订函数）
+  onLspDiagnostics(cb: (event: LspDiagnosticsEvent) => void): () => void
 }
 
 /** 用于 UI 分组的难度元数据 */

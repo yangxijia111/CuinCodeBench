@@ -1,9 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { AppApi, IpcResult } from '../shared/ipc'
+import { LSP_DIAGNOSTICS_CHANNEL } from '../shared/ipc'
+import type { LspDiagnosticsEvent } from '../shared/types'
 
 /**
  * preload：经 contextBridge 暴露白名单 API（security §3.6）。
  * 实现 AppApi 接口；每个方法对应一条 invoke 通道。
+ * 唯一例外：onLspDiagnostics（v1.4 事件订阅，受控白名单通道，返回退订函数）。
  */
 
 function invoke<T>(channel: string, ...args: unknown[]): Promise<IpcResult<T>> {
@@ -76,7 +79,15 @@ const api: AppApi = {
   importBackupPreview: () => invoke('backup.importPreview'),
   confirmBackupRestore: () => invoke('backup.confirmRestore'),
   cancelBackupImport: () => invoke('backup.cancelImport'),
-  getBackupStatus: () => invoke('backup.getRestoreStatus')
+  getBackupStatus: () => invoke('backup.getRestoreStatus'),
+
+  onLspDiagnostics: (cb) => {
+    const listener = (_event: unknown, payload: LspDiagnosticsEvent): void => cb(payload)
+    ipcRenderer.on(LSP_DIAGNOSTICS_CHANNEL, listener)
+    return () => {
+      ipcRenderer.removeListener(LSP_DIAGNOSTICS_CHANNEL, listener)
+    }
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

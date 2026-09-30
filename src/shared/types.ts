@@ -460,3 +460,77 @@ export interface DashboardV2Stats extends DashboardStats {
   trend30: TrendPoint[]
 }
 
+// ============================================================
+// v1.4 Editor & Project Experience（docs/V1_4_DESIGN.md §5）
+// ============================================================
+
+/** 工作区文件（做题页编辑态；path 为工作区相对路径，入口固定 main.c|cpp|py） */
+export interface WorkspaceFile {
+  path: string
+  content: string
+  isEntry: boolean
+}
+
+/** 工作区同步输入（仅变更部分；removed 为删除的相对路径） */
+export interface WorkspaceFileInput {
+  path: string
+  content: string
+}
+
+/** 题目定义的附加文件（problem_files 表；入口文件仍存 initialCode，单一真相） */
+export interface ProblemFile {
+  id: string
+  problemId: string
+  language: LanguageId
+  path: string
+  content: string
+  sortOrder: number
+}
+
+export interface ProblemFileInput {
+  language: LanguageId
+  path: string
+  content: string
+}
+
+/** LSP 诊断（LSP 0 基行列；来源 pyright/clangd/编译器回退，renderer 统一消费） */
+export interface LspDiagnostic {
+  line: number
+  col: number
+  endLine: number
+  endCol: number
+  severity: 'error' | 'warning' | 'info'
+  message: string
+  /** 产生者（如 pyright / clangd / gcc） */
+  source?: string
+}
+
+/** 诊断推送事件（唯一 IPC 事件通道 lsp.diagnostics 的 payload） */
+export interface LspDiagnosticsEvent {
+  problemId: string
+  language: LanguageId
+  /** 工作区相对路径 */
+  path: string
+  diagnostics: LspDiagnostic[]
+}
+
+export interface LspCompletionItem {
+  label: string
+  /** LSP CompletionItemKind（1–25），renderer 仅用于图标分类 */
+  kind?: number
+  detail?: string
+  insertText?: string
+}
+
+export interface LspHoverResult {
+  contents: string
+  isMarkdown: boolean
+}
+
+/** 每语言的智能编辑供给状态（lsp.status 返回） */
+export interface LspServerStatus {
+  /** 实际生效的服务来源 */
+  server: 'clangd' | 'pyright' | 'fallback' | 'none'
+  state: 'starting' | 'ready' | 'degraded'
+}
+
