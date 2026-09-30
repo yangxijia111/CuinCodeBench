@@ -45,3 +45,4 @@ desktop.ini
 
 # v1.3 native launcher（源码入库 native/ccb-launcher/，产物不入库）
 native/bin/
+.zcode/
