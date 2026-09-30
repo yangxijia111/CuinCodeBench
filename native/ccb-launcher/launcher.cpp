@@ -46,7 +46,7 @@ static const uint8_t FRAME_ERROR = 0x22;
 
 static const uint32_t MAX_DATA_PAYLOAD = 256 * 1024;
 static const uint32_t MAX_JSON_PAYLOAD = 16 * 1024;
-static const int PROTOCOL_VERSION = 1;
+static const int PROTOCOL_VERSION = 2;
 
 static const DWORD EXIT_OK = 0;
 static const DWORD EXIT_PROTOCOL = 2;
@@ -373,6 +373,8 @@ struct Request {
   ULONGLONG memoryLimitBytes = 0;
   ULONGLONG processLimit = 0;
   ULONGLONG outputLimitBytes = 0;
+  // v1.4（协议 v2）：CPU 限频百分比（1-100；0 = 不启用；CpuRate 单位 0.01%）
+  ULONGLONG cpuRatePercent = 0;
 };
 
 static bool JsonToStr(const JsonValue* v, std::wstring& out) {
@@ -396,7 +398,7 @@ static bool ParseRequest(const std::string& utf8, Request& req) {
   const JsonValue* version = root.find(L"version");
   if (version == nullptr || version->type != JsonValue::Num ||
       (int)version->num != PROTOCOL_VERSION) {
-    FatalError("unsupported_version", "REQ version must be 1", 0, EXIT_VERSION);
+    FatalError("unsupported_version", "REQ version must be 2", 0, EXIT_VERSION);
   }
   if (!JsonToStr(root.find(L"program"), req.program) || req.program.empty()) return false;
   // 契约：program 必须为绝对路径（lpApplicationName 不做 PATH 搜索）
@@ -428,6 +430,11 @@ static bool ParseRequest(const std::string& utf8, Request& req) {
   if (!JsonToU64(root.find(L"processLimit"), req.processLimit, 0, 4096)) return false;
   if (!JsonToU64(root.find(L"outputLimitBytes"), req.outputLimitBytes, 0, 64ULL * 1024 * 1024)) {
     return false;
+  }
+  // v1.4：可选字段（缺省 = 0 = 不启用）
+  const JsonValue* cpuRate = root.find(L"cpuRatePercent");
+  if (cpuRate != nullptr) {
+    if (!JsonToU64(cpuRate, req.cpuRatePercent, 0, 100)) return false;
   }
   return true;
 }
@@ -528,6 +535,19 @@ static void CreateJobWithLimits(const Request& req, Child& c) {
     CloseHandle(c.job);
     c.job = nullptr;
     FatalError("set_job_limits_failed", "SetInformationJobObject failed", err, EXIT_FATAL);
+  }
+  // v1.4（协议 v2）：CPU 限频（RATE_CONTROL；CpuRate 单位 0.01% = percent * 100）。
+  // 失败视为致命（配置被拒绝时不静默降级——调用方需要知道限频未生效）。
+  if (req.cpuRatePercent > 0) {
+    JOBOBJECT_CPU_RATE_CONTROL_INFORMATION rate{};
+    rate.ControlFlags = JOB_OBJECT_CPU_RATE_CONTROL_ENABLE;
+    rate.CpuRate = (DWORD)(req.cpuRatePercent * 100);
+    if (!SetInformationJobObject(c.job, JobObjectCpuRateControlInformation, &rate, sizeof(rate))) {
+      DWORD err = GetLastError();
+      CloseHandle(c.job);
+      c.job = nullptr;
+      FatalError("set_cpu_rate_failed", "SetInformationJobObject(CpuRate) failed", err, EXIT_FATAL);
+    }
   }
 }
 

@@ -330,6 +330,26 @@ describe.skipIf(!enabled)('ccb-launcher 正式集成（帧协议 + Job Object）
     }
   })
 
+  // v1.4（协议 v2）：CPU 限频配置被接受且程序正常完成（不做时序脆弱断言——
+  // 限频效果本身由 Windows 内核 RATE_CONTROL 保证；此处验证协议透传与不误伤）
+  it('cpuRatePercent=50：REQ 透传被接受，程序正常完成输出一致', async () => {
+    const r = await executeNative(
+      {
+        program: PY,
+        args: ['-c', 'print("rate-limited-ok")'],
+        cwd: tempDir(),
+        stdin: '',
+        timeoutMs: 15_000
+      },
+      { cpuRatePercent: 50 },
+      LAUNCHER
+    )
+    expect(r.status).toBe('ok')
+    expect(r.exitCode).toBe(0)
+    expect(r.stdout).toContain('rate-limited-ok')
+    expect(r.terminationReason).toBeNull()
+  })
+
   it('ensureTreeGone：存活 pid 强杀路径 + 已死 pid 快速确认', async () => {
     const { spawn } = await import('child_process')
     const sleeper = spawn(PY, ['-c', 'import time; time.sleep(30)'], { stdio: 'ignore' })

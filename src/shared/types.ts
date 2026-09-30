@@ -220,6 +220,8 @@ export interface AppSettings {
   judgeTimeoutDefaultMs: number
   /** v1.4：clangd 手工路径（空串 = 未指定，走 PATH 探测） */
   manualClangdPath: string
+  /** v1.4：判题 CPU 限频百分比（0 = 不启用；1-100 限 Job Object CPU 占用；仅 native launcher 路径生效） */
+  judgeCpuRatePercent: number
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -228,7 +230,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   wordWrap: false,
   manualToolchains: {},
   judgeTimeoutDefaultMs: 5_000,
-  manualClangdPath: ''
+  manualClangdPath: '',
+  judgeCpuRatePercent: 0
 }
 
 /** 题目列表查询条件（'all' 表示不筛选） */

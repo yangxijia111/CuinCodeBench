@@ -23,7 +23,12 @@ export async function runProcess(opts: ExecuteOptions): Promise<ExecutionResult>
     const launcherPath = resolveLauncherPath()
     if (launcherPath !== null) {
       try {
-        return await executeNative(opts, {}, launcherPath)
+        // v1.4：CPU 限频设置透传（0/缺省 = 不启用；内存/进程上限仍用默认值）
+        const limits =
+          opts.cpuRatePercent !== undefined && opts.cpuRatePercent > 0
+            ? { cpuRatePercent: opts.cpuRatePercent }
+            : {}
+        return await executeNative(opts, limits, launcherPath)
       } catch (err) {
         // 仅 launcher 自身无法启动（ENOENT/被拦截）——未创建任何用户进程，可安全降级
         logger.warn(

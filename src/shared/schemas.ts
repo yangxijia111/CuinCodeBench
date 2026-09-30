@@ -135,7 +135,8 @@ export const appSettingsPatchSchema = z
       })
       .optional(),
     judgeTimeoutDefaultMs: z.number().int().min(1000).max(60000).optional(),
-    manualClangdPath: z.string().max(500).optional()
+    manualClangdPath: z.string().max(500).optional(),
+    judgeCpuRatePercent: z.number().int().min(0).max(100).optional()
   })
   .strict()
 

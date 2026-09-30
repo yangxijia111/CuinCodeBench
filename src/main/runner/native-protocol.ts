@@ -21,8 +21,8 @@ export const MAX_JSON_PAYLOAD = 16 * 1024
 
 export const HEADER_SIZE = 5
 
-/** 协议版本（REQ.version；双端同值，破坏性变更 +1） */
-export const PROTOCOL_VERSION = 1
+/** 协议版本（REQ.version；双端同值，破坏性变更 +1）。v2 = v1.4 新增可选 cpuRatePercent（缺省 0 不启用） */
+export const PROTOCOL_VERSION = 2
 
 /** 编码一帧（payload 长度必须已在调用方约束） */
 export function encodeFrame(type: number, payload: Buffer): Buffer {

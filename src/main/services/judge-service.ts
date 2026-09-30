@@ -64,6 +64,8 @@ export class JudgeService {
     if (toolchain === null) {
       return { compile: null, execution: null, error: noToolchainError(input.language) }
     }
+    // v1.4：CPU 限频（任务级读取一次；0 = 不启用）
+    const cpuRatePercent = this.services().settings.get().judgeCpuRatePercent
     const files = input.files ?? []
     return withTempDir(async (dir) => {
       await writeWorkspaceFiles(dir, input.language, input.code, files)
@@ -72,7 +74,7 @@ export class JudgeService {
 
       let compile: CompileOutcome | null = null
       if (plan.compile !== null) {
-        const report = await compileSource(toolchain, dir, extraSources)
+        const report = await compileSource(toolchain, dir, extraSources, { cpuRatePercent })
         compile = {
           ok: report.ok,
           stderr: report.stderr,
@@ -89,7 +91,8 @@ export class JudgeService {
         cwd: dir,
         stdin: input.stdin,
         timeoutMs: input.timeoutMs,
-        env: plan.run.env
+        env: plan.run.env,
+        ...(cpuRatePercent > 0 ? { cpuRatePercent } : {})
       })
       return {
         compile,
@@ -137,6 +140,8 @@ export class JudgeService {
       )
     }
 
+    // v1.4：CPU 限频（任务级读取一次；0 = 不启用）
+    const cpuRatePercent = this.services().settings.get().judgeCpuRatePercent
     const extraSources = files.map((f) => f.path)
     return withTempDir(async (dir) => {
       await writeWorkspaceFiles(dir, language, code, files)
@@ -145,7 +150,7 @@ export class JudgeService {
       // 1) 编译（compiled 语言）
       let compile: CompileOutcome | null = null
       if (plan.compile !== null) {
-        const report = await compileSource(toolchain, dir, extraSources)
+        const report = await compileSource(toolchain, dir, extraSources, { cpuRatePercent })
         compile = {
           ok: report.ok,
           stderr: report.stderr,
@@ -168,7 +173,8 @@ export class JudgeService {
           cwd: dir,
           stdin: tc.stdin,
           timeoutMs: tc.timeoutMs,
-          env: plan.run.env
+          env: plan.run.env,
+          ...(cpuRatePercent > 0 ? { cpuRatePercent } : {})
         })
         totalDuration += execution.durationMs
         results.push(toCaseResult(tc, execution))

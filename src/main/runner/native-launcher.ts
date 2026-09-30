@@ -58,6 +58,8 @@ export interface NativeLimits {
   memoryLimitBytes?: number
   processLimit?: number
   outputLimitBytes?: number
+  /** v1.4：CPU 限频百分比（1-100；0/缺省 = 不启用；仅 native 路径生效） */
+  cpuRatePercent?: number
 }
 
 /** 活跃 launcher 登记表：应用退出时整树终止（KILL_ON_JOB_CLOSE 兜底 + 主动杀） */
@@ -166,7 +168,9 @@ async function executeNativeOnce(opts: ExecuteOptions, limits: NativeLimits, lau
     timeoutMs: opts.timeoutMs,
     memoryLimitBytes,
     processLimit,
-    outputLimitBytes: enforceLimit ? limitBytes : 0
+    outputLimitBytes: enforceLimit ? limitBytes : 0,
+    // v1.4：CPU 限频（0 = 不启用；launcher 缺省字段兼容）
+    cpuRatePercent: Math.max(0, Math.min(100, limits.cpuRatePercent ?? 0))
   }
   const reqPayload = Buffer.from(JSON.stringify(req), 'utf8')
   if (reqPayload.length > MAX_JSON_PAYLOAD) {

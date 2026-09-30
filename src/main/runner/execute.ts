@@ -24,6 +24,11 @@ export interface ExecuteOptions {
   outputLimitBytes?: number
   /** 是否检查输出超限；超限即终止进程（H6：编译阶段同样启用，防失控编译器无限输出） */
   enforceOutputLimit?: boolean
+  /**
+   * v1.4：CPU 限频百分比（1-100；0/缺省 = 不启用）。
+   * 仅 native launcher 路径生效（JOB_OBJECT_RATE_CONTROL）；fallback 路径忽略（无此能力）。
+   */
+  cpuRatePercent?: number
 }
 
 /** 输出累计器（native-launcher 复用）：保留上限内内容并标记截断 */

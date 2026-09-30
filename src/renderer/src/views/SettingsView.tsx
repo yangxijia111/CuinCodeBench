@@ -218,6 +218,25 @@ export function SettingsView(): React.JSX.Element {
             <span className="range-value">ms（新建用例的默认值）</span>
           </div>
         </label>
+
+        <label className="settings-row">
+          <span>判题 CPU 限频（v1.4）</span>
+          <div className="range-row">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={settings.judgeCpuRatePercent}
+              onChange={(e) => void patch({ judgeCpuRatePercent: Number(e.target.value) })}
+            />
+            <span className="range-value">
+              {settings.judgeCpuRatePercent === 0
+                ? '关闭（默认，判词语义与 v1.3 一致）'
+                : `${settings.judgeCpuRatePercent}%（防死循环空转吃满 CPU；仅原生 launcher 生效）`}
+            </span>
+          </div>
+        </label>
       </section>
 
       <section className="settings-section">

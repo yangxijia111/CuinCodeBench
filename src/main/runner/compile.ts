@@ -25,7 +25,8 @@ export interface CompileReport {
 export async function compileSource(
   toolchain: Toolchain,
   dir: string,
-  extraSources: string[] = []
+  extraSources: string[] = [],
+  opts: { cpuRatePercent?: number } = {}
 ): Promise<CompileReport> {
   const plan = buildRunPlan(toolchain, dir, extraSources)
   if (plan.compile === null) {
@@ -40,7 +41,10 @@ export async function compileSource(
     timeoutMs: COMPILE_TIMEOUT_MS,
     env: plan.compile.env,
     enforceOutputLimit: true,
-    outputLimitBytes: COMPILE_OUTPUT_LIMIT_BYTES
+    outputLimitBytes: COMPILE_OUTPUT_LIMIT_BYTES,
+    ...(opts.cpuRatePercent !== undefined && opts.cpuRatePercent > 0
+      ? { cpuRatePercent: opts.cpuRatePercent }
+      : {})
   })
   const stderr =
     result.status === 'output_limit'
