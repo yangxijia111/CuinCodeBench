@@ -214,6 +214,8 @@ export interface AppSettings {
   wordWrap: boolean
   manualToolchains: Partial<Record<LanguageId, string>>
   judgeTimeoutDefaultMs: number
+  /** v1.4：clangd 手工路径（空串 = 未指定，走 PATH 探测） */
+  manualClangdPath: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -221,7 +223,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   tabSize: 4,
   wordWrap: false,
   manualToolchains: {},
-  judgeTimeoutDefaultMs: 5_000
+  judgeTimeoutDefaultMs: 5_000,
+  manualClangdPath: ''
 }
 
 /** 题目列表查询条件（'all' 表示不筛选） */

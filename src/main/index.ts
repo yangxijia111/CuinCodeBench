@@ -14,9 +14,13 @@ import { LEARNING_V2_MAPPED_KEY, LEARNING_SEED_V2_KEY } from './db/repositories/
 import { cleanLegacyTempDirs } from './runner/temp-dir'
 import { killAllActiveProcesses } from './runner/dispatch'
 import { configureLauncherContext } from './runner/resolve-launcher'
+import { configureLspPathContext } from './lsp/pyright-resolve'
+import { LspService } from './services/lsp-service'
+import { WorkspaceService } from './services/workspace-service'
 import { recoverRestoreJournal } from './backup/restore-coordinator'
 import { isAllowedExternalUrl } from './lib/external-url'
-import { registerTrustedSender } from './ipc/validate-sender'
+import { registerTrustedSender, pushToTrustedWindows } from './ipc/validate-sender'
+import { LSP_DIAGNOSTICS_CHANNEL } from '@shared/ipc'
 
 /**
  * 主进程入口：单实例锁 → 打开数据库 → 服务初始化 → 种子灌入 → 清扫遗留临时目录 →
@@ -87,6 +91,8 @@ const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
+  // v1.4：语言服务器句柄（whenReady 内构造；退出钩子在模块层取用）
+  let lsp: LspService | null = null
   // —— E2E 测试钩子（docs/V1_2_E2E_PLAN.md §2）——
   // 仅在 CCB_E2E=1 时生效：把系统文件对话框替换为受控桩（路径来自测试注入的环境变量），
   // 使「备份导出/导入」可端到端自动化。生产环境无此变量，行为完全不变。
@@ -123,6 +129,13 @@ if (!gotLock) {
       appPath: app.getAppPath()
     })
 
+    // v1.4：pyright 内置路径解析上下文（打包=asar.unpacked；开发=repo/node_modules）
+    configureLspPathContext({
+      isPackaged: app.isPackaged,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath()
+    })
+
     // 数据库与服务（数据目录：userData，或 CCB_DATA_DIR 覆盖）
     // v1.3：恢复 journal 自愈必须先于 openDatabase（上次恢复中途崩溃的现场修复）
     const recovered = recoverRestoreJournal(getDataDir())
@@ -151,6 +164,16 @@ if (!gotLock) {
     const toolchains = new ToolchainService(() => getServices().settings.get().manualToolchains)
     const judge = new JudgeService(toolchains, () => getServices())
 
+    // v1.4：语言服务器（pyright 内置 + clangd 检测；诊断经唯一事件通道推送可信窗口）
+    // 与 LspService 同理经函数取值（设置/题库均可能随恢复换库刷新）
+    const lspService = new LspService({
+      toolchains,
+      settings: () => getServices().settings.get(),
+      pushEvent: (event) => pushToTrustedWindows(LSP_DIAGNOSTICS_CHANNEL, event)
+    })
+    lsp = lspService
+    const workspace = new WorkspaceService(getDataDir(), lspService, () => getServices().problems)
+
     // v1.2：内置学习路线 + 旧题知识点映射（一次性幂等；失败不阻塞启动）
     // v1.2.1（P0-B）：marker 仅在灌入成功后标记——失败/文件缺失都会在下次启动真实重试
     const learningRepo = new LearningRepository(db)
@@ -165,7 +188,7 @@ if (!gotLock) {
       if (n > 0) logger.info('已清扫遗留临时目录', `${n} 个`)
     })
 
-    registerIpcHandlers({ toolchains, judge })
+    registerIpcHandlers({ toolchains, judge, workspace, lsp: lspService })
 
     // 后台预探测工具链（不阻塞窗口显示）
     void toolchains
@@ -187,8 +210,9 @@ if (!gotLock) {
 
   app.on('window-all-closed', () => {
     // 退出顺序：终止全部执行中的程序（native launcher + fallback 两条登记表，防孤儿进程）→
-    // 关闭数据库（WAL 检查点落地）→ 退出
+    // 关闭语言服务器（v1.4，防长驻孤儿）→ 关闭数据库（WAL 检查点落地）→ 退出
     killAllActiveProcesses()
+    lsp?.shutdown()
     closeServices()
     app.quit()
   })
@@ -196,6 +220,7 @@ if (!gotLock) {
   // 兜底：app.quit() 由其它路径触发（如 about 面板、自动更新）时同样清理子进程
   app.on('before-quit', () => {
     killAllActiveProcesses()
+    lsp?.shutdown()
   })
 
   // 兜底：不静默吞掉未捕获异常（NFR-7）

@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import {
   MAX_TEST_CASES_PER_PROBLEM,
+  MAX_WORKSPACE_FILES,
   TESTCASE_TIMEOUT_MAX_MS,
-  TESTCASE_TIMEOUT_MIN_MS
+  TESTCASE_TIMEOUT_MIN_MS,
+  WORKSPACE_FILE_MAX_CHARS
 } from './constants'
 import type { ProblemInput } from './types'
 
@@ -91,7 +93,8 @@ export const appSettingsPatchSchema = z
         python: z.string().optional()
       })
       .optional(),
-    judgeTimeoutDefaultMs: z.number().int().min(1000).max(60000).optional()
+    judgeTimeoutDefaultMs: z.number().int().min(1000).max(60000).optional(),
+    manualClangdPath: z.string().max(500).optional()
   })
   .strict()
 
@@ -328,6 +331,41 @@ export const lspDiagnosticsEventSchema = z.object({
   path: z.string().min(1).max(200),
   diagnostics: z.array(lspDiagnosticSchema).max(200)
 })
+
+// ============================================================
+// v1.4 工作区与 LSP 请求（路径语义校验在服务层 validateWorkspacePath）
+// ============================================================
+
+export const workspaceFileInputSchema = z.object({
+  path: z.string().min(1).max(200),
+  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
+})
+
+/** workspace.open(problemId, language, draft) */
+export const workspaceOpenSchema = z.tuple([
+  z.string().min(1).max(100),
+  languageIdSchema,
+  z.string().max(WORKSPACE_FILE_MAX_CHARS).nullable()
+])
+
+export const workspaceSyncSchema = z.tuple([
+  z.string().min(1).max(100),
+  languageIdSchema,
+  z.array(workspaceFileInputSchema).max(MAX_WORKSPACE_FILES),
+  z.array(z.string().min(1).max(200)).max(MAX_WORKSPACE_FILES)
+])
+
+export const workspaceResetSchema = z.tuple([z.string().min(1).max(100), languageIdSchema])
+
+/** lsp.complete / lsp.hover 共用：(problemId, language, path, line, col, content) */
+export const lspPositionRequestSchema = z.tuple([
+  z.string().min(1).max(100),
+  languageIdSchema,
+  z.string().min(1).max(200),
+  z.number().int().min(0).max(100_000),
+  z.number().int().min(0).max(100_000),
+  z.string().max(WORKSPACE_FILE_MAX_CHARS)
+])
 
 export type BackupEnvelope = z.output<typeof backupEnvelopeSchema>
 export type BackupData = z.output<typeof backupDataSchema>

@@ -14,7 +14,10 @@ import type {
   JudgeStatus,
   KnowledgePoint,
   LanguageId,
+  LspCompletionItem,
   LspDiagnosticsEvent,
+  LspHoverResult,
+  LspServerStatus,
   MasteryInfo,
   MistakeBookEntry,
   MistakeHistoryEntry,
@@ -30,7 +33,9 @@ import type {
   Submission,
   SubmissionQuery,
   TestCaseResult,
-  Toolchain
+  Toolchain,
+  WorkspaceFile,
+  WorkspaceFileInput
 } from './types'
 
 /** IPC 统一返回信封 */
@@ -220,6 +225,39 @@ export interface AppApi {
 
   // 诊断推送订阅（v1.4；唯一事件通道，返回退订函数）
   onLspDiagnostics(cb: (event: LspDiagnosticsEvent) => void): () => void
+
+  // 工作区（v1.4；draft = localStorage 旧草稿一次性迁移，磁盘已有内容时以磁盘为准）
+  workspaceOpen(
+    problemId: string,
+    language: LanguageId,
+    draft: string | null
+  ): Promise<IpcResult<WorkspaceFile[]>>
+  workspaceSync(
+    problemId: string,
+    language: LanguageId,
+    changed: WorkspaceFileInput[],
+    removed: string[]
+  ): Promise<IpcResult<void>>
+  workspaceReset(problemId: string, language: LanguageId): Promise<IpcResult<WorkspaceFile[]>>
+
+  // 智能编辑（v1.4）
+  lspStatus(): Promise<IpcResult<Record<LanguageId, LspServerStatus>>>
+  lspComplete(
+    problemId: string,
+    language: LanguageId,
+    path: string,
+    line: number,
+    col: number,
+    content: string
+  ): Promise<IpcResult<LspCompletionItem[]>>
+  lspHover(
+    problemId: string,
+    language: LanguageId,
+    path: string,
+    line: number,
+    col: number,
+    content: string
+  ): Promise<IpcResult<LspHoverResult | null>>
 }
 
 /** 用于 UI 分组的难度元数据 */

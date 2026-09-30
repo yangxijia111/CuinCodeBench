@@ -87,7 +87,18 @@ const api: AppApi = {
     return () => {
       ipcRenderer.removeListener(LSP_DIAGNOSTICS_CHANNEL, listener)
     }
-  }
+  },
+
+  workspaceOpen: (problemId, language, draft) => invoke('workspace.open', [problemId, language, draft]),
+  workspaceSync: (problemId, language, changed, removed) =>
+    invoke('workspace.sync', [problemId, language, changed, removed]),
+  workspaceReset: (problemId, language) => invoke('workspace.reset', [problemId, language]),
+
+  lspStatus: () => invoke('lsp.status'),
+  lspComplete: (problemId, language, path, line, col, content) =>
+    invoke('lsp.complete', [problemId, language, path, line, col, content]),
+  lspHover: (problemId, language, path, line, col, content) =>
+    invoke('lsp.hover', [problemId, language, path, line, col, content])
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -57,6 +57,32 @@ export const HISTORY_PAGE_SIZE = 20
 export const TEMP_ROOT_NAME = 'cuincodebench'
 
 // ============================================================
+// v1.4 Editor & Project Experience（docs/V1_4_DESIGN.md §5）
+// ============================================================
+
+/** 工作区/判题入口源文件名（per 语言；判题命令与工作区模型共用） */
+export const SOURCE_FILENAMES: Record<'c' | 'cpp' | 'python', string> = {
+  c: 'main.c',
+  cpp: 'main.cpp',
+  python: 'main.py'
+}
+
+/** 附加文件数量上限（不含入口） */
+export const MAX_WORKSPACE_FILES = 16
+
+/** 单文件内容上限（字符，与 initialCode 同限） */
+export const WORKSPACE_FILE_MAX_CHARS = 100_000
+
+/** 文件集总大小上限（字符） */
+export const WORKSPACE_TOTAL_MAX_CHARS = 1_000_000
+
+/** 相对路径深度上限（段数） */
+export const WORKSPACE_PATH_MAX_DEPTH = 8
+
+/** 工作区内保留文件名（LSP/判题基础设施，禁止作为用户文件） */
+export const WORKSPACE_RESERVED_NAMES = ['compile_flags.txt', '.clangd']
+
+// ============================================================
 // v1.3 Native Launcher（docs/V1_3_JOB_OBJECT_DESIGN.md）
 // ============================================================
 

@@ -7,13 +7,19 @@ import {
   judgeSubmitSchema,
   submissionQuerySchema,
   appSettingsPatchSchema,
-  randomSessionConfigSchema
+  randomSessionConfigSchema,
+  workspaceOpenSchema,
+  workspaceResetSchema,
+  workspaceSyncSchema,
+  lspPositionRequestSchema
 } from '@shared/schemas'
 import type { AppSettings, ErrorCategory } from '@shared/types'
 import { handle, getDataDir, AppError } from './index'
 import { getServices } from '../services'
 import type { ToolchainService } from '../services/toolchain-service'
 import type { JudgeService } from '../services/judge-service'
+import type { WorkspaceService } from '../services/workspace-service'
+import type { LspService } from '../services/lsp-service'
 import { logger } from '../lib/logger'
 import {
   previewRestore,
@@ -35,6 +41,10 @@ const noArgs = z.unknown()
 export interface IpcDeps {
   toolchains: ToolchainService
   judge: JudgeService
+  /** v1.4：工作区（磁盘编辑态 + LSP 挂载） */
+  workspace: WorkspaceService
+  /** v1.4：语言服务器编排 */
+  lsp: LspService
 }
 
 export function registerIpcHandlers(deps: IpcDeps): void {
@@ -61,6 +71,8 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     // （DB 触发器为第二道防线，见 migration v3 trg_problems_delete_review_cleanup）
     svc().reviewSvc.deleteByProblem(id)
     svc().problems.remove(id)
+    // v1.4：清理该题全部工作区（编辑态可重建；best-effort 不阻断删除）
+    void deps.workspace.removeProblem(id)
     return undefined
   })
   handle('problems.listTags', noArgs, () => svc().problems.listTags())
@@ -74,6 +86,26 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   handle('run.once', runOnceInputSchema, (input) => deps.judge.runOnce(input))
   handle('judge.submit', judgeSubmitSchema, ([problemId, language, code]) =>
     deps.judge.submit(problemId, language, code)
+  )
+
+  // —— 工作区（v1.4，docs/V1_4_DESIGN.md §1/§4）——
+  handle('workspace.open', workspaceOpenSchema, ([problemId, language, draft]) =>
+    deps.workspace.open(problemId, language, draft)
+  )
+  handle('workspace.sync', workspaceSyncSchema, ([problemId, language, changed, removed]) =>
+    deps.workspace.sync(problemId, language, changed, removed).then(() => undefined)
+  )
+  handle('workspace.reset', workspaceResetSchema, ([problemId, language]) =>
+    deps.workspace.reset(problemId, language)
+  )
+
+  // —— 智能编辑（v1.4）——
+  handle('lsp.status', noArgs, () => deps.lsp.status())
+  handle('lsp.complete', lspPositionRequestSchema, ([problemId, language, path, line, col, content]) =>
+    deps.lsp.requestCompletion(problemId, language, deps.workspace.workspaceDir(problemId, language), path, line, col, content)
+  )
+  handle('lsp.hover', lspPositionRequestSchema, ([problemId, language, path, line, col, content]) =>
+    deps.lsp.requestHover(problemId, language, deps.workspace.workspaceDir(problemId, language), path, line, col, content)
   )
 
   // —— 历史 ——

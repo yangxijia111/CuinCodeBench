@@ -1,16 +1,14 @@
 import { join } from 'path'
 import type { LanguageId, Toolchain } from '@shared/types'
+import { SOURCE_FILENAMES } from '@shared/constants'
 import type { RunPlan } from './types'
 
 /**
  * 语言配置与命令构造（纯函数，FR-R3：全部数组参数，无 shell 拼接）。
+ * 入口文件名单源 @shared/constants（v1.4 工作区模型共用）。
  */
 
-export const SOURCE_FILENAMES: Record<LanguageId, string> = {
-  c: 'main.c',
-  cpp: 'main.cpp',
-  python: 'main.py'
-}
+export { SOURCE_FILENAMES }
 
 /** 每种工具链服务的语言 */
 export const TOOLCHAIN_LANGUAGES: Record<Toolchain['kind'], LanguageId[]> = {

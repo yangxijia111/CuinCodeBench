@@ -138,12 +138,24 @@ export class LspService {
     await this.ensureServer(family, files)
   }
 
-  /** 增量文档同步（WorkspaceService 写盘后调用） */
-  syncDocs(problemId: string, language: LanguageId, dir: string, changed: WorkspaceFileInput[]): void {
+  /** 增量文档同步（WorkspaceService 写盘后调用；removed → didClose） */
+  syncDocs(
+    problemId: string,
+    language: LanguageId,
+    dir: string,
+    changed: WorkspaceFileInput[],
+    removed: string[]
+  ): void {
     const state = this.families[familyOf(language)]
     if (state.workspace?.problemId !== problemId || state.workspace.dir !== dir) return
     for (const file of changed) {
       this.didChange(state, language, file)
+    }
+    for (const path of removed) {
+      const doc = state.docs.get(path)
+      if (doc === undefined) continue
+      state.docs.delete(path)
+      state.server?.notify('textDocument/didClose', { textDocument: { uri: doc.uri } })
     }
     if (state.server === null) this.scheduleFallback(state)
   }
@@ -353,15 +365,16 @@ export class LspService {
     }, delay)
   }
 
-  /** 换工作区文件夹（同族同服务器） */
+  /** 换工作区文件夹（同族同服务器；同 URI 幂等不重发） */
   private switchFolder(state: FamilyState, dir: string): void {
     if (state.server === null) return
     const newUri = pathToFileURL(dir).href
+    if (state.currentFolderUri === newUri) return
     const event: { removed: { uri: string; name?: string }[]; added: { uri: string; name?: string }[] } = {
       removed: [],
       added: [{ uri: newUri }]
     }
-    if (state.currentFolderUri !== null && state.currentFolderUri !== newUri) {
+    if (state.currentFolderUri !== null) {
       event.removed.push({ uri: state.currentFolderUri })
     }
     state.server.notify('workspace/didChangeWorkspaceFolders', { event })

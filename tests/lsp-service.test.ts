@@ -110,7 +110,7 @@ describe('LspService 编排（桩语言服务器）', () => {
     const h = makeHarness(null)
     await h.service.openWorkspace('p1', 'python', h.dir, [{ path: 'main.py', content: 'ok\n' }])
     // 触发崩溃：didOpen 内容含 CRASH_SERVER
-    h.service.syncDocs('p1', 'python', h.dir, [{ path: 'main.py', content: 'CRASH_SERVER\n' }])
+    h.service.syncDocs('p1', 'python', h.dir, [{ path: 'main.py', content: 'CRASH_SERVER\n' }], [])
     await new Promise((r) => setTimeout(r, 200)) // 等崩溃与退避重启落地
     // 重启后（新进程）重放 docs，恢复正常内容即可继续补全
     const items = await waitFor<LspCompletionItem[]>(
@@ -151,7 +151,7 @@ describe('LspService 编排（桩语言服务器）', () => {
     expect(st.c).toEqual({ server: 'fallback', state: 'ready' })
 
     // 再次同步（回退执行器此时返回干净）→ 旧诊断被清空
-    h.service.syncDocs('p1', 'c', h.dir, [{ path: 'main.c', content: 'int main(){return 0;}\n' }])
+    h.service.syncDocs('p1', 'c', h.dir, [{ path: 'main.c', content: 'int main(){return 0;}\n' }], [])
     const clearEvent = await waitFor(
       () => h.events.find((e) => e.path === 'main.c' && e.diagnostics.length === 0 && e !== errEvent),
       5_000,
