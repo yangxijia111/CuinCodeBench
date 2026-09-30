@@ -205,12 +205,19 @@ describe('lsp-mapping 纯函数', () => {
     expect(mapHover({ contents: '   ' })).toBeNull()
   })
 
-  it('uriToPath：Windows 盘符 URI / 百分号解码 / 非 file URI', () => {
-    expect(uriToPath('file:///D:/tmp/x/main.py')).toBe('D:\\tmp\\x\\main.py')
-    expect(uriToPath('file:///D:/a%20b/c.py')).toContain('a b')
-    expect(uriToPath('not-a-uri')).toBe('not-a-uri')
-    // POSIX 形态 URI 在 win32 不是合法路径（无盘符）：fileURLToPath 抛错 → 原样返回
-    expect(uriToPath('file:///tmp/x/main.py')).toBe('file:///tmp/x/main.py')
+  it('uriToPath：盘符/POSIX URI 按平台语义转换 / 百分号解码 / 非 file URI 原样', () => {
+    // fileURLToPath 平台语义：win32 上盘符 URI → 反斜杠路径；posix 上同一 URI 视为
+    // 根下普通段（/D:/...）——断言按平台分支，避免 CI 矩阵假失败
+    if (process.platform === 'win32') {
+      expect(uriToPath('file:///D:/tmp/x/main.py')).toBe('D:\\tmp\\x\\main.py')
+      expect(uriToPath('file:///D:/a%20b/c.py')).toContain('a b')
+      // POSIX 形态 URI 在 win32 不是合法路径（无盘符）：fileURLToPath 抛错 → 原样返回
+      expect(uriToPath('file:///tmp/x/main.py')).toBe('file:///tmp/x/main.py')
+    } else {
+      expect(uriToPath('file:///home/u/x/main.py')).toBe('/home/u/x/main.py')
+      expect(uriToPath('file:///home/a%20b/c.py')).toBe('/home/a b/c.py')
+      expect(uriToPath('not-a-uri')).toBe('not-a-uri')
+    }
   })
 })
 
