@@ -15,7 +15,9 @@ export default tseslint.config(
       '*.db',
       'eslint.config.mjs',
       '*.config.ts',
-      'scripts/**'
+      'scripts/**',
+      // 测试夹具（桩语言服务器等，无 tsconfig 关联，typed 规则无法应用）
+      'tests/fixtures/**'
     ]
   },
   js.configs.recommended,
