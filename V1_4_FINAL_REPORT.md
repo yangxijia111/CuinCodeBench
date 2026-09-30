@@ -218,9 +218,18 @@ E2E 多文件闭环从 runtime_error 修复为 accepted 实证。
   - feat(v1.4 P6)：多文件判题（eebdb3f）
   - feat(v1.4 P7)：多文件 UI + 备份 v3（51862a1）
   - feat(v1.4 P8)：CPU 限频协议 v2（3541a58）
-  - chore(v1.4 P9)：E2E/性能门槛/版本 1.4.0/报告
-- CI：ubuntu + windows 矩阵（quality）→ windows E2E → tag 触发 Release
-  （质量门禁 → build:launcher → NSIS+zip → 7za 冒烟断言 launcher **与 pyright** → 发布）。
+  - chore(v1.4 P9)：E2E/性能门槛/版本 1.4.0/报告（bb3b38f）
+  - CI 过程修正 ×3（891b428 / 5e0b7f1 / cdd9878）：uriToPath 断言平台条件化；
+    CI windows runner 装有 clangd 暴露的环境假设（resolveClangd 测试注入 + PoC②
+    管线级断言）——本地全绿但 CI 环境差异的三轮真实暴露与修复
+- CI（ubuntu/windows 矩阵）✓ / E2E（windows）✓ / Release ✓（全绿）
+
+## 18.1 Release 资产与实际下载验证
+
+- 资产：CuinCodeBench-Setup-1.4.0.exe（122.05MB）+ CuinCodeBench-1.4.0-win-x64.zip（168.08MB）
+- 实际下载两个资产并以 7zip-bin 7za 解包验证（与 CI smoke 同口径）：
+  - `resources\bin\ccb-launcher.exe`（协议 v2）✓
+  - `resources\app.asar.unpacked\node_modules\pyright\langserver.index.js` ✓（pyright 全量 6320 文件）
 
 ## 19. 成功标准核对（v1.4 验收单）
 
