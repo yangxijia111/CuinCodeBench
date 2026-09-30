@@ -25,6 +25,7 @@ if (existsSync(portableGccDir)) {
 const detected = await detectAllToolchains()
 const python: Toolchain | null = selectToolchain(detected, 'python')
 const cCompiler: Toolchain | null = selectToolchain(detected, 'c')
+const cppCompiler: Toolchain | null = selectToolchain(detected, 'cpp')
 
 function setup() {
   const db = openDatabase({ file: ':memory:' })
@@ -158,4 +159,58 @@ describe('无工具链场景', () => {
     const problem = s.problems.create(makeAddProblem())
     await expect(emptyJudge.submit(problem.id, 'python', 'print(1)')).rejects.toThrow()
   })
+})
+
+
+// ============================================================
+// v1.4 多文件判题（docs/V1_4_DESIGN.md §7）
+// ============================================================
+describe.skipIf(cppCompiler === null)('JudgeService 多文件（C++，util.h + util.cpp + main.cpp）', () => {
+  it('附加文件参与编译链接：AC 且快照落库', async () => {
+    const { services, judge } = setup()
+    const problem = services.problems.create(makeAddProblem())
+
+    const files = [
+      { path: 'util.h', content: '#pragma once\nint add(int a, int b);\n' },
+      { path: 'util.cpp', content: '#include "util.h"\nint add(int a, int b) { return a + b; }\n' }
+    ]
+    const entry = '#include <iostream>\n#include "util.h"\nint main(){int a,b;std::cin>>a>>b;std::cout<<add(a,b)<<std::endl;}'
+    const result = await judge.submit(problem.id, 'cpp', entry, files)
+
+    expect(result.status).toBe('accepted')
+    expect(result.passedCount).toBe(3)
+    // 快照：附加文件随提交落库（复盘可见完整现场）
+    const detail = services.history.getById(result.submissionId)
+    expect(detail?.files).toEqual(files)
+  }, 30_000)
+
+  it('入口与附加文件内容共同编译：缺 util.cpp 时编译失败', async () => {
+    const { services, judge } = setup()
+    const problem = services.problems.create(makeAddProblem())
+    const entry = '#include <iostream>\n#include "util.h"\nint main(){int a,b;std::cin>>a>>b;std::cout<<add(a,b)<<std::endl;}'
+    // 只给头文件不给实现 → 链接失败 → compile_error
+    const result = await judge.submit(problem.id, 'cpp', entry, [
+      { path: 'util.h', content: '#pragma once\nint add(int a, int b);\n' }
+    ])
+    expect(result.status).toBe('compile_error')
+  }, 30_000)
+
+  it('恶意路径（../escape.cpp）被拒绝，不落库', async () => {
+    const { services, judge } = setup()
+    const problem = services.problems.create(makeAddProblem())
+    await expect(
+      judge.submit(problem.id, 'cpp', 'int main(){}', [{ path: '../evil.cpp', content: 'x' }])
+    ).rejects.toThrow('非法附加文件路径')
+    expect(services.history.list({ limit: 10, offset: 0 })).toHaveLength(0)
+  }, 30_000)
+
+  it('单文件提交（无 files）行为与 v1.3 一致：files 落 NULL', async () => {
+    const { services, judge } = setup()
+    const problem = services.problems.create(makeAddProblem())
+    const entry = '#include <iostream>\nint main(){int a,b;std::cin>>a>>b;std::cout<<a+b<<std::endl;}'
+    const result = await judge.submit(problem.id, 'cpp', entry)
+    expect(result.status).toBe('accepted')
+    const detail = services.history.getById(result.submissionId)
+    expect(detail?.files).toEqual([])
+  }, 30_000)
 })

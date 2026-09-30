@@ -5,6 +5,7 @@ import type {
   LanguageId,
   Problem,
   ProblemDetail,
+  ProblemFile,
   ProblemInput,
   Sample,
   TestCase,
@@ -39,6 +40,15 @@ interface TestCaseRow {
   order: number
 }
 
+interface ProblemFileRow {
+  id: string
+  problem_id: string
+  language: string
+  path: string
+  content: string
+  sort_order: number
+}
+
 function rowToProblem(row: ProblemRow): Problem {
   const initialCodeRaw = JSON.parse(row.initial_code) as Partial<Record<LanguageId, string>>
   return {
@@ -66,13 +76,14 @@ export type ProblemWithCases = ProblemDetail
 export class ProblemRepository {
   constructor(private readonly db: Database.Database) {}
 
-  /** 建聚合：题目与用例同一事务写入 */
+  /** 建聚合：题目、用例与附加文件（v1.4）同一事务写入 */
   create(input: ProblemInput, isBuiltin = false): ProblemWithCases {
     const now = Date.now()
     const id = randomUUID()
     const tx = this.db.transaction(() => {
       this.insertProblem(id, input, isBuiltin, now)
       this.insertCases(id, input.testCases)
+      this.insertFiles(id, input.files)
     })
     tx()
     const created = this.getById(id)
@@ -88,6 +99,7 @@ export class ProblemRepository {
         const id = randomUUID()
         this.insertProblem(id, input, isBuiltin, now)
         this.insertCases(id, input.testCases)
+        this.insertFiles(id, input.files)
       }
     })
     tx()
@@ -136,9 +148,11 @@ export class ProblemRepository {
           id
         )
       if (res.changes === 0) throw new Error(`题目不存在: ${id}`)
-      // 用例整体替换（聚合根更新语义）
+      // 用例与附加文件整体替换（聚合根更新语义）
       this.db.prepare('DELETE FROM test_cases WHERE problem_id=?').run(id)
       this.insertCases(id, input.testCases)
+      this.db.prepare('DELETE FROM problem_files WHERE problem_id=?').run(id)
+      this.insertFiles(id, input.files)
     })
     tx()
     const updated = this.getById(id)
@@ -156,13 +170,40 @@ export class ProblemRepository {
     })
   }
 
+  /** v1.4：附加文件写入（UNIQUE(problem_id, language, path) 由 schema 语义校验保证） */
+  private insertFiles(problemId: string, files: ProblemInput['files']): void {
+    if (files === undefined || files.length === 0) return
+    const stmt = this.db.prepare(
+      `INSERT INTO problem_files (id, problem_id, language, path, content, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    files.forEach((f, i) => {
+      stmt.run(randomUUID(), problemId, f.language, f.path, f.content, i)
+    })
+  }
+
+  /** v1.4：题目定义的附加文件（按语言+sort_order 稳定序） */
+  getFiles(problemId: string): ProblemFile[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM problem_files WHERE problem_id = ? ORDER BY language, sort_order`)
+      .all(problemId) as ProblemFileRow[]
+    return rows.map((r) => ({
+      id: r.id,
+      problemId: r.problem_id,
+      language: r.language as LanguageId,
+      path: r.path,
+      content: r.content,
+      sortOrder: r.sort_order
+    }))
+  }
+
   getById(id: string): ProblemWithCases | null {
     const row = this.db.prepare('SELECT * FROM problems WHERE id=?').get(id) as
       | ProblemRow
       | undefined
     if (!row) return null
     const cases = this.getCases(id)
-    return { ...rowToProblem(row), testCases: cases }
+    return { ...rowToProblem(row), testCases: cases, files: this.getFiles(id) }
   }
 
   /** 列表（不含用例内容，避免大查询）；筛选条件可组合 */

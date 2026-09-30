@@ -91,3 +91,49 @@ describe('selectToolchain', () => {
     }
   })
 })
+
+// ============================================================
+// v1.4 多文件：buildRunPlan 附加源并入编译命令（docs/V1_4_DESIGN.md §7）
+// ============================================================
+describe('buildRunPlan 多源编译（v1.4）', () => {
+  it('gcc-cpp：附加 .cpp 去重排序后并入；头文件与 .c 不进命令行', () => {
+    const plan = buildRunPlan(tc('gcc-cpp'), 'D:/tmp/x', ['util.cpp', 'util.h', 'z.cpp', 'util.cpp', 'a.c'])
+    expect(plan.compile?.args).toEqual([
+      'main.cpp',
+      'util.cpp',
+      'z.cpp',
+      '-O2',
+      '-std=c++17',
+      '-Wall',
+      '-o',
+      'app.exe'
+    ])
+  })
+
+  it('gcc-c：只并入 .c；python 忽略附加源（同目录 import）', () => {
+    const planC = buildRunPlan(tc('gcc-c'), 'D:/tmp/x', ['util.c', 'util.cpp', 'util.h'])
+    expect(planC.compile?.args).toEqual(['main.c', 'util.c', '-O2', '-std=c11', '-Wall', '-o', 'app.exe'])
+    const py = buildRunPlan(tc('python'), 'D:/tmp/x', ['helper.py'])
+    expect(py.compile).toBeNull()
+    expect(py.run.args).toEqual(['-I', '-X', 'utf8', 'main.py'])
+  })
+
+  it('msvc-cpp：附加源在 /Fe: 之前', () => {
+    const plan = buildRunPlan(tc('msvc-cpp'), 'D:/tmp/x', ['util.cpp'])
+    expect(plan.compile?.args).toEqual(['/O2', '/std:c++17', '/EHsc', '/W3', 'main.cpp', 'util.cpp', '/Fe:app.exe'])
+  })
+
+  it('子目录源文件按相对路径并入；.cc/.cxx 计入 cpp', () => {
+    const plan = buildRunPlan(tc('gcc-cpp'), 'D:/tmp/x', ['sub/a.cc', 'd/b.cxx'])
+    expect(plan.compile?.args).toEqual([
+      'main.cpp',
+      'd/b.cxx',
+      'sub/a.cc',
+      '-O2',
+      '-std=c++17',
+      '-Wall',
+      '-o',
+      'app.exe'
+    ])
+  })
+})

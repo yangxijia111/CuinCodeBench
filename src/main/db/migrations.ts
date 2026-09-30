@@ -290,5 +290,28 @@ DELETE FROM review_items WHERE target_type='knowledge_point' AND target_id NOT I
     sql: `
 ALTER TABLE test_case_results ADD COLUMN termination_reason TEXT;
 `
+  },
+  {
+    // v1.4：多文件项目（docs/V1_4_DESIGN.md §6）。
+    // 1) problem_files：题目定义的附加文件（入口内容仍存 problems.initial_code，单一真相；
+    //    UNIQUE(problem_id, language, path) 防重复定义；FK 级联删除随题目清理）。
+    // 2) submissions.files：当次判题的附加文件快照（JSON [{path,content}]，NULL = 单文件提交），
+    //    错题复盘可见完整现场。
+    version: 5,
+    name: 'problem-files-v1.4',
+    sql: `
+CREATE TABLE problem_files (
+  id TEXT PRIMARY KEY,
+  problem_id TEXT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK (language IN ('c','cpp','python')),
+  path TEXT NOT NULL,
+  content TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (problem_id, language, path)
+);
+CREATE INDEX idx_problem_files_lookup ON problem_files(problem_id, language);
+
+ALTER TABLE submissions ADD COLUMN files TEXT;
+`
   }
 ]

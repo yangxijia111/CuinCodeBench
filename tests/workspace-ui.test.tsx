@@ -30,7 +30,8 @@ function makeProblem(): ProblemDetail {
     isBuiltin: true,
     createdAt: 0,
     updatedAt: 0,
-    testCases: []
+    testCases: [],
+    files: []
   }
 }
 

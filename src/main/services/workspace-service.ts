@@ -33,7 +33,7 @@ export class WorkspaceService {
   }
 
   /**
-   * 打开（或切换到）工作区：补种缺失入口文件 → 通知 LSP → 返回全量文件。
+   * 打开（或切换到）工作区：补种缺失入口文件与题目定义附加文件 → 通知 LSP → 返回全量文件。
    * draft：renderer 的 localStorage 旧草稿（一次性迁移；工作区已有内容时以磁盘为准）。
    */
   async open(problemId: string, language: LanguageId, draft: string | null): Promise<WorkspaceFile[]> {
@@ -44,6 +44,16 @@ export class WorkspaceService {
     const entryPath = join(dir, SOURCE_FILENAMES[language])
     if (!existsSync(entryPath)) {
       await writeFile(entryPath, draft ?? problem.initialCode[language] ?? '', 'utf8')
+    }
+    // 补种题目定义的附加文件（仅缺失的；solver 对已有文件的编辑态优先——题目定义更新后由「重置」同步）
+    for (const def of problem.files.filter((f) => f.language === language)) {
+      const rel = safeJoinWithin(def.path)
+      if (rel === null) continue // 定义数据异常（导入侧已校验）跳过
+      const target = join(dir, rel)
+      if (!existsSync(target)) {
+        await mkdir(dirname(target), { recursive: true })
+        await writeFile(target, def.content, 'utf8')
+      }
     }
     const files = await this.list(problemId, language)
     await this.lsp.openWorkspace(

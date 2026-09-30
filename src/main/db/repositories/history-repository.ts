@@ -7,7 +7,8 @@ import type {
   ProblemStats,
   Submission,
   SubmissionQuery,
-  TestCaseResult
+  TestCaseResult,
+  WorkspaceFileInput
 } from '@shared/types'
 
 /**
@@ -25,6 +26,8 @@ interface SubmissionRow {
   duration_ms: number
   created_at: number
   problem_title?: string
+  /** v1.4：附加文件快照 JSON（NULL = 单文件提交） */
+  files?: string | null
 }
 
 interface TestCaseResultRow {
@@ -65,6 +68,8 @@ export interface NewSubmission {
   passedCount: number
   totalCount: number
   durationMs: number
+  /** v1.4：附加文件快照（空数组 = 单文件提交，落 NULL） */
+  files?: WorkspaceFileInput[]
 }
 
 export interface NewTestCaseResult {
@@ -84,15 +89,17 @@ export interface NewTestCaseResult {
 export class HistoryRepository {
   constructor(private readonly db: Database.Database) {}
 
-  /** 写入提交 + 明细（同一事务）；返回提交 id */
+  /** 写入提交 + 明细（同一事务）；返回提交 id；files 快照（v1.4）随提交落库 */
   insertSubmission(sub: NewSubmission, results: NewTestCaseResult[]): string {
     const id = randomUUID()
     const now = Date.now()
+    const filesJson =
+      sub.files !== undefined && sub.files.length > 0 ? JSON.stringify(sub.files) : null
     const tx = this.db.transaction(() => {
       this.db
         .prepare(
-          `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at, files)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           id,
@@ -103,7 +110,8 @@ export class HistoryRepository {
           sub.passedCount,
           sub.totalCount,
           sub.durationMs,
-          now
+          now,
+          filesJson
         )
       const stmt = this.db.prepare(
         `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms, termination_reason)
@@ -168,7 +176,7 @@ export class HistoryRepository {
   }
 
   getById(id: string):
-    | { submission: Submission & { problemTitle: string }; results: TestCaseResult[] }
+    | { submission: Submission & { problemTitle: string }; results: TestCaseResult[]; files: WorkspaceFileInput[] }
     | null {
     const row = this.db
       .prepare(
@@ -194,7 +202,16 @@ export class HistoryRepository {
       ...(r.termination_reason != null ? { terminationReason: r.termination_reason } : {})
     }))
     const sub = toSubmission(row)
-    return { submission: { ...sub, problemTitle: row.problem_title ?? '' }, results }
+    let files: WorkspaceFileInput[] = []
+    if (row.files != null && row.files !== '') {
+      try {
+        const parsed = JSON.parse(row.files) as WorkspaceFileInput[]
+        if (Array.isArray(parsed)) files = parsed
+      } catch {
+        // 快照损坏按空处理（不阻断历史查看）
+      }
+    }
+    return { submission: { ...sub, problemTitle: row.problem_title ?? '' }, results, files }
   }
 
   getProblemStats(problemId: string): ProblemStats {

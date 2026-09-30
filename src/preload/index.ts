@@ -28,7 +28,8 @@ const api: AppApi = {
   detectToolchains: (force) => invoke('toolchains.detect', force),
 
   runOnce: (input) => invoke('run.once', input),
-  judgeSubmit: (problemId, language, code) => invoke('judge.submit', problemId, language, code),
+  judgeSubmit: (problemId, language, code, files) =>
+    invoke('judge.submit', [problemId, language, code, files ?? []]),
 
   listSubmissions: (query) => invoke('history.list', query),
   getSubmissionDetail: (id) => invoke('history.detail', id),

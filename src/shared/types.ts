@@ -59,11 +59,15 @@ export interface ProblemInput {
   samples: Sample[]
   initialCode: Record<LanguageId, string>
   testCases: TestCaseInput[]
+  /** v1.4：题目定义的附加文件（每语言 ≤16；入口仍是 initialCode） */
+  files?: ProblemFileInput[]
 }
 
 /** 题目详情 = 题目 + 全部测试用例（聚合根视图， ProblemWithCases 的共享别名） */
 export interface ProblemDetail extends Problem {
   testCases: TestCase[]
+  /** v1.4：题目定义的附加文件（无则空数组） */
+  files: ProblemFile[]
 }
 
 export interface TestCaseInput {

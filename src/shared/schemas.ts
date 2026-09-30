@@ -6,6 +6,7 @@ import {
   TESTCASE_TIMEOUT_MIN_MS,
   WORKSPACE_FILE_MAX_CHARS
 } from './constants'
+import { validateFileSet } from './workspace-path'
 import type { ProblemInput } from './types'
 
 /**
@@ -48,12 +49,43 @@ const problemBaseSchema = z.object({
   })
 })
 
-export const problemInputSchema: z.ZodType<ProblemInput> = problemBaseSchema.extend({
-  testCases: z
-    .array(testCaseInputSchema)
-    .min(1, '至少需要 1 个测试用例')
-    .max(MAX_TEST_CASES_PER_PROBLEM, `测试用例最多 ${MAX_TEST_CASES_PER_PROBLEM} 个`)
+/** v1.4 题目附加文件（语义校验：每语言路径合法性/数量） */
+export const problemFileInputSchema = z.object({
+  language: languageIdSchema,
+  path: z.string().min(1).max(200),
+  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
 })
+
+export const problemInputSchema: z.ZodType<ProblemInput> = problemBaseSchema
+  .extend({
+    testCases: z
+      .array(testCaseInputSchema)
+      .min(1, '至少需要 1 个测试用例')
+      .max(MAX_TEST_CASES_PER_PROBLEM, `测试用例最多 ${MAX_TEST_CASES_PER_PROBLEM} 个`),
+    files: z.array(problemFileInputSchema).max(MAX_WORKSPACE_FILES * 3).optional()
+  })
+  .superRefine((input, ctx) => {
+    // 每语言附加文件数量与路径合法性（与工作区/判题同一套规则，单源 workspace-path）
+    if (input.files === undefined) return
+    const byLang = new Map<string, { path: string; content: string }[]>()
+    for (const f of input.files) {
+      const list = byLang.get(f.language) ?? []
+      list.push({ path: f.path, content: f.content })
+      byLang.set(f.language, list)
+    }
+    for (const [lang, list] of byLang) {
+      if (list.length > MAX_WORKSPACE_FILES) {
+        ctx.addIssue({ code: 'custom', message: `${lang} 附加文件超过 ${MAX_WORKSPACE_FILES} 个` })
+        continue
+      }
+      const v = validateFileSet(lang as 'c' | 'cpp' | 'python', list)
+      if (!v.ok) {
+        for (const issue of v.issues) {
+          ctx.addIssue({ code: 'custom', message: `附加文件 ${issue.path || issue.index}：${issue.reason}` })
+        }
+      }
+    }
+  })
 
 export const problemQuerySchema = z.object({
   keyword: z.string().max(100),
@@ -68,17 +100,26 @@ export const submissionQuerySchema = z.object({
   offset: z.number().int().min(0)
 })
 
+export const workspaceFileInputSchema = z.object({
+  path: z.string().min(1).max(200),
+  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
+})
+
 export const runOnceInputSchema = z.object({
   language: languageIdSchema,
   code: z.string().min(1, '代码不能为空').max(100_000),
   stdin: z.string().max(1_000_000),
-  timeoutMs: z.number().int().min(TESTCASE_TIMEOUT_MIN_MS).max(TESTCASE_TIMEOUT_MAX_MS)
+  timeoutMs: z.number().int().min(TESTCASE_TIMEOUT_MIN_MS).max(TESTCASE_TIMEOUT_MAX_MS),
+  /** v1.4：附加文件（可选；入口 = code） */
+  files: z.array(workspaceFileInputSchema).max(MAX_WORKSPACE_FILES).optional()
 })
 
+/** judge.submit(problemId, language, code, files?)——files 缺省 = 单文件提交（v1.3 兼容） */
 export const judgeSubmitSchema = z.tuple([
   z.string().min(1),
   languageIdSchema,
-  z.string().min(1).max(100_000)
+  z.string().min(1).max(100_000),
+  z.array(workspaceFileInputSchema).max(MAX_WORKSPACE_FILES).optional()
 ])
 
 export const appSettingsPatchSchema = z
@@ -335,11 +376,6 @@ export const lspDiagnosticsEventSchema = z.object({
 // ============================================================
 // v1.4 工作区与 LSP 请求（路径语义校验在服务层 validateWorkspacePath）
 // ============================================================
-
-export const workspaceFileInputSchema = z.object({
-  path: z.string().min(1).max(200),
-  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
-})
 
 /** workspace.open(problemId, language, draft) */
 export const workspaceOpenSchema = z.tuple([

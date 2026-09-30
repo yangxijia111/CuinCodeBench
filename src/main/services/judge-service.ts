@@ -4,13 +4,14 @@ import type {
   JudgeResult,
   LanguageId,
   TestCase,
-  TestCaseResult
+  TestCaseResult,
+  WorkspaceFileInput
 } from '@shared/types'
 import type { RunOnceResult } from '@shared/ipc'
 import { AppError } from '../lib/app-error'
 import { buildRunPlan } from '../runner/languages'
 import { withTempDir } from '../runner/temp-dir'
-import { compileSource, writeSourceFile } from '../runner/compile'
+import { compileSource, writeWorkspaceFiles } from '../runner/compile'
 import { runProcess } from '../runner/dispatch'
 import { decideCaseStatus } from '../judge/normalize'
 import type { ToolchainService } from './toolchain-service'
@@ -21,7 +22,7 @@ import { autoCategory } from './mistake-review-service'
 /**
  * 判题与运行服务（ARCHITECTURE §3/§5）：
  * - 串行队列：同一时刻仅一个编译/运行任务（ADR D3）
- * - submit：判题并落库（提交/明细/错误记录/错题聚合）
+ * - submit：判题并落库（提交/明细/错误记录/错题聚合）；files 为 v1.4 多文件附加件（可选）
  * - runOnce：自定义运行（不落库）
  */
 
@@ -41,8 +42,14 @@ export class JudgeService {
     return run
   }
 
-  /** 自定义运行（FR-C1）：不判题、不落库 */
-  runOnce(input: { language: LanguageId; code: string; stdin: string; timeoutMs: number }): Promise<RunOnceResult> {
+  /** 自定义运行（FR-C1）：不判题、不落库；files = v1.4 附加文件（可选） */
+  runOnce(input: {
+    language: LanguageId
+    code: string
+    stdin: string
+    timeoutMs: number
+    files?: WorkspaceFileInput[]
+  }): Promise<RunOnceResult> {
     return this.enqueue(() => this.doRunOnce(input))
   }
 
@@ -51,18 +58,21 @@ export class JudgeService {
     code: string
     stdin: string
     timeoutMs: number
+    files?: WorkspaceFileInput[]
   }): Promise<RunOnceResult> {
     const toolchain = await this.toolchains.select(input.language)
     if (toolchain === null) {
       return { compile: null, execution: null, error: noToolchainError(input.language) }
     }
+    const files = input.files ?? []
     return withTempDir(async (dir) => {
-      await writeSourceFile(toolchain, dir, input.code)
-      const plan = buildRunPlan(toolchain, dir)
+      await writeWorkspaceFiles(dir, input.language, input.code, files)
+      const extraSources = files.map((f) => f.path)
+      const plan = buildRunPlan(toolchain, dir, extraSources)
 
       let compile: CompileOutcome | null = null
       if (plan.compile !== null) {
-        const report = await compileSource(toolchain, dir)
+        const report = await compileSource(toolchain, dir, extraSources)
         compile = {
           ok: report.ok,
           stderr: report.stderr,
@@ -96,12 +106,22 @@ export class JudgeService {
     })
   }
 
-  /** 判题提交（FR-J1–J6）：编译一次 → 顺序跑全部用例 → 落库 → 错题聚合 */
-  submit(problemId: string, language: LanguageId, code: string): Promise<JudgeResult> {
-    return this.enqueue(() => this.doSubmit(problemId, language, code))
+  /** 判题提交（FR-J1–J6）：编译一次 → 顺序跑全部用例 → 落库 → 错题聚合；files = 附加文件 */
+  submit(
+    problemId: string,
+    language: LanguageId,
+    code: string,
+    files?: WorkspaceFileInput[]
+  ): Promise<JudgeResult> {
+    return this.enqueue(() => this.doSubmit(problemId, language, code, files ?? []))
   }
 
-  private async doSubmit(problemId: string, language: LanguageId, code: string): Promise<JudgeResult> {
+  private async doSubmit(
+    problemId: string,
+    language: LanguageId,
+    code: string,
+    files: WorkspaceFileInput[]
+  ): Promise<JudgeResult> {
     const svc = this.services()
     const problem = svc.problems.get(problemId)
     if (problem === null) throw new AppError('not_found', `题目不存在: ${problemId}`)
@@ -117,14 +137,15 @@ export class JudgeService {
       )
     }
 
+    const extraSources = files.map((f) => f.path)
     return withTempDir(async (dir) => {
-      await writeSourceFile(toolchain, dir, code)
-      const plan = buildRunPlan(toolchain, dir)
+      await writeWorkspaceFiles(dir, language, code, files)
+      const plan = buildRunPlan(toolchain, dir, extraSources)
 
       // 1) 编译（compiled 语言）
       let compile: CompileOutcome | null = null
       if (plan.compile !== null) {
-        const report = await compileSource(toolchain, dir)
+        const report = await compileSource(toolchain, dir, extraSources)
         compile = {
           ok: report.ok,
           stderr: report.stderr,
@@ -133,7 +154,7 @@ export class JudgeService {
           durationMs: report.durationMs
         }
         if (!report.ok) {
-          return this.persist(problemId, language, code, 'compile_error', 0, problem.testCases.length, 0, compile, [])
+          return this.persist(problemId, language, code, files, 'compile_error', 0, problem.testCases.length, 0, compile, [])
         }
       }
 
@@ -162,6 +183,7 @@ export class JudgeService {
         problemId,
         language,
         code,
+        files,
         overall,
         passed,
         problem.testCases.length,
@@ -172,11 +194,12 @@ export class JudgeService {
     })
   }
 
-  /** 落库：提交 + 明细 + 错误记录 + 错题聚合 + 每题统计回传 */
+  /** 落库：提交 + 明细（含附加文件快照）+ 错误记录 + 错题聚合 + 每题统计回传 */
   private persist(
     problemId: string,
     language: LanguageId,
     code: string,
+    files: WorkspaceFileInput[],
     status: JudgeResult['status'],
     passedCount: number,
     totalCount: number,
@@ -186,7 +209,7 @@ export class JudgeService {
   ): JudgeResult {
     const svc = this.services()
     const submissionId = svc.history.insertSubmission(
-      { problemId, language, code, status, passedCount, totalCount, durationMs },
+      { problemId, language, code, status, passedCount, totalCount, durationMs, files },
       results.map((r) => ({
         testCaseId: r.testCaseId,
         order: r.order,

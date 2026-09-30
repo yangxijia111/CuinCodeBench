@@ -82,10 +82,10 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   // —— 工具链 ——
   handle('toolchains.detect', z.boolean(), (force) => deps.toolchains.detectAll(force))
 
-  // —— 运行与判题 ——
+  // —— 运行与判题（v1.4：files 附加文件可选）——
   handle('run.once', runOnceInputSchema, (input) => deps.judge.runOnce(input))
-  handle('judge.submit', judgeSubmitSchema, ([problemId, language, code]) =>
-    deps.judge.submit(problemId, language, code)
+  handle('judge.submit', judgeSubmitSchema, ([problemId, language, code, files]) =>
+    deps.judge.submit(problemId, language, code, files ?? [])
   )
 
   // —— 工作区（v1.4，docs/V1_4_DESIGN.md §1/§4）——

@@ -102,8 +102,11 @@ export function PracticeView(): React.JSX.Element {
 
   const entryFile = ws.files.find((f) => f.isEntry) ?? null
   const activeFile = ws.files.find((f) => f.path === ws.activePath) ?? entryFile
-  // 判题/运行始终以入口文件为准（多文件模型：入口 = main.c|cpp|py）
+  // 判题/运行始终以入口文件为准（多文件模型：入口 = main.c|cpp|py）；附加文件随提交
   const entryCode = entryFile?.content ?? ''
+  const extraFiles = ws.files
+    .filter((f) => !f.isEntry)
+    .map((f) => ({ path: f.path, content: f.content }))
 
   const completionProvider = useCallback(
     (pos: { line: number; col: number; content: string }): Promise<LspCompletionItem[]> => {
@@ -132,7 +135,7 @@ export function PracticeView(): React.JSX.Element {
     setRunResult(null)
     setShowResultTab('judge')
     try {
-      const result = await unwrap(window.api.judgeSubmit(problem.id, language, entryCode))
+      const result = await unwrap(window.api.judgeSubmit(problem.id, language, entryCode, extraFiles))
       setJudgeResult(result)
     } catch (e) {
       setActionError(e instanceof ApiError ? e.message : String(e))
@@ -149,7 +152,13 @@ export function PracticeView(): React.JSX.Element {
     setShowResultTab('run')
     try {
       const result = await unwrap(
-        window.api.runOnce({ language, code: entryCode, stdin: customStdin, timeoutMs: settings.judgeTimeoutDefaultMs })
+        window.api.runOnce({
+          language,
+          code: entryCode,
+          stdin: customStdin,
+          timeoutMs: settings.judgeTimeoutDefaultMs,
+          files: extraFiles
+        })
       )
       setRunResult(result)
     } catch (e) {

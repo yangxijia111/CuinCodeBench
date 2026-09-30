@@ -50,8 +50,10 @@ const PYTHON_ARGS = ['-I', '-X', 'utf8']
  * 构造一次完整执行计划。
  * @param toolchain 选定的工具链
  * @param dir 临时工作目录（源文件与可执行文件所在，cwd 亦为此）
+ * @param extraSources 附加源文件相对路径（v1.4 多文件；按语言扩展名过滤后并入编译命令，
+ *   字典序保证确定性；头文件/Python 附加文件不进命令行）
  */
-export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
+export function buildRunPlan(toolchain: Toolchain, dir: string, extraSources: string[] = []): RunPlan {
   const language = toolchain.languageIds[0]
   if (language === undefined) throw new Error(`工具链 ${toolchain.id} 未声明语言`)
 
@@ -71,12 +73,14 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
   const sourceFile = language === 'c' ? SOURCE_FILENAMES.c : SOURCE_FILENAMES.cpp
   const exeFile = 'app.exe'
   const joined = joinArg(dir, exeFile)
+  // 参与编译链接的附加源（去重 + 字典序 + 语言扩展名过滤；.h/.hpp 由 include 引用不进命令行）
+  const extras = compileExtras(language, extraSources)
 
   switch (toolchain.kind) {
     case 'gcc-c':
       return {
         language,
-        compile: { program: toolchain.program, args: [sourceFile, ...GCC_C_ARGS, '-o', exeFile] },
+        compile: { program: toolchain.program, args: [sourceFile, ...extras, ...GCC_C_ARGS, '-o', exeFile] },
         run: { program: joined },
         sourceFile,
         exeFile
@@ -84,7 +88,7 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
     case 'clang-c':
       return {
         language,
-        compile: { program: toolchain.program, args: [sourceFile, ...GCC_C_ARGS, '-o', exeFile] },
+        compile: { program: toolchain.program, args: [sourceFile, ...extras, ...GCC_C_ARGS, '-o', exeFile] },
         run: { program: joined },
         sourceFile,
         exeFile
@@ -92,7 +96,7 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
     case 'gcc-cpp':
       return {
         language,
-        compile: { program: toolchain.program, args: [sourceFile, ...GCC_CPP_ARGS, '-o', exeFile] },
+        compile: { program: toolchain.program, args: [sourceFile, ...extras, ...GCC_CPP_ARGS, '-o', exeFile] },
         run: { program: joined },
         sourceFile,
         exeFile
@@ -100,7 +104,7 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
     case 'clang-cpp':
       return {
         language,
-        compile: { program: toolchain.program, args: [sourceFile, ...GCC_CPP_ARGS, '-o', exeFile] },
+        compile: { program: toolchain.program, args: [sourceFile, ...extras, ...GCC_CPP_ARGS, '-o', exeFile] },
         run: { program: joined },
         sourceFile,
         exeFile
@@ -110,7 +114,7 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
         language,
         compile: {
           program: toolchain.program,
-          args: [...MSVC_C_ARGS, sourceFile, `/Fe:${exeFile}`],
+          args: [...MSVC_C_ARGS, sourceFile, ...extras, `/Fe:${exeFile}`],
           env: toolchain.env
         },
         run: { program: joined, env: toolchain.env },
@@ -122,7 +126,7 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
         language,
         compile: {
           program: toolchain.program,
-          args: [...MSVC_CPP_ARGS, sourceFile, `/Fe:${exeFile}`],
+          args: [...MSVC_CPP_ARGS, sourceFile, ...extras, `/Fe:${exeFile}`],
           env: toolchain.env
         },
         run: { program: joined, env: toolchain.env },
@@ -130,6 +134,14 @@ export function buildRunPlan(toolchain: Toolchain, dir: string): RunPlan {
         exeFile
       }
   }
+}
+
+/** 附加源文件过滤（编译链接参与者；与判题/回退诊断同一扩展名规则） */
+export function compileExtras(language: LanguageId, extraSources: string[]): string[] {
+  const exts = language === 'c' ? ['.c'] : language === 'cpp' ? ['.cpp', '.cc', '.cxx'] : []
+  return [...new Set(extraSources)]
+    .filter((p) => exts.some((e) => p.toLowerCase().endsWith(e)))
+    .sort()
 }
 
 /**

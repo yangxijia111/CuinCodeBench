@@ -52,6 +52,8 @@ export interface RunOnceInput {
   code: string
   stdin: string
   timeoutMs: number
+  /** v1.4：附加文件（可选；入口 = code） */
+  files?: WorkspaceFileInput[]
 }
 
 /** 自定义运行（不判题、不落库） */
@@ -92,9 +94,14 @@ export interface AppApi {
   // 工具链
   detectToolchains(force: boolean): Promise<IpcResult<Toolchain[]>>
 
-  // 运行与判题
+  // 运行与判题（v1.4：files = 附加文件，可选）
   runOnce(input: RunOnceInput): Promise<IpcResult<RunOnceResult>>
-  judgeSubmit(problemId: string, language: LanguageId, code: string): Promise<IpcResult<JudgeResult>>
+  judgeSubmit(
+    problemId: string,
+    language: LanguageId,
+    code: string,
+    files?: WorkspaceFileInput[]
+  ): Promise<IpcResult<JudgeResult>>
 
   // 历史记录
   listSubmissions(query: SubmissionQuery): Promise<IpcResult<(Submission & { problemTitle: string })[]>>

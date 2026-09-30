@@ -28,7 +28,8 @@ function makeProblem(id: string, initialCode: string): ProblemDetail {
     isBuiltin: true,
     createdAt: 0,
     updatedAt: 0,
-    testCases: []
+    testCases: [],
+    files: []
   }
 }
 
@@ -207,6 +208,31 @@ describe('WorkspaceService', () => {
       const listed = await h.service.open('p1', 'c', null)
       expect(listed.map((f) => f.path)).toEqual(['main.c', 'z_last.h'])
       expect(listed[0]?.isEntry).toBe(true)
+    } finally {
+      rmSync(h.dataDir, { recursive: true, force: true })
+    }
+  })
+
+  it('open 补种题目定义的附加文件（v1.4）；已有文件保留 solver 编辑态', async () => {
+    const h = makeService()
+    try {
+      h.problem.files = [
+        {
+          id: 'f1',
+          problemId: 'p1',
+          language: 'python',
+          path: 'util.py',
+          content: 'def add(a, b):\n    return a + b\n',
+          sortOrder: 0
+        }
+      ]
+      const files = await h.service.open('p1', 'python', null)
+      // 定义文件被补种且出现在列表
+      expect(files.map((f) => f.path)).toEqual(['main.py', 'util.py'])
+      // solver 编辑定义文件后再 open：编辑态优先（不覆盖）
+      await h.service.sync('p1', 'python', [{ path: 'util.py', content: 'EDITED\n' }], [])
+      const again = await h.service.open('p1', 'python', null)
+      expect(again.find((f) => f.path === 'util.py')?.content).toBe('EDITED\n')
     } finally {
       rmSync(h.dataDir, { recursive: true, force: true })
     }

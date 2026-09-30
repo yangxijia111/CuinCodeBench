@@ -1,9 +1,10 @@
-import { COMPILE_TIMEOUT_MS, COMPILE_OUTPUT_LIMIT_BYTES } from '@shared/constants'
-import type { Toolchain } from '@shared/types'
+import { COMPILE_TIMEOUT_MS, COMPILE_OUTPUT_LIMIT_BYTES, SOURCE_FILENAMES } from '@shared/constants'
+import type { LanguageId, Toolchain, WorkspaceFileInput } from '@shared/types'
+import { safeJoinWithin, validateWorkspacePath } from '@shared/workspace-path'
 import { runProcess } from './dispatch'
 import { buildRunPlan } from './languages'
-import { writeFile } from 'fs/promises'
-import { join } from 'path'
+import { mkdir, writeFile } from 'fs/promises'
+import { dirname, join } from 'path'
 
 /**
  * 编译执行（FR-R5/R8）：复用执行器（无 stdin）。
@@ -21,8 +22,12 @@ export interface CompileReport {
   durationMs: number
 }
 
-export async function compileSource(toolchain: Toolchain, dir: string): Promise<CompileReport> {
-  const plan = buildRunPlan(toolchain, dir)
+export async function compileSource(
+  toolchain: Toolchain,
+  dir: string,
+  extraSources: string[] = []
+): Promise<CompileReport> {
+  const plan = buildRunPlan(toolchain, dir, extraSources)
   if (plan.compile === null) {
     // 解释型语言无编译步
     return { ok: true, stderr: '', stdout: '', exitCode: 0, timedOut: false, durationMs: 0 }
@@ -57,4 +62,26 @@ export async function writeSourceFile(toolchain: Toolchain, dir: string, code: s
   const file = join(dir, plan.sourceFile)
   await writeFile(file, code, 'utf8')
   return file
+}
+
+/**
+ * v1.4 多文件写入临时目录：入口（SOURCE_FILENAMES）+ 附加文件（校验后写盘）。
+ * 附加文件路径复用工作区同一套校验（禁遍历/保留名/入口名）；入口内容 = code。
+ */
+export async function writeWorkspaceFiles(
+  dir: string,
+  language: LanguageId,
+  entryCode: string,
+  files: WorkspaceFileInput[]
+): Promise<void> {
+  await writeFile(join(dir, SOURCE_FILENAMES[language]), entryCode, 'utf8')
+  for (const f of files) {
+    const v = validateWorkspacePath(f.path, language)
+    if (!v.ok) throw new Error(`非法附加文件路径 ${f.path}：${v.reason}`)
+    const rel = safeJoinWithin(f.path)
+    if (rel === null) throw new Error(`路径逃逸被拒绝: ${f.path}`)
+    const target = join(dir, rel)
+    await mkdir(dirname(target), { recursive: true })
+    await writeFile(target, f.content, 'utf8')
+  }
 }
