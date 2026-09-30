@@ -217,7 +217,9 @@ describe.skipIf(clangdPath === null)('PoC② clangd（检测到才跑）', () =>
     const dir = tempWorkspace('clangd')
     try {
       writeFileSync(join(dir, 'compile_flags.txt'), '-std=c++17\n-Wall\n', 'utf8')
-      const badCode = '#include <iostream>\nint main() {\n  int x = ;\n  returny 0;\n}\n'
+      // 不用 <iostream>：CI 的 clangd 可能找不到 MSVC 标准库（报 file-not-found
+      // 而非语法错误）；纯语法错误在任何 clangd 上都稳定复现
+      const badCode = 'int main() {\n  int x = ;\n  returny 0;\n}\n'
       const filePath = join(dir, 'main.cpp')
       writeFileSync(filePath, badCode, 'utf8')
       const session = new LspSession(clangdPath!, ['--background-index=false', '--pch-storage=memory'])

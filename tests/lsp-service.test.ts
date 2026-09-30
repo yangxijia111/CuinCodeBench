@@ -7,6 +7,7 @@ import type { ToolchainService } from '../src/main/services/toolchain-service'
 import { LspService } from '../src/main/services/lsp-service'
 import type { FallbackRunCommand } from '../src/main/lsp/fallback-diagnostics'
 import { overridePyrightEntry } from '../src/main/lsp/pyright-resolve'
+import { overrideClangdPath } from '../src/main/lsp/clangd-detect'
 
 /**
  * v1.4 P3：LspService 编排（docs/V1_4_DESIGN.md §2/§3）。
@@ -36,6 +37,7 @@ afterEach(() => {
   for (const s of services.splice(0)) s.shutdown()
   for (const d of tempDirs.splice(0)) rmSync(d, { recursive: true, force: true })
   overridePyrightEntry(undefined)
+  overrideClangdPath(undefined)
 })
 
 function makeHarness(toolchain: Toolchain | null, runCommand?: FallbackRunCommand): {
