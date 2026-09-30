@@ -45,6 +45,9 @@ function makeHarness(toolchain: Toolchain | null, runCommand?: FallbackRunComman
   events: LspDiagnosticsEvent[]
   dir: string
 } {
+  // CI windows runner 装有 clangd：本套用例的回退/降级路径假设「无语言服务器」，
+  // 强制禁用 clangd（pyright 由各用例经 overridePyrightEntry 注入桩/禁用）
+  overrideClangdPath(null)
   const events: LspDiagnosticsEvent[] = []
   const dir = mkdtempSync(join(tmpdir(), 'ccb-lspsvc-'))
   tempDirs.push(dir)
