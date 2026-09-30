@@ -49,7 +49,7 @@
 
 | 语言 | 首选 | 回退 | 说明 |
 |---|---|---|---|
-| C/C++ | clangd 诊断 | gcc/clang `-fsyntax-only -fno-color-diagnostics`（按当前工具链），解析 `file:line:col: severity: message` | gcc 是本项目主力工具链，覆盖面大；MSVC-only 用户无回退（文档注明） |
+| C/C++ | clangd 诊断 | gcc/clang `-fsyntax-only -fdiagnostics-color=never`（gcc 原生语法，clang 兼容），解析 `file:line:col: severity: message` | gcc 是本项目主力工具链，覆盖面大；MSVC-only 用户无回退（文档注明） |
 | Python | pyright 诊断 | `python -X utf8 -c "import ast,sys; ast.parse(...)"` 语法级检查 | 只报语法错误（SyntaxError 行号） |
 
 - 回退执行：直接用 execute()（fallback 执行器），**不占 JudgeService 串行队列**，不经 native launcher（受信编译命令，无需 Job 围栏）。

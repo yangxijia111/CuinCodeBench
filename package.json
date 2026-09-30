@@ -45,15 +45,18 @@
     "vitest": "^5.0.1"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-cpp": "^6.0.3",
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
     "@codemirror/state": "^6.7.5",
     "@codemirror/view": "^6.43.12",
     "@uiw/react-codemirror": "^4.25.11",
     "better-sqlite3": "^13.0.3",
     "dompurify": "^3.4.15",
     "marked": "^18.0.13",
+    "pyright": "^1.1.414",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router-dom": "^7.18.4",
