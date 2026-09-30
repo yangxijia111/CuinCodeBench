@@ -13,6 +13,7 @@ import type { BackupData } from '@shared/schemas'
 
 interface Counts {
   problems: number
+  problemFiles: number
   submissions: number
   testCaseResults: number
   errorRecords: number
@@ -33,6 +34,7 @@ interface Counts {
 
 const EMPTY_COUNTS: Counts = {
   problems: 0,
+  problemFiles: 0,
   submissions: 0,
   testCaseResults: 0,
   errorRecords: 0,
@@ -162,6 +164,15 @@ export class BackupRepository {
       if (list !== undefined) list.push(c)
       else casesByProblem.set(c.problem_id, [c])
     }
+    const pfRows = this.db
+      .prepare('SELECT * FROM problem_files ORDER BY problem_id, language, sort_order, rowid')
+      .all() as { problem_id: string; language: string; path: string; content: string }[]
+    const filesByProblem = new Map<string, typeof pfRows>()
+    for (const f of pfRows) {
+      const list = filesByProblem.get(f.problem_id)
+      if (list !== undefined) list.push(f)
+      else filesByProblem.set(f.problem_id, [f])
+    }
     const problems = problemRows.map((p) => ({
       id: p.id,
       title: p.title,
@@ -180,7 +191,16 @@ export class BackupRepository {
         stdin: c.stdin,
         expectedStdout: c.expected_stdout,
         timeoutMs: c.timeout_ms
-      }))
+      })),
+      ...(filesByProblem.has(p.id)
+        ? {
+            files: (filesByProblem.get(p.id) ?? []).map((f) => ({
+              language: f.language as 'c' | 'cpp' | 'python',
+              path: f.path,
+              content: f.content
+            }))
+          }
+        : {})
     }))
 
     // 提交（含用例结果）
@@ -196,6 +216,7 @@ export class BackupRepository {
       total_count: number
       duration_ms: number
       created_at: number
+      files?: string | null
     }[]
     const resultRows = this.db
       .prepare('SELECT * FROM test_case_results ORDER BY submission_id, "order"')
@@ -228,6 +249,7 @@ export class BackupRepository {
       totalCount: s.total_count,
       durationMs: s.duration_ms,
       createdAt: s.created_at,
+      ...(s.files != null && s.files !== '' ? { files: JSON.parse(s.files) as { path: string; content: string }[] } : {}),
       results: (resultsBySubmission.get(s.id) ?? []).map((r) => ({
         testCaseId: r.test_case_id,
         order: r.order,
@@ -456,6 +478,7 @@ export class BackupRepository {
       DELETE FROM submissions;
       DELETE FROM mistake_book;
       DELETE FROM problem_knowledge_points;
+      DELETE FROM problem_files;
       DELETE FROM test_cases;
       DELETE FROM problems;
       DELETE FROM knowledge_points;
@@ -518,11 +541,20 @@ export class BackupRepository {
         insCase.run(c.id, p.id, c.stdin, c.expectedStdout, c.timeoutMs, i)
       }
     }
+    const insProblemFile = this.db.prepare(
+      `INSERT INTO problem_files (id, problem_id, language, path, content, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    for (const p of data.problems) {
+      for (const [i, f] of (p.files ?? []).entries()) {
+        insProblemFile.run(`${p.id}:${f.language}:${f.path}`, p.id, f.language, f.path, f.content, i)
+      }
+    }
 
     // 提交 + 明细
     const insSub = this.db.prepare(
-      `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at, files)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     const insResult = this.db.prepare(
       `INSERT INTO test_case_results (id, submission_id, test_case_id, "order", stdin, expected, actual, stderr, status, exit_code, duration_ms, termination_reason)
@@ -538,7 +570,8 @@ export class BackupRepository {
         s.passedCount,
         s.totalCount,
         s.durationMs,
-        s.createdAt
+        s.createdAt,
+        s.files !== undefined && s.files.length > 0 ? JSON.stringify(s.files) : null
       )
       for (const r of s.results) {
         insResult.run(
@@ -683,6 +716,7 @@ export class BackupRepository {
       (this.db.prepare(sql).get() as { c: number }).c
     return {
       problems: count('SELECT COUNT(*) AS c FROM problems'),
+      problemFiles: count('SELECT COUNT(*) AS c FROM problem_files'),
       submissions: count('SELECT COUNT(*) AS c FROM submissions'),
       testCaseResults: count('SELECT COUNT(*) AS c FROM test_case_results'),
       errorRecords: count('SELECT COUNT(*) AS c FROM error_records'),
@@ -724,6 +758,7 @@ export class BackupRepository {
     return {
       ...EMPTY_COUNTS,
       problems: data.problems.length,
+      problemFiles: data.problems.reduce((n, p) => n + (p.files?.length ?? 0), 0),
       submissions: data.submissions.length,
       testCaseResults: data.submissions.reduce((n, s) => n + s.results.length, 0),
       errorRecords: data.errorRecords.length,

@@ -31,13 +31,13 @@ beforeEach(() => {
 
 describe('migration', () => {
   it('首次打开应用迁移至当前版本（v1.3 = 4）', () => {
-    expect(currentVersion(db)).toBe(4)
+    expect(currentVersion(db)).toBe(5)
   })
 
   it('重复迁移幂等', () => {
     // 重新执行迁移逻辑不应报错也不应重复建表
     expect(() => db.exec('SELECT 1')).not.toThrow()
-    expect(currentVersion(db)).toBe(4)
+    expect(currentVersion(db)).toBe(5)
   })
 
   it('全部核心表存在', () => {

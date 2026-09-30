@@ -22,6 +22,7 @@ export interface BackupSummary {
   appVersion: string | null
   counts: {
     problems: number
+    problemFiles: number
     submissions: number
     errorRecords: number
     mistakeBook: number
@@ -94,6 +95,7 @@ export class BackupService {
         appVersion: envelope.appVersion ?? null,
         counts: {
           problems: d.problems.length,
+          problemFiles: d.problems.reduce((n, p) => n + (p.files?.length ?? 0), 0),
           submissions: d.submissions.length,
           errorRecords: d.errorRecords.length,
           mistakeBook: d.mistakeBook.length,

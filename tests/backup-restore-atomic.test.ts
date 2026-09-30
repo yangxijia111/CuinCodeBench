@@ -105,7 +105,7 @@ describe('Backup v2 原子恢复', () => {
     ).map((r) => r.title)
     expect(titles).toEqual(fx.backupTitles)
     expect(titles).not.toContain('恢复前应消失的脏题')
-    expect(currentVersion(svc.db)).toBe(4)
+    expect(currentVersion(svc.db)).toBe(5)
     closeServices()
     // staging / .bak / journal 清理干净
     const leftovers = readdirSync(fx.dataDir).filter(

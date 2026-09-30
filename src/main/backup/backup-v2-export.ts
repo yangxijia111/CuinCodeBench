@@ -97,6 +97,7 @@ interface SubmissionJoinRow {
   language: string
   code: string
   status: string
+  files?: string | null
   passed_count: number
   total_count: number
   duration_ms: number
@@ -339,12 +340,34 @@ export function exportBackupV2(
       throw new AppError('cancelled', '导出已取消，临时文件已清理')
     }
 
+    // 4.5 problem_files（v1.4 多文件题目定义）
+    const pfRows = db
+      .prepare('SELECT problem_id, language, path, content FROM problem_files ORDER BY problem_id, language, sort_order, rowid')
+      .iterate() as IterableIterator<{ problem_id: string; language: string; path: string; content: string }>
+    const pfTotal = (db.prepare('SELECT COUNT(*) AS c FROM problem_files').get() as { c: number }).c
+    if (
+      !emitTable(
+        'problem_file',
+        pfTotal,
+        pfRows,
+        (r: { problem_id: string; language: string; path: string; content: string }) => ({
+          problemId: r.problem_id,
+          language: r.language,
+          path: r.path,
+          content: r.content
+        })
+      )
+    ) {
+      writer.abort()
+      throw new AppError('cancelled', '导出已取消，临时文件已清理')
+    }
+
     // 5. submissions + results（JOIN 流分组，内存 O(单提交明细 ≤50)）
     const subTotal = (db.prepare('SELECT COUNT(*) AS c FROM submissions').get() as { c: number }).c
     const subRows = db
       .prepare(
         `SELECT s.id, s.problem_id, s.language, s.code, s.status, s.passed_count, s.total_count,
-                s.duration_ms, s.created_at,
+                s.duration_ms, s.created_at, s.files,
                 r.test_case_id AS result_case_id, r."order" AS result_order, r.stdin AS result_stdin,
                 r.expected AS result_expected, r.actual AS result_actual, r.stderr AS result_stderr,
                 r.status AS result_status, r.exit_code AS result_exit_code,
@@ -369,6 +392,7 @@ export function exportBackupV2(
         totalCount: s.total_count,
         durationMs: s.duration_ms,
         createdAt: s.created_at,
+        ...(s.files != null && s.files !== '' ? { files: JSON.parse(s.files) as unknown[] } : {}),
         results: pendingResults
           .filter((r) => r.result_case_id !== null)
           .map((r) => ({

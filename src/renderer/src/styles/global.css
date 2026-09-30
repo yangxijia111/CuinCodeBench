@@ -1945,3 +1945,48 @@ select:focus {
   border-radius: 6px;
   padding: 2px;
 }
+
+/* v1.4：题目编辑页 CodeMirror 与附加文件 */
+.edit-code-mirror {
+  height: 200px;
+  border: 1px solid var(--border-color, #30363d);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.edit-code-mirror.small {
+  height: 150px;
+}
+.problem-files-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.problem-file-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border-color, #30363d);
+  border-radius: 6px;
+}
+.problem-file-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.problem-file-head input {
+  flex: 1;
+}
+
+/* v1.4：设置页语言服务器 */
+.langserver-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.langserver-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

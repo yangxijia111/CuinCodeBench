@@ -202,3 +202,83 @@ describe('Backup v2 格式回环', () => {
     await expect(validateBackupV2(bogus)).rejects.toThrow(/无法识别|不兼容/)
   })
 })
+
+
+// ============================================================
+// v1.4 多文件：problem_file 记录 + submissions.files 快照回环
+// ============================================================
+describe('Backup v3 多文件回环（v1.4）', () => {
+  it('problem_file 记录导出并可校验；版本号 3', async () => {
+    const dir = tempDir()
+    const dbFile = join(dir, 'src.db')
+    const db = openDatabase({ file: dbFile })
+    const problems = new ProblemRepository(db)
+    const p = problems.create(
+      makeProblemInput({
+        title: '多文件题',
+        files: [
+          { language: 'cpp', path: 'util.h', content: '#pragma once\nint add(int, int);\n' },
+          { language: 'cpp', path: 'util.cpp', content: '#include "util.h"\nint add(int a, int b){ return a + b; }\n' },
+          { language: 'python', path: 'helper.py', content: 'x = 1\n' }
+        ]
+      })
+    )
+    const history = new HistoryRepository(db)
+    history.insertSubmission(
+      {
+        problemId: p.id,
+        language: 'cpp',
+        code: 'int main(){}',
+        status: 'accepted',
+        passedCount: 1,
+        totalCount: 1,
+        durationMs: 5,
+        files: [{ path: 'util.h', content: '#pragma once\nint add(int, int);\n' }]
+      },
+      [
+        {
+          testCaseId: p.testCases[0]?.id ?? '',
+          order: 0,
+          stdin: '1 2',
+          expected: '3',
+          actual: '3',
+          stderr: '',
+          status: 'accepted',
+          exitCode: 0,
+          durationMs: 3,
+          terminationReason: null
+        }
+      ]
+    )
+    db.close()
+
+    const outPath = join(dir, 'backup.ccbbackup')
+    const db2 = openDatabase({ file: dbFile })
+    const result = exportBackupV2(db2, outPath, { appVersion: 'test' })
+    db2.close()
+    expect(result.counts['problem_file']).toBe(3)
+
+    // 格式检测 + 版本协商（v3）
+    const head = readFileSync(outPath).subarray(0, 4096)
+    expect(detectBackupFormat(head).kind).toBe('v2')
+
+    // 流式校验：捕获 problem_file 与 submission 记录
+    const problemFiles: { problemId: string; language: string; path: string }[] = []
+    const submissions: { files?: { path: string }[] }[] = []
+    const checked = await validateBackupV2(outPath, {
+      consumeRecord: (type, data) => {
+        if (type === 'problem_file') {
+          problemFiles.push(data as { problemId: string; language: string; path: string })
+        }
+        if (type === 'submission') {
+          submissions.push(data as { files?: { path: string }[] })
+        }
+      }
+    })
+    expect(checked.counts['problem_file']).toBe(3)
+    expect(problemFiles.map((f) => f.path).sort()).toEqual(['helper.py', 'util.cpp', 'util.h'])
+    expect(submissions).toHaveLength(1)
+    expect(submissions[0]?.files?.map((f) => f.path)).toEqual(['util.h'])
+    expect(BACKUP_V2_VERSION).toBe(3)
+  })
+})

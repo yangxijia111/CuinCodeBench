@@ -9,6 +9,8 @@ import type { V2RecordType } from './backup-v2-format'
 
 export class StagingWriter {
   private readonly stmts: Partial<Record<V2RecordType, Database.Statement>> = {}
+  /** problem_file sort_order 逐题递增（备份流内顺序即定义顺序） */
+  private readonly problemFileOrder = new Map<string, number>()
 
   constructor(db: Database.Database) {
     const p = (sql: string): Database.Statement => db.prepare(sql)
@@ -48,10 +50,17 @@ export class StagingWriter {
       p('INSERT INTO problem_knowledge_points (problem_id, knowledge_point_id) VALUES (?, ?)')
     )
     register(
+      'problem_file',
+      p(
+        `INSERT INTO problem_files (id, problem_id, language, path, content, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+    )
+    register(
       'submission',
       p(
-        `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO submissions (id, problem_id, language, code, status, passed_count, total_count, duration_ms, created_at, files)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
     )
     this.stmtResult = p(
@@ -191,6 +200,13 @@ export class StagingWriter {
         this.stmts.problem_knowledge?.run(d.problemId, d.knowledgePointId)
         return
       }
+      case 'problem_file': {
+        const d = data as { problemId: string; language: string; path: string; content: string }
+        // 确定性 id：同备份重复导入幂等（UNIQUE(problem_id,language,path) 双保险）
+        this.stmts.problem_file?.run(`${d.problemId}:${d.language}:${d.path}`, d.problemId, d.language, d.path, d.content, this.problemFileOrder.get(d.problemId) ?? 0)
+        this.problemFileOrder.set(d.problemId, (this.problemFileOrder.get(d.problemId) ?? 0) + 1)
+        return
+      }
       case 'submission': {
         const d = data as {
           id: string
@@ -202,6 +218,7 @@ export class StagingWriter {
           totalCount: number
           durationMs: number
           createdAt: number
+          files?: { path: string; content: string }[]
           results: {
             testCaseId: string
             order: number
@@ -215,7 +232,7 @@ export class StagingWriter {
             terminationReason?: string | null
           }[]
         }
-        this.stmts.submission?.run(d.id, d.problemId, d.language, d.code, d.status, d.passedCount, d.totalCount, d.durationMs, d.createdAt)
+        this.stmts.submission?.run(d.id, d.problemId, d.language, d.code, d.status, d.passedCount, d.totalCount, d.durationMs, d.createdAt, d.files !== undefined && d.files.length > 0 ? JSON.stringify(d.files) : null)
         for (const r of d.results) {
           this.stmtResult.run(
             `${d.id}:${r.testCaseId}`,

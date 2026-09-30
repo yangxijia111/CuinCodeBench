@@ -41,7 +41,8 @@ interface Problem {
   inputDesc: string                  // 输入说明（Markdown）
   outputDesc: string                 // 输出说明（Markdown）
   samples: Sample[]                  // 1-3 个示例
-  initialCode: Record<LanguageId, string>  // 各语言初始代码（可为空串）
+  initialCode: Record<LanguageId, string>  // 各语言初始代码（可为空串；= 入口文件 main.c/cpp/py 内容）
+  files?: ProblemFileInput[]         // v1.4：题目定义的附加文件（每语言 ≤16；见 problem_files 表）
   isBuiltin: boolean                 // 内置种子题
   createdAt: number
   updatedAt: number
@@ -79,7 +80,8 @@ interface Submission {
   id: string
   problemId: string
   language: LanguageId
-  code: string                     // 提交时代码全文
+  code: string                     // 提交时代码全文（入口文件）
+  files?: {path, content}[]        // v1.4：当次附加文件快照（submissions.files JSON 列；NULL = 单文件提交）
   status: JudgeStatus              // 总体状态
   passedCount: number
   totalCount: number
@@ -315,7 +317,35 @@ END;
 -- 内置内容稳定语义 ID（P1）：v1.2 位置型 id（ls:{slug}:{i} / kp:{slug}:{i}:{j}）
 -- 由启动步骤按 seed v2 的 slug 重写为 ls:{slug}:{stage-slug} / kp:{slug}:{kp-slug}
 -- （单事务 + 名称安全网，见 learning-repository.migrateBuiltinContentIds）
+
+-- v5（v1.4 多文件项目，docs/V1_4_DESIGN.md §6）
+-- 题目定义的附加文件；入口内容仍是 problems.initial_code（单一真相）
+CREATE TABLE problem_files (
+  id TEXT PRIMARY KEY,
+  problem_id TEXT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  language TEXT NOT NULL CHECK (language IN ('c','cpp','python')),
+  path TEXT NOT NULL,              -- 工作区相对路径（白名单校验见 shared/workspace-path.ts）
+  content TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (problem_id, language, path)
+);
+CREATE INDEX idx_problem_files_lookup ON problem_files(problem_id, language);
+
+-- submissions.files：当次判题附加文件快照（JSON [{path,content}]；NULL = 单文件提交）
+-- ALTER TABLE submissions ADD COLUMN files TEXT;
 ```
+
+### 2.x 工作区目录（v1.4，非 DB）
+
+`{CCB_DATA_DIR}/workspaces/{problemId}/{c|cpp|python}/`：做题编辑态的磁盘真相（入口
+main.c|cpp|py + 附加文件 + clangd 的 compile_flags.txt）。判题输入始终由 renderer
+显式传入（不读工作区）；备份不包含工作区（可从 initialCode/题目定义重建）。
+
+### 2.y 备份 v3（v1.4）
+
+.ccbbackup NDJSON 新增记录类型 `problem_file`（problemId/language/path/content），
+`submission` 记录新增可选 `files` 字段；格式版本 2 → 3（旧版本应用拒绝 v3 并提示升级；
+v1.3 及以前的 v2/v1 备份仍可导入，缺失字段按空/NULL 语义）。
 
 迁移机制：`db/migrations.ts` 内有序迁移数组（version + SQL），启动时在事务内补齐未应用版本，写入 `schema_migrations`。
 

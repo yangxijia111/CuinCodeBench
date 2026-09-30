@@ -203,6 +203,7 @@ export interface AppApi {
             appVersion: string | null
             counts: {
               problems: number
+              problemFiles: number
               submissions: number
               errorRecords: number
               mistakeBook: number

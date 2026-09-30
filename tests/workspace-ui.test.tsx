@@ -178,10 +178,12 @@ describe('PracticeView（文件 Tab 与诊断）', () => {
       expect(document.querySelector('.cm-content')?.textContent).toContain('def add')
     })
 
-    // 判题：无论当前 Tab，提交入口代码
+    // 判题：无论当前 Tab，提交入口代码 + 附加文件
     screen.getByRole('button', { name: '判题' }).click()
     await waitFor(() => expect(apiImpl['judgeSubmit']).toHaveBeenCalled())
-    expect(apiImpl['judgeSubmit']).toHaveBeenCalledWith('p1', 'python', 'print("hi")\n')
+    expect(apiImpl['judgeSubmit']).toHaveBeenCalledWith('p1', 'python', 'print("hi")\n', [
+      { path: 'util.py', content: 'def add(a, b):\n    return a + b\n' }
+    ])
   })
 
   it('诊断推送渲染 squiggle（cm-lintRange）', async () => {

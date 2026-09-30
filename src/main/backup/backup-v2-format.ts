@@ -22,9 +22,9 @@ import {
  */
 
 export const BACKUP_V2_FORMAT_NAME = 'cuincodebench.backup'
-export const BACKUP_V2_VERSION = 2
+export const BACKUP_V2_VERSION = 3
 /** v2 支持导入的最新版本（拒绝更高版本，提示升级） */
-export const BACKUP_V2_MAX_IMPORT_VERSION = 2
+export const BACKUP_V2_MAX_IMPORT_VERSION = 3
 /** 单行上限（防内存攻击的单行爆炸） */
 export const V2_MAX_LINE_BYTES = 64 * 1024 * 1024
 /** 导入文件大小上限（流式读取，4GB 防御性上限） */
@@ -56,6 +56,12 @@ export const v2RecordSchemas = {
   problem_knowledge: z.object({
     problemId: z.string().max(100),
     knowledgePointId: z.string().max(100)
+  }),
+  problem_file: z.object({
+    problemId: z.string().max(100),
+    language: z.enum(['c', 'cpp', 'python']),
+    path: z.string().min(1).max(200),
+    content: z.string().max(100_000)
   }),
   submission: backupSubmissionSchema,
   error_record: backupErrorRecordSchema,

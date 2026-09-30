@@ -246,6 +246,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   /** v2 记录计数 → UI 展示键（与 v1 摘要同形，SettingsView 无需分叉） */
   const displayCounts = (recordCounts: Record<string, number>): Record<string, number> => ({
     problems: recordCounts['problem'] ?? 0,
+    problemFiles: recordCounts['problem_file'] ?? 0,
     submissions: recordCounts['submission'] ?? 0,
     errorRecords: recordCounts['error_record'] ?? 0,
     mistakeBook: recordCounts['mistake_book'] ?? 0,

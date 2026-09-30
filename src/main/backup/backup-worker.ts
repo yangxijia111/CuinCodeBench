@@ -58,6 +58,7 @@ const TABLE_OF: Record<V2RecordType, string> = {
   learning_path: 'learning_paths',
   problem: 'problems',
   problem_knowledge: 'problem_knowledge_points',
+  problem_file: 'problem_files',
   submission: 'submissions',
   error_record: 'error_records',
   mistake_book: 'mistake_book',
@@ -178,6 +179,7 @@ export async function runJob(
           appVersion: checked.summary.appVersion,
           counts: {
             problems: checked.counts.problem ?? 0,
+            problemFiles: checked.counts.problem_file ?? 0,
             submissions: checked.counts.submission ?? 0,
             errorRecords: checked.counts.error_record ?? 0,
             mistakeBook: checked.counts.mistake_book ?? 0,

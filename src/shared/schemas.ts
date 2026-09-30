@@ -33,6 +33,12 @@ export const testCaseInputSchema = z.object({
     .max(TESTCASE_TIMEOUT_MAX_MS)
 })
 
+export const problemFileInputSchema = z.object({
+  language: languageIdSchema,
+  path: z.string().min(1).max(200),
+  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
+})
+
 /** 题目公共字段（problemInputSchema 与备份 schema 共用，支持 extend） */
 const problemBaseSchema = z.object({
   title: z.string().trim().min(1, '标题不能为空').max(100, '标题最长 100 字符'),
@@ -50,12 +56,6 @@ const problemBaseSchema = z.object({
 })
 
 /** v1.4 题目附加文件（语义校验：每语言路径合法性/数量） */
-export const problemFileInputSchema = z.object({
-  language: languageIdSchema,
-  path: z.string().min(1).max(200),
-  content: z.string().max(WORKSPACE_FILE_MAX_CHARS)
-})
-
 export const problemInputSchema: z.ZodType<ProblemInput> = problemBaseSchema
   .extend({
     testCases: z
@@ -162,7 +162,9 @@ export const backupProblemSchema = problemBaseSchema.extend({
   isBuiltin: z.boolean(),
   createdAt: z.number().int().min(0).optional(),
   updatedAt: z.number().int().min(0).optional(),
-  testCases: z.array(backupTestCaseSchema).max(MAX_TEST_CASES_PER_PROBLEM)
+  testCases: z.array(backupTestCaseSchema).max(MAX_TEST_CASES_PER_PROBLEM),
+  /** v1.4：题目定义附加文件（旧备份缺失 → 空语义） */
+  files: z.array(problemFileInputSchema).max(MAX_WORKSPACE_FILES * 3).optional()
 })
 
 export const backupCaseResultSchema = z.object({
@@ -189,7 +191,9 @@ export const backupSubmissionSchema = z.object({
   totalCount: z.number().int().min(0),
   durationMs: z.number().int().min(0),
   createdAt: z.number().int().min(0),
-  results: z.array(backupCaseResultSchema).max(MAX_TEST_CASES_PER_PROBLEM)
+  results: z.array(backupCaseResultSchema).max(MAX_TEST_CASES_PER_PROBLEM),
+  /** v1.4：附加文件快照（旧备份缺失 → 单文件语义） */
+  files: z.array(workspaceFileInputSchema).max(MAX_WORKSPACE_FILES).optional()
 })
 
 export const backupErrorRecordSchema = z.object({

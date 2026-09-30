@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { FONT_SIZE_MAX, FONT_SIZE_MIN, JUDGE_TIMEOUT_MAX_MS, JUDGE_TIMEOUT_MIN_MS } from '@shared/constants'
-import type { AppSettings, LanguageId, Toolchain } from '@shared/types'
+import type { AppSettings, LanguageId, LspServerStatus, Toolchain } from '@shared/types'
 import { unwrap, ApiError } from '../api/client'
 
 /**
- * 设置页（FR-E4、FR-R10、NFR-6）：编辑器偏好、判题默认超时、工具链手工指定与重新检测。
+ * 设置页（FR-E4、FR-R10、NFR-6）：编辑器偏好、判题默认超时、工具链手工指定与重新检测、
+ * 语言服务器状态（v1.4）。
  */
 export function SettingsView(): React.JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -13,6 +14,7 @@ export function SettingsView(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [detecting, setDetecting] = useState(false)
   const [toolchains, setToolchains] = useState<Toolchain[] | null>(null)
+  const [lspStatus, setLspStatus] = useState<Record<LanguageId, LspServerStatus> | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
   const [backupPhase, setBackupPhase] = useState<string>('')
 
@@ -66,7 +68,7 @@ export function SettingsView(): React.JSX.Element {
         `导出时间：${fmtTime(preview.summary.createdAt)}`,
         preview.summary.appVersion !== null ? `应用版本：v${preview.summary.appVersion}` : null,
         '',
-        `题目 ${c.problems} · 提交 ${c.submissions} · 错误记录 ${c.errorRecords}`,
+        `题目 ${c.problems}（附加文件 ${c.problemFiles}） · 提交 ${c.submissions} · 错误记录 ${c.errorRecords}`,
         `错题 ${c.mistakeBook} · 错题笔记 ${c.mistakeNotes} · 知识点 ${c.knowledgePoints}`,
         `掌握度 ${c.mastery} · 复习项 ${c.reviewItems} · 复习历史 ${c.reviewHistory}`,
         `练习队列 ${c.practiceSessions}`,
@@ -118,6 +120,15 @@ export function SettingsView(): React.JSX.Element {
       } catch {
         // 探测失败按「未检测到」呈现，用户可手动重新检测
         if (alive) setToolchains([])
+      }
+    })()
+    // v1.4：语言服务器状态（轻量，不阻塞页面）
+    void (async () => {
+      try {
+        const st = await unwrap(window.api.lspStatus())
+        if (alive) setLspStatus(st)
+      } catch {
+        // 状态不可得时显示「检测中…」占位
       }
     })()
     return () => {
@@ -253,6 +264,51 @@ export function SettingsView(): React.JSX.Element {
             </label>
           ))}
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h3>语言服务器（智能编辑）</h3>
+        <div className="langserver-status">
+          {(['python', 'c', 'cpp'] as LanguageId[]).map((lang) => {
+            const st = lspStatus?.[lang]
+            const label =
+              st === undefined
+                ? '检测中…'
+                : st.server === 'pyright'
+                  ? 'pyright（内置，开箱即用）'
+                  : st.server === 'clangd'
+                    ? 'clangd（本机检测）'
+                    : st.server === 'fallback'
+                      ? '编译器语法回退（未装语言服务器）'
+                      : '不可用（无语言服务器，无可用编译器）'
+            const cls = st?.server === 'pyright' || st?.server === 'clangd' ? 'lsp-badge ok' : st?.server === 'fallback' ? 'lsp-badge mid' : 'lsp-badge off'
+            return (
+              <div key={lang} className="langserver-row">
+                <span className="lang-chip">{lang === 'cpp' ? 'C++' : lang.toUpperCase()}</span>
+                <span className={cls}>{label}</span>
+              </div>
+            )
+          })}
+        </div>
+        <label className="manual-row">
+          <span className="lang-chip">clangd</span>
+          <input
+            placeholder="手工指定 clangd.exe 完整路径（可选；未指定时从 PATH 检测）"
+            defaultValue={settings.manualClangdPath}
+            onBlur={(e) => {
+              const value = e.target.value.trim()
+              if (value === settings.manualClangdPath) return
+              void patch({ manualClangdPath: value }).then(() => {
+                setSettings((prev) => (prev === null ? prev : { ...prev, manualClangdPath: value }))
+                setMessage('已保存 clangd 路径，重新进入练习页后生效')
+              })
+            }}
+          />
+        </label>
+        <p className="settings-note">
+          Python 智能提示由内置 pyright 提供（无需安装）；C/C++ 需本机安装 LLVM/clangd（或依赖 gcc 语法回退）。
+          语言服务器仅用于编辑器的诊断、补全与悬停，不参与判题。
+        </p>
       </section>
 
       <section className="settings-section">

@@ -1,11 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import type { Difficulty, KnowledgePoint, LanguageId, ProblemInput, TestCaseInput } from '@shared/types'
+import type {
+  AppSettings,
+  Difficulty,
+  KnowledgePoint,
+  LanguageId,
+  ProblemFileInput,
+  ProblemInput,
+  TestCaseInput
+} from '@shared/types'
+import { DEFAULT_SETTINGS } from '@shared/types'
 import { DEFAULT_TESTCASE_TIMEOUT_MS } from '@shared/constants'
 import { unwrap, ApiError } from '../api/client'
+import { CodeEditor } from '../components/CodeEditor'
 
 /**
- * 题目新建/编辑页（FR-P1/P3）：基本信息 + 示例 + 初始代码 + 测试用例编辑。
+ * 题目新建/编辑页（FR-P1/P3）：基本信息 + 示例 + 初始代码 + 附加文件（v1.4）+ 测试用例编辑。
  */
 
 const EMPTY_INPUT: ProblemInput = {
@@ -33,10 +43,17 @@ export function ProblemEditView(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(!isEdit)
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   // v1.2：知识点绑定（题目编辑页多选；保存时与旧集合 diff 同步）
   const [allKps, setAllKps] = useState<KnowledgePoint[]>([])
   const [selectedKpIds, setSelectedKpIds] = useState<Set<string>>(new Set())
   const [oldKpIds, setOldKpIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    unwrap(window.api.getSettings())
+      .then((s) => setSettings(s))
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     unwrap(window.api.listAllKnowledgePoints())
@@ -62,6 +79,7 @@ export function ProblemEditView(): React.JSX.Element {
           outputDesc: p.outputDesc,
           samples: p.samples.length > 0 ? p.samples : [{ input: '', output: '' }],
           initialCode: p.initialCode,
+          files: p.files.map((f) => ({ language: f.language, path: f.path, content: f.content })),
           testCases: p.testCases.map((tc) => ({
             stdin: tc.stdin,
             expectedStdout: tc.expectedStdout,
@@ -88,8 +106,10 @@ export function ProblemEditView(): React.JSX.Element {
   async function handleSave(): Promise<void> {
     setSaving(true)
     setError(null)
+    const files = (input.files ?? []).filter((f) => f.path.trim() !== '' && f.path !== 'main.c' && f.path !== 'main.cpp' && f.path !== 'main.py')
     const payload: ProblemInput = {
       ...input,
+      files,
       tags: tagText
         .split(/[\s,，]+/)
         .map((t) => t.trim())
@@ -247,22 +267,96 @@ export function ProblemEditView(): React.JSX.Element {
           </div>
         </div>
 
-        {/* —— 初始代码 —— */}
+        {/* —— 初始代码（v1.4：CodeMirror 编辑）—— */}
         <div className="form-row">
-          <span className="form-label">初始代码（可留空）</span>
+          <span className="form-label">初始代码 / 入口文件（可留空；入口名固定 main.c / main.cpp / main.py）</span>
           {(['c', 'cpp', 'python'] as LanguageId[]).map((lang) => (
             <div key={lang} className="initial-code-row">
               <span className="lang-chip">{lang === 'cpp' ? 'C++' : lang.toUpperCase()}</span>
-              <textarea
-                rows={3}
-                className="mono"
-                value={input.initialCode[lang]}
-                onChange={(e) =>
-                  patch({ initialCode: { ...input.initialCode, [lang]: e.target.value } })
-                }
-              />
+              <div className="edit-code-mirror">
+                <CodeEditor
+                  value={input.initialCode[lang]}
+                  language={lang}
+                  fontSize={settings.fontSize}
+                  tabSize={settings.tabSize}
+                  wordWrap={settings.wordWrap}
+                  onChange={(value) => patch({ initialCode: { ...input.initialCode, [lang]: value } })}
+                />
+              </div>
             </div>
           ))}
+        </div>
+
+        {/* —— 附加文件（v1.4 多文件题目定义）—— */}
+        <div className="form-row">
+          <span className="form-label">
+            附加文件（可选，最多 16 个/语言；头文件与辅助源文件将进入做题工作区并参与编译）
+          </span>
+          <div className="problem-files-editor">
+            {(input.files ?? []).map((f, i) => (
+              <div key={i} className="problem-file-row">
+                <div className="problem-file-head">
+                  <select
+                    aria-label="文件语言"
+                    value={f.language}
+                    onChange={(e) => {
+                      const next = [...(input.files ?? [])]
+                      next[i] = { ...f, language: e.target.value as LanguageId }
+                      patch({ files: next })
+                    }}
+                  >
+                    <option value="c">C</option>
+                    <option value="cpp">C++</option>
+                    <option value="python">Python</option>
+                  </select>
+                  <input
+                    className="mono"
+                    aria-label="文件路径"
+                    placeholder="相对路径，如 util.h / sub/helper.py"
+                    value={f.path}
+                    onChange={(e) => {
+                      const next = [...(input.files ?? [])]
+                      next[i] = { ...f, path: e.target.value }
+                      patch({ files: next })
+                    }}
+                  />
+                  <button
+                    className="danger"
+                    onClick={() => patch({ files: (input.files ?? []).filter((_, j) => j !== i) })}
+                  >
+                    删除
+                  </button>
+                </div>
+                <div className="edit-code-mirror small">
+                  <CodeEditor
+                    value={f.content}
+                    language={f.language}
+                    fontSize={settings.fontSize}
+                    tabSize={settings.tabSize}
+                    wordWrap={settings.wordWrap}
+                    onChange={(value) => {
+                      const next = [...(input.files ?? [])]
+                      next[i] = { ...f, content: value }
+                      patch({ files: next })
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+            <button
+              disabled={(input.files ?? []).length >= 48}
+              onClick={() =>
+                patch({
+                  files: [
+                    ...(input.files ?? []),
+                    { language: 'cpp' as LanguageId, path: '', content: '' } satisfies ProblemFileInput
+                  ]
+                })
+              }
+            >
+              添加附加文件
+            </button>
+          </div>
         </div>
 
         {/* —— 测试用例 —— */}
